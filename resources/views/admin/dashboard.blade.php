@@ -30,6 +30,12 @@
             <div class="rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
                 <h2 class="text-lg font-semibold text-slate-950">Selamat datang, {{ auth()->user()->name }}</h2>
                 <p class="mt-2 text-sm text-slate-600">Ruang admin untuk pengurusan sistem komisyen affiliate TikTok.</p>
+
+                <div class="mt-6">
+                    <a href="{{ route('admin.affiliates.index') }}" class="inline-flex rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+                        Affiliate Management
+                    </a>
+                </div>
             </div>
         </section>
     </main>
