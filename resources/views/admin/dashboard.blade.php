@@ -31,9 +31,12 @@
                 <h2 class="text-lg font-semibold text-slate-950">Selamat datang, {{ auth()->user()->name }}</h2>
                 <p class="mt-2 text-sm text-slate-600">Ruang admin untuk pengurusan sistem komisyen affiliate TikTok.</p>
 
-                <div class="mt-6">
+                <div class="mt-6 flex flex-wrap gap-3">
                     <a href="{{ route('admin.affiliates.index') }}" class="inline-flex rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
                         Affiliate Management
+                    </a>
+                    <a href="{{ route('admin.orders.upload') }}" class="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                        CSV Upload
                     </a>
                 </div>
             </div>
