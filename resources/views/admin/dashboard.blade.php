@@ -38,6 +38,9 @@
                     <a href="{{ route('admin.orders.upload') }}" class="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                         CSV Upload
                     </a>
+                    <a href="{{ route('admin.commissions.index') }}" class="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                        Commission Calculation
+                    </a>
                 </div>
             </div>
         </section>

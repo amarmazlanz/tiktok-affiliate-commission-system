@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Admin\AffiliateController;
+use App\Http\Controllers\Admin\CommissionController;
 use App\Http\Controllers\Admin\OrderImportController;
 use App\Http\Controllers\Admin\TiktokAccountController;
 use Illuminate\Support\Facades\Auth;
@@ -66,6 +67,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('orders/upload', [OrderImportController::class, 'create'])->name('orders.upload');
     Route::post('orders/upload', [OrderImportController::class, 'store'])->name('orders.import');
+
+    Route::get('commissions', [CommissionController::class, 'index'])->name('commissions.index');
+    Route::post('commissions', [CommissionController::class, 'store'])->name('commissions.store');
+    Route::get('commissions/{commission}', [CommissionController::class, 'show'])->name('commissions.show');
 });
 
 Route::middleware(['auth', 'role:affiliate'])->prefix('affiliate')->name('affiliate.')->group(function () {
