@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AffiliateController;
 use App\Http\Controllers\Admin\CommissionController;
 use App\Http\Controllers\Admin\OrderImportController;
 use App\Http\Controllers\Admin\TiktokAccountController;
+use App\Http\Controllers\Affiliate\DashboardController as AffiliateDashboardController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -76,7 +77,5 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 Route::middleware(['auth', 'role:affiliate'])->prefix('affiliate')->name('affiliate.')->group(function () {
     Route::get('/', fn () => redirect()->route('affiliate.dashboard'));
 
-    Route::get('/dashboard', function () {
-        return view('affiliate.dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', AffiliateDashboardController::class)->name('dashboard');
 });
