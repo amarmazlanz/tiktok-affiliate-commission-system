@@ -77,6 +77,9 @@
                                     </td>
                                     <td class="px-4 py-3">
                                         <div class="flex justify-end gap-2">
+                                            <a href="{{ route('admin.affiliates.show', $affiliate) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                                                Detail
+                                            </a>
                                             <a href="{{ route('admin.affiliates.edit', $affiliate) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
                                                 Edit
                                             </a>

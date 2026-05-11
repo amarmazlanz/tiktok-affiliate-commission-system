@@ -33,6 +33,13 @@ class AffiliateController extends Controller
         ]);
     }
 
+    public function show(Affiliate $affiliate): View
+    {
+        $affiliate->load(['upline', 'tiktokAccounts' => fn ($query) => $query->latest()]);
+
+        return view('admin.affiliates.show', compact('affiliate'));
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([

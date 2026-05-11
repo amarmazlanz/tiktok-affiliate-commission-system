@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Admin\AffiliateController;
+use App\Http\Controllers\Admin\TiktokAccountController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -56,7 +57,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         return view('admin.dashboard');
     })->name('dashboard');
 
-    Route::resource('affiliates', AffiliateController::class)->except(['show']);
+    Route::resource('affiliates', AffiliateController::class);
+    Route::post('affiliates/{affiliate}/tiktok-accounts', [TiktokAccountController::class, 'store'])
+        ->name('affiliates.tiktok-accounts.store');
+    Route::delete('affiliates/{affiliate}/tiktok-accounts/{tiktokAccount}', [TiktokAccountController::class, 'destroy'])
+        ->name('affiliates.tiktok-accounts.destroy');
 });
 
 Route::middleware(['auth', 'role:affiliate'])->prefix('affiliate')->name('affiliate.')->group(function () {
