@@ -39,6 +39,7 @@
                             <a href="{{ route('admin.affiliates.index') }}" class="btn-secondary">Affiliate Management</a>
                             <a href="{{ route('admin.orders.upload') }}" class="btn-secondary">CSV Upload</a>
                             <a href="{{ route('admin.commissions.index') }}" class="btn-secondary">Commission Runs</a>
+                            <a href="{{ route('admin.commission-rate-settings.index') }}" class="btn-secondary">Commission Settings</a>
                         @else
                             <a href="{{ route('affiliate.dashboard') }}" class="btn-secondary">Affiliate Dashboard</a>
                         @endif

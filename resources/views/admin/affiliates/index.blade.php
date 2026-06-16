@@ -56,9 +56,10 @@
                                 <th class="px-4 py-3 text-left font-semibold text-slate-700">Name</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-700">Phone</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Upline</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Downline</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Status</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Direct Upline</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Direct Downline Count</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Position / Status</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Account Status</th>
                                 <th class="px-4 py-3 text-right font-semibold text-slate-700">Action</th>
                             </tr>
                         </thead>
@@ -70,6 +71,11 @@
                                     <td class="px-4 py-3 text-slate-700">{{ $affiliate->phone ?: '-' }}</td>
                                     <td class="px-4 py-3 text-slate-700">{{ $affiliate->upline?->name ?: '-' }}</td>
                                     <td class="px-4 py-3 text-slate-700">{{ $affiliate->direct_downlines_count }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $affiliate->direct_downlines_count > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">
+                                            {{ $affiliate->direct_downlines_count > 0 ? 'Manager' : 'Affiliate' }}
+                                        </span>
+                                    </td>
                                     <td class="px-4 py-3">
                                         <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $affiliate->status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">
                                             {{ ucfirst($affiliate->status) }}
@@ -95,7 +101,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+                                    <td colspan="8" class="px-4 py-8 text-center text-slate-500">
                                         Belum ada affiliate.
                                     </td>
                                 </tr>

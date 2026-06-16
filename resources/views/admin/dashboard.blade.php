@@ -41,6 +41,9 @@
                     <a href="{{ route('admin.commissions.index') }}" class="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                         Commission Calculation
                     </a>
+                    <a href="{{ route('admin.commission-rate-settings.index') }}" class="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                        Commission Settings
+                    </a>
                 </div>
             </div>
         </section>

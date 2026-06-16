@@ -46,5 +46,6 @@
                 </option>
             @endforeach
         </select>
+        <p class="mt-1 text-xs text-slate-500">Manager level is determined automatically based on the selected upline/downline hierarchy.</p>
     </div>
 </div>

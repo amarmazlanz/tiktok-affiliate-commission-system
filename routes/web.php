@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use App\Http\Controllers\Admin\AffiliateController;
 use App\Http\Controllers\Admin\CommissionController;
+use App\Http\Controllers\Admin\CommissionRateSettingController;
 use App\Http\Controllers\Admin\OrderImportController;
 use App\Http\Controllers\Admin\TiktokAccountController;
 use App\Http\Controllers\Affiliate\DashboardController as AffiliateDashboardController;
@@ -72,6 +73,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('commissions', [CommissionController::class, 'index'])->name('commissions.index');
     Route::post('commissions', [CommissionController::class, 'store'])->name('commissions.store');
     Route::get('commissions/{commission}', [CommissionController::class, 'show'])->name('commissions.show');
+
+    Route::resource('commission-rate-settings', CommissionRateSettingController::class)
+        ->except(['show', 'destroy']);
 });
 
 Route::middleware(['auth', 'role:affiliate'])->prefix('affiliate')->name('affiliate.')->group(function () {

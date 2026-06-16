@@ -46,7 +46,7 @@
                     </a>
                 </div>
 
-                <dl class="mt-6 grid gap-4 text-sm sm:grid-cols-4">
+                <dl class="mt-6 grid gap-4 text-sm sm:grid-cols-3 lg:grid-cols-6">
                     <div>
                         <dt class="font-medium text-slate-500">Phone</dt>
                         <dd class="mt-1 text-slate-950">{{ $affiliate->phone ?: '-' }}</dd>
@@ -56,14 +56,58 @@
                         <dd class="mt-1 text-slate-950">{{ ucfirst($affiliate->status) }}</dd>
                     </div>
                     <div>
-                        <dt class="font-medium text-slate-500">Upline</dt>
+                        <dt class="font-medium text-slate-500">Direct Upline</dt>
                         <dd class="mt-1 text-slate-950">{{ $affiliate->upline?->name ?: '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-slate-500">Direct Downline Count</dt>
+                        <dd class="mt-1 text-slate-950">{{ $affiliate->direct_downlines_count }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-slate-500">Position / Status</dt>
+                        <dd class="mt-1 text-slate-950">{{ $affiliate->direct_downlines_count > 0 ? 'Manager' : 'Affiliate' }}</dd>
                     </div>
                     <div>
                         <dt class="font-medium text-slate-500">TikTok Accounts</dt>
                         <dd class="mt-1 text-slate-950">{{ $affiliate->tiktokAccounts->count() }}</dd>
                     </div>
                 </dl>
+            </div>
+
+            <div class="rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
+                <div class="border-b border-slate-200 px-6 py-4">
+                    <h2 class="text-lg font-semibold text-slate-950">Direct Downline</h2>
+                    <p class="mt-1 text-sm text-slate-600">Affiliate with direct downline is treated as Manager for commission rule.</p>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Name</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Status</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">TikTok Accounts</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                            @forelse ($affiliate->directDownlines as $downline)
+                                <tr>
+                                    <td class="px-4 py-3 font-medium text-slate-950">{{ $downline->name }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ $downline->email }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ ucfirst($downline->status) }}</td>
+                                    <td class="px-4 py-3 text-slate-700">{{ $downline->tiktok_accounts_count }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="px-4 py-8 text-center text-slate-500">
+                                        Belum ada direct downline.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">

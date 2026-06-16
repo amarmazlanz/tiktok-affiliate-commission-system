@@ -35,7 +35,11 @@ class AffiliateController extends Controller
 
     public function show(Affiliate $affiliate): View
     {
-        $affiliate->load(['upline', 'tiktokAccounts' => fn ($query) => $query->latest()]);
+        $affiliate->load([
+            'upline',
+            'tiktokAccounts' => fn ($query) => $query->latest(),
+            'directDownlines' => fn ($query) => $query->withCount('tiktokAccounts')->orderBy('name'),
+        ])->loadCount('directDownlines');
 
         return view('admin.affiliates.show', compact('affiliate'));
     }

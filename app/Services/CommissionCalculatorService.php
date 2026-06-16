@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Affiliate;
+use App\Models\CommissionRateSetting;
 use App\Models\CommissionRun;
 use App\Models\TiktokOrder;
 use Carbon\Carbon;
@@ -10,17 +11,13 @@ use Illuminate\Support\Facades\DB;
 
 class CommissionCalculatorService
 {
-    private const PERSONAL_RATE = 0.10;
-    private const MANAGER_RATE = 0.01;
-    private const LEVEL_2_RATE = 0.003;
-    private const LEVEL_3_RATE = 0.002;
-
     public function calculate(int $month, int $year): CommissionRun
     {
+        $rates = CommissionRateSetting::ratesFor($month, $year);
         $start = Carbon::create($year, $month, 1)->startOfMonth();
         $end = $start->copy()->endOfMonth();
 
-        return DB::transaction(function () use ($month, $year, $start, $end): CommissionRun {
+        return DB::transaction(function () use ($month, $year, $rates, $start, $end): CommissionRun {
             $run = CommissionRun::query()->firstOrCreate([
                 'month' => $month,
                 'year' => $year,
@@ -67,20 +64,20 @@ class CommissionCalculatorService
                 $baseAmount = (float) $order->estimated_commission_base;
                 $totalSales += $baseAmount;
 
-                $totalCommission += $this->createEntry($run, $order->id, $seller, $seller, 'personal', null, self::PERSONAL_RATE, $baseAmount);
+                $totalCommission += $this->createEntry($run, $order->id, $seller, $seller, 'personal', null, $rates['personal_rate'], $baseAmount);
 
                 if ($seller->directDownlines()->exists()) {
-                    $totalCommission += $this->createEntry($run, $order->id, $seller, $seller, 'manager_bonus', null, self::MANAGER_RATE, $baseAmount);
+                    $totalCommission += $this->createEntry($run, $order->id, $seller, $seller, 'manager_bonus', null, $rates['manager_bonus_rate'], $baseAmount);
                 } elseif ($seller->upline) {
-                    $totalCommission += $this->createEntry($run, $order->id, $seller->upline, $seller, 'overriding', 1, self::MANAGER_RATE, $baseAmount);
+                    $totalCommission += $this->createEntry($run, $order->id, $seller->upline, $seller, 'overriding', 1, $rates['l1_rate'], $baseAmount);
                 }
 
                 if ($seller->upline?->upline) {
-                    $totalCommission += $this->createEntry($run, $order->id, $seller->upline->upline, $seller, 'overriding', 2, self::LEVEL_2_RATE, $baseAmount);
+                    $totalCommission += $this->createEntry($run, $order->id, $seller->upline->upline, $seller, 'overriding', 2, $rates['l2_rate'], $baseAmount);
                 }
 
                 if ($seller->upline?->upline?->upline) {
-                    $totalCommission += $this->createEntry($run, $order->id, $seller->upline->upline->upline, $seller, 'overriding', 3, self::LEVEL_3_RATE, $baseAmount);
+                    $totalCommission += $this->createEntry($run, $order->id, $seller->upline->upline->upline, $seller, 'overriding', 3, $rates['l3_rate'], $baseAmount);
                 }
             }
 
