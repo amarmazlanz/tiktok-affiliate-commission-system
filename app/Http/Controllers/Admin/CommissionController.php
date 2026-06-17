@@ -36,11 +36,22 @@ class CommissionController extends Controller
 
     public function show(CommissionRun $commission): View
     {
-        $commission->load(['commissionEntries.receiverAffiliate']);
+        $commission->load([
+            'commissionEntries.receiverAffiliate',
+            'commissionEntries.sourceAffiliate',
+            'commissionEntries.tiktokOrder',
+        ]);
 
-        $summaries = $commission->commissionEntries
+        $commissionEntries = $commission->commissionEntries;
+
+        $salesByAffiliate = $commissionEntries
+            ->where('commission_type', 'personal')
+            ->groupBy('source_affiliate_id')
+            ->map(fn ($entries) => $entries->sum('base_amount'));
+
+        $summaries = $commissionEntries
             ->groupBy('receiver_affiliate_id')
-            ->map(function ($entries) {
+            ->map(function ($entries) use ($salesByAffiliate) {
                 $affiliate = $entries->first()->receiverAffiliate;
 
                 $personal = $entries
@@ -49,27 +60,35 @@ class CommissionController extends Controller
                 $managerBonus = $entries
                     ->where('commission_type', 'manager_bonus')
                     ->sum('commission_amount');
-                $overridingL1 = $entries
-                    ->where('commission_type', 'overriding')
-                    ->where('level', 1)
+                $l1Overriding = $entries
+                    ->filter(fn ($entry): bool => $entry->commission_type === 'l1_overriding'
+                        || ($entry->commission_type === 'overriding' && (int) $entry->level === 1))
                     ->sum('commission_amount');
-                $overridingL2 = $entries
-                    ->where('commission_type', 'overriding')
-                    ->where('level', 2)
+                $l1SplitSeller = $entries
+                    ->where('commission_type', 'l1_split_seller')
                     ->sum('commission_amount');
-                $overridingL3 = $entries
-                    ->where('commission_type', 'overriding')
-                    ->where('level', 3)
+                $l1SplitUpline = $entries
+                    ->where('commission_type', 'l1_split_upline')
+                    ->sum('commission_amount');
+                $l1Earnings = $l1Overriding + $l1SplitSeller + $l1SplitUpline;
+                $l2Overriding = $entries
+                    ->filter(fn ($entry): bool => $entry->commission_type === 'l2_overriding'
+                        || ($entry->commission_type === 'overriding' && (int) $entry->level === 2))
+                    ->sum('commission_amount');
+                $l3Overriding = $entries
+                    ->filter(fn ($entry): bool => $entry->commission_type === 'l3_overriding'
+                        || ($entry->commission_type === 'overriding' && (int) $entry->level === 3))
                     ->sum('commission_amount');
 
                 return [
                     'affiliate' => $affiliate,
+                    'total_sales' => (float) ($salesByAffiliate[$affiliate->id] ?? 0),
                     'personal' => $personal,
                     'manager_bonus' => $managerBonus,
-                    'overriding_l1' => $overridingL1,
-                    'overriding_l2' => $overridingL2,
-                    'overriding_l3' => $overridingL3,
-                    'total' => $personal + $managerBonus + $overridingL1 + $overridingL2 + $overridingL3,
+                    'l1_earnings' => $l1Earnings,
+                    'l2_earnings' => $l2Overriding,
+                    'l3_earnings' => $l3Overriding,
+                    'total' => $personal + $managerBonus + $l1Earnings + $l2Overriding + $l3Overriding,
                 ];
             })
             ->sortBy(fn ($summary) => $summary['affiliate']->name)
@@ -79,7 +98,22 @@ class CommissionController extends Controller
             'commission' => $commission,
             'summaries' => $summaries,
             'months' => $this->months(),
+            'entryTypeLabels' => $this->entryTypeLabels(),
         ]);
+    }
+
+    private function entryTypeLabels(): array
+    {
+        return [
+            'personal' => 'Personal Commission',
+            'manager_bonus' => 'Manager Bonus',
+            'overriding' => 'Overriding',
+            'l1_overriding' => 'L1 Overriding',
+            'l1_split_seller' => 'L1 Split - Seller 70%',
+            'l1_split_upline' => 'L1 Split - Upline 30%',
+            'l2_overriding' => 'L2 Overriding',
+            'l3_overriding' => 'L3 Overriding',
+        ];
     }
 
     private function months(): array

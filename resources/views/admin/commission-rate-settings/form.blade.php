@@ -4,6 +4,10 @@
     </div>
 @endif
 
+<div class="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+    Enter percentage value. Example: 10 = 10%, 1 = 1%, 0.3 = 0.3%.
+</div>
+
 <div class="grid gap-5 md:grid-cols-2">
     <div>
         <label for="month" class="block text-sm font-medium text-slate-700">Month</label>
@@ -24,14 +28,14 @@
     @foreach ([
         'personal_rate' => 'Personal Rate',
         'manager_bonus_rate' => 'Manager Bonus Rate',
-        'l1_rate' => 'Overriding L1 Rate',
-        'l2_rate' => 'Overriding L2 Rate',
-        'l3_rate' => 'Overriding L3 Rate',
+        'l1_rate' => 'L1 Rate',
+        'l2_rate' => 'L2 Rate',
+        'l3_rate' => 'L3 Rate',
     ] as $field => $label)
         <div>
             <label for="{{ $field }}" class="block text-sm font-medium text-slate-700">{{ $label }}</label>
             <input id="{{ $field }}" name="{{ $field }}" type="number" min="0" max="100" step="0.01" value="{{ old($field, rtrim(rtrim(number_format((float) $setting->{$field} * 100, 4, '.', ''), '0'), '.')) }}" class="form-field">
-            <p class="mt-1 text-xs text-slate-500">Enter percentage value. Example: 10 = 10%, 1 = 1%, 0.3 = 0.3%</p>
+            <p class="mt-1 text-xs text-slate-500">{{ $label }} stored as decimal for calculation.</p>
         </div>
     @endforeach
 

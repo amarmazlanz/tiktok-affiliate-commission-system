@@ -38,20 +38,13 @@ class CommissionCalculatorService
             $totalSales = 0.0;
             $totalCommission = 0.0;
 
-            $orders = TiktokOrder::query()
+            $monthlySalesByAffiliate = $this->eligibleOrdersQuery($start, $end)
+                ->select('affiliate_id', DB::raw('SUM(estimated_commission_base) as total_sales'))
+                ->groupBy('affiliate_id')
+                ->pluck('total_sales', 'affiliate_id');
+
+            $orders = $this->eligibleOrdersQuery($start, $end)
                 ->with(['affiliate.upline.upline.upline'])
-                ->where('order_status', 'Settled')
-                ->where('estimated_commission_base', '>', 0)
-                ->whereNotNull('affiliate_id')
-                ->where(function ($query) use ($start, $end): void {
-                    $query
-                        ->whereBetween('time_commission_paid', [$start, $end])
-                        ->orWhere(function ($query) use ($start, $end): void {
-                            $query
-                                ->whereNull('time_commission_paid')
-                                ->whereBetween('time_created', [$start, $end]);
-                        });
-                })
                 ->get();
 
             foreach ($orders as $order) {
@@ -66,18 +59,59 @@ class CommissionCalculatorService
 
                 $totalCommission += $this->createEntry($run, $order->id, $seller, $seller, 'personal', null, $rates['personal_rate'], $baseAmount);
 
-                if ($seller->directDownlines()->exists()) {
+                $directDownlineIds = $seller->directDownlines()->pluck('id');
+                $hasDirectDownlines = $directDownlineIds->isNotEmpty();
+
+                if ($hasDirectDownlines) {
                     $totalCommission += $this->createEntry($run, $order->id, $seller, $seller, 'manager_bonus', null, $rates['manager_bonus_rate'], $baseAmount);
+                }
+
+                $sellerMonthlySales = (float) ($monthlySalesByAffiliate[$seller->id] ?? 0);
+                $directDownlineMonthlySales = $directDownlineIds->sum(
+                    fn (int $downlineId): float => (float) ($monthlySalesByAffiliate[$downlineId] ?? 0)
+                );
+                $qualifiesForL1Split = $hasDirectDownlines
+                    && $sellerMonthlySales >= 20000
+                    && ($sellerMonthlySales + $directDownlineMonthlySales) >= 100000;
+
+                if ($qualifiesForL1Split) {
+                    $l1Amount = round($baseAmount * $rates['l1_rate'], 2);
+
+                    $totalCommission += $this->createEntry(
+                        $run,
+                        $order->id,
+                        $seller,
+                        $seller,
+                        'l1_split_seller',
+                        1,
+                        $rates['l1_rate'],
+                        $baseAmount,
+                        round($l1Amount * 0.70, 2)
+                    );
+
+                    if ($seller->upline) {
+                        $totalCommission += $this->createEntry(
+                            $run,
+                            $order->id,
+                            $seller->upline,
+                            $seller,
+                            'l1_split_upline',
+                            1,
+                            $rates['l1_rate'],
+                            $baseAmount,
+                            round($l1Amount * 0.30, 2)
+                        );
+                    }
                 } elseif ($seller->upline) {
-                    $totalCommission += $this->createEntry($run, $order->id, $seller->upline, $seller, 'overriding', 1, $rates['l1_rate'], $baseAmount);
+                    $totalCommission += $this->createEntry($run, $order->id, $seller->upline, $seller, 'l1_overriding', 1, $rates['l1_rate'], $baseAmount);
                 }
 
                 if ($seller->upline?->upline) {
-                    $totalCommission += $this->createEntry($run, $order->id, $seller->upline->upline, $seller, 'overriding', 2, $rates['l2_rate'], $baseAmount);
+                    $totalCommission += $this->createEntry($run, $order->id, $seller->upline->upline, $seller, 'l2_overriding', 2, $rates['l2_rate'], $baseAmount);
                 }
 
                 if ($seller->upline?->upline?->upline) {
-                    $totalCommission += $this->createEntry($run, $order->id, $seller->upline->upline->upline, $seller, 'overriding', 3, $rates['l3_rate'], $baseAmount);
+                    $totalCommission += $this->createEntry($run, $order->id, $seller->upline->upline->upline, $seller, 'l3_overriding', 3, $rates['l3_rate'], $baseAmount);
                 }
             }
 
@@ -92,6 +126,23 @@ class CommissionCalculatorService
         });
     }
 
+    private function eligibleOrdersQuery(Carbon $start, Carbon $end)
+    {
+        return TiktokOrder::query()
+            ->where('order_status', 'Settled')
+            ->where('estimated_commission_base', '>', 0)
+            ->whereNotNull('affiliate_id')
+            ->where(function ($query) use ($start, $end): void {
+                $query
+                    ->whereBetween('time_commission_paid', [$start, $end])
+                    ->orWhere(function ($query) use ($start, $end): void {
+                        $query
+                            ->whereNull('time_commission_paid')
+                            ->whereBetween('time_created', [$start, $end]);
+                    });
+            });
+    }
+
     private function createEntry(
         CommissionRun $run,
         int $orderId,
@@ -100,9 +151,10 @@ class CommissionCalculatorService
         string $type,
         ?int $level,
         float $rate,
-        float $baseAmount
+        float $baseAmount,
+        ?float $commissionAmount = null
     ): float {
-        $commissionAmount = round($baseAmount * $rate, 2);
+        $commissionAmount ??= round($baseAmount * $rate, 2);
 
         $run->commissionEntries()->create([
             'receiver_affiliate_id' => $receiver->id,

@@ -13,18 +13,18 @@
             </div>
         </header>
 
-        <section class="mx-auto max-w-6xl space-y-6 px-4 py-8">
+        <section class="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
             @if (session('error'))
                 <div class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                     {{ session('error') }}
                 </div>
             @endif
 
-            <div class="app-card p-6">
+            <div class="app-card p-6 sm:p-7">
                 <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                     <div>
-                        <p class="text-sm font-medium text-emerald-700">TikTok Affiliate Commission System</p>
-                        <h2 class="mt-1 text-2xl font-semibold text-slate-950">Business Overview</h2>
+                        <p class="text-sm font-semibold text-emerald-700">TikTok Affiliate Commission System</p>
+                        <h2 class="mt-1 text-2xl font-bold text-slate-950">Business Overview</h2>
                         <p class="mt-2 text-sm text-slate-600">Monitor affiliate sales, commission activity, imported orders, and monthly rate setup.</p>
                     </div>
                     <p class="text-sm text-slate-500">{{ now()->format('d M Y') }}</p>
@@ -32,33 +32,33 @@
             </div>
 
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div class="app-card p-5">
-                    <p class="text-xs font-semibold uppercase text-slate-500">Total Sales This Month</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-950">RM {{ number_format($summary['total_sales_this_month'], 2) }}</p>
+                <div class="stat-card">
+                    <p class="stat-label">Total Sales This Month</p>
+                    <p class="stat-value stat-value-money">RM {{ number_format($summary['total_sales_this_month'], 2) }}</p>
                 </div>
-                <div class="app-card p-5">
-                    <p class="text-xs font-semibold uppercase text-slate-500">Total Commission This Month</p>
-                    <p class="mt-2 text-2xl font-semibold text-emerald-700">RM {{ number_format($summary['total_commission_this_month'], 2) }}</p>
+                <div class="stat-card">
+                    <p class="stat-label">Total Commission This Month</p>
+                    <p class="stat-value stat-value-money">RM {{ number_format($summary['total_commission_this_month'], 2) }}</p>
                 </div>
-                <div class="app-card p-5">
-                    <p class="text-xs font-semibold uppercase text-slate-500">Total Affiliates</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-950">{{ number_format($summary['total_affiliates']) }}</p>
+                <div class="stat-card">
+                    <p class="stat-label">Total Affiliates</p>
+                    <p class="stat-value">{{ number_format($summary['total_affiliates']) }}</p>
                 </div>
-                <div class="app-card p-5">
-                    <p class="text-xs font-semibold uppercase text-slate-500">Total TikTok Accounts</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-950">{{ number_format($summary['total_tiktok_accounts']) }}</p>
+                <div class="stat-card">
+                    <p class="stat-label">Total TikTok Accounts</p>
+                    <p class="stat-value">{{ number_format($summary['total_tiktok_accounts']) }}</p>
                 </div>
-                <div class="app-card p-5">
-                    <p class="text-xs font-semibold uppercase text-slate-500">Total Orders Imported</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-950">{{ number_format($summary['total_orders_imported']) }}</p>
+                <div class="stat-card">
+                    <p class="stat-label">Total Orders Imported</p>
+                    <p class="stat-value">{{ number_format($summary['total_orders_imported']) }}</p>
                 </div>
-                <div class="app-card p-5">
-                    <p class="text-xs font-semibold uppercase text-slate-500">Active Commission Rate</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-950">{{ $summary['active_rate_label'] }}</p>
+                <div class="stat-card">
+                    <p class="stat-label">Active Commission Rate</p>
+                    <p class="stat-value">{{ $summary['active_rate_label'] }}</p>
                 </div>
-                <div class="app-card p-5">
-                    <p class="text-xs font-semibold uppercase text-slate-500">Total Commission Runs</p>
-                    <p class="mt-2 text-2xl font-semibold text-slate-950">{{ number_format($summary['total_commission_runs']) }}</p>
+                <div class="stat-card">
+                    <p class="stat-label">Total Commission Runs</p>
+                    <p class="stat-value">{{ number_format($summary['total_commission_runs']) }}</p>
                 </div>
             </div>
 
@@ -87,8 +87,8 @@
                             <thead>
                                 <tr>
                                     <th class="text-left">Month/Year</th>
-                                    <th class="text-left">Sales</th>
-                                    <th class="text-left">Commission</th>
+                                    <th class="text-right">Sales</th>
+                                    <th class="text-right">Commission</th>
                                     <th class="text-left">Status</th>
                                     <th class="text-left">Created</th>
                                 </tr>
@@ -97,9 +97,13 @@
                                 @forelse ($recentCommissionRuns as $run)
                                     <tr>
                                         <td class="font-medium text-slate-950">{{ $months[$run->month] ?? $run->month }} {{ $run->year }}</td>
-                                        <td class="text-slate-700">RM {{ number_format((float) $run->total_sales, 2) }}</td>
-                                        <td class="text-slate-700">RM {{ number_format((float) $run->total_commission, 2) }}</td>
-                                        <td class="text-slate-700">{{ ucfirst($run->status) }}</td>
+                                        <td class="money text-slate-700">RM {{ number_format((float) $run->total_sales, 2) }}</td>
+                                        <td class="money font-semibold text-emerald-700">RM {{ number_format((float) $run->total_commission, 2) }}</td>
+                                        <td>
+                                            <span class="badge {{ $run->status === 'completed' ? 'badge-green' : ($run->status === 'processing' ? 'badge-blue' : ($run->status === 'failed' ? 'badge-red' : 'badge-amber')) }}">
+                                                {{ ucfirst($run->status) }}
+                                            </span>
+                                        </td>
                                         <td class="text-slate-700">{{ $run->created_at?->format('d/m/Y') ?: '-' }}</td>
                                     </tr>
                                 @empty
@@ -121,16 +125,16 @@
                             <thead>
                                 <tr>
                                     <th class="text-left">Affiliate</th>
-                                    <th class="text-left">Total Sales</th>
-                                    <th class="text-left">Total Commission</th>
+                                    <th class="text-right">Total Sales</th>
+                                    <th class="text-right">Total Commission</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 bg-white">
                                 @forelse ($topAffiliates as $row)
                                     <tr>
                                         <td class="font-medium text-slate-950">{{ $row['affiliate']->name }}</td>
-                                        <td class="text-slate-700">RM {{ number_format($row['total_sales'], 2) }}</td>
-                                        <td class="text-slate-700">RM {{ number_format($row['total_commission'], 2) }}</td>
+                                        <td class="money text-slate-700">RM {{ number_format($row['total_sales'], 2) }}</td>
+                                        <td class="money font-semibold text-emerald-700">RM {{ number_format($row['total_commission'], 2) }}</td>
                                     </tr>
                                 @empty
                                     <tr>

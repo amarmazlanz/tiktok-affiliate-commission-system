@@ -16,7 +16,7 @@
             </div>
         </header>
 
-        <section class="mx-auto max-w-6xl space-y-6 px-4 py-8">
+        <section class="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
             @if (session('success'))
                 <div class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                     {{ session('success') }}
@@ -29,14 +29,17 @@
                 </div>
             @endif
 
-            <div class="rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
-                <h2 class="text-lg font-semibold text-slate-950">Run Monthly Calculation</h2>
+            <div class="app-card p-6 sm:p-7">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-950">Run Monthly Calculation</h2>
+                    <p class="mt-1 text-sm text-slate-600">Select a commission period and generate entries using the configured monthly rates.</p>
+                </div>
                 <form method="POST" action="{{ route('admin.commissions.store') }}" class="mt-5 grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
                     @csrf
 
                     <div>
                         <label for="month" class="block text-sm font-medium text-slate-700">Month</label>
-                        <select id="month" name="month" class="mt-2 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
+                        <select id="month" name="month" class="form-field">
                             @foreach ($months as $number => $name)
                                 <option value="{{ $number }}" @selected((int) old('month', now()->month) === $number)>{{ $name }}</option>
                             @endforeach
@@ -46,41 +49,45 @@
                     <div>
                         <label for="year" class="block text-sm font-medium text-slate-700">Year</label>
                         <input id="year" name="year" type="number" min="2020" max="2100" value="{{ old('year', now()->year) }}"
-                            class="mt-2 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
+                            class="form-field">
                     </div>
 
-                    <button type="submit" class="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+                    <button type="submit" class="btn-primary">
                         Run Commission Calculation
                     </button>
                 </form>
             </div>
 
-            <div class="rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
-                <div class="border-b border-slate-200 px-6 py-4">
+            <div class="app-card overflow-hidden">
+                <div class="border-b border-slate-200 px-6 py-5">
                     <h2 class="text-lg font-semibold text-slate-950">Commission Runs</h2>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-slate-200 text-sm">
-                        <thead class="bg-slate-50">
+                    <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
+                        <thead>
                             <tr>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Month/Year</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Total Sales</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Total Commission</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Status</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Calculated At</th>
-                                <th class="px-4 py-3 text-right font-semibold text-slate-700">Action</th>
+                                <th class="text-left">Month/Year</th>
+                                <th class="text-right">Total Sales</th>
+                                <th class="text-right">Total Commission</th>
+                                <th class="text-left">Status</th>
+                                <th class="text-left">Calculated At</th>
+                                <th class="text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @forelse ($runs as $run)
                                 <tr>
-                                    <td class="px-4 py-3 font-medium text-slate-950">{{ $months[$run->month] }} {{ $run->year }}</td>
-                                    <td class="px-4 py-3 text-slate-700">RM {{ number_format((float) $run->total_sales, 2) }}</td>
-                                    <td class="px-4 py-3 text-slate-700">RM {{ number_format((float) $run->total_commission, 2) }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ ucfirst($run->status) }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ $run->calculated_at?->format('d/m/Y H:i') ?: '-' }}</td>
-                                    <td class="px-4 py-3 text-right">
-                                        <a href="{{ route('admin.commissions.show', $run) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                                    <td class="font-medium text-slate-950">{{ $months[$run->month] }} {{ $run->year }}</td>
+                                    <td class="money text-slate-700">RM {{ number_format((float) $run->total_sales, 2) }}</td>
+                                    <td class="money font-semibold text-emerald-700">RM {{ number_format((float) $run->total_commission, 2) }}</td>
+                                    <td>
+                                        <span class="badge {{ $run->status === 'completed' ? 'badge-green' : ($run->status === 'processing' ? 'badge-blue' : ($run->status === 'failed' ? 'badge-red' : 'badge-amber')) }}">
+                                            {{ ucfirst($run->status) }}
+                                        </span>
+                                    </td>
+                                    <td class="text-slate-700">{{ $run->calculated_at?->format('d/m/Y H:i') ?: '-' }}</td>
+                                    <td class="text-right">
+                                        <a href="{{ route('admin.commissions.show', $run) }}" class="btn-secondary px-3 py-1.5 text-xs">
                                             View Report
                                         </a>
                                     </td>

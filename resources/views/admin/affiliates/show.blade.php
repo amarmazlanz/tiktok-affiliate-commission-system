@@ -22,7 +22,7 @@
             </div>
         </header>
 
-        <section class="mx-auto max-w-6xl space-y-6 px-4 py-8">
+        <section class="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
             @if (session('success'))
                 <div class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                     {{ session('success') }}
@@ -35,13 +35,13 @@
                 </div>
             @endif
 
-            <div class="rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
+            <div class="app-card p-6 sm:p-7">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <h2 class="text-lg font-semibold text-slate-950">{{ $affiliate->name }}</h2>
                         <p class="mt-1 text-sm text-slate-600">{{ $affiliate->email }}</p>
                     </div>
-                    <a href="{{ route('admin.affiliates.edit', $affiliate) }}" class="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    <a href="{{ route('admin.affiliates.edit', $affiliate) }}" class="btn-secondary">
                         Edit Affiliate
                     </a>
                 </div>
@@ -53,7 +53,7 @@
                     </div>
                     <div>
                         <dt class="font-medium text-slate-500">Status</dt>
-                        <dd class="mt-1 text-slate-950">{{ ucfirst($affiliate->status) }}</dd>
+                        <dd class="mt-1"><span class="badge {{ $affiliate->status === 'active' ? 'badge-green' : 'badge-gray' }}">{{ ucfirst($affiliate->status) }}</span></dd>
                     </div>
                     <div>
                         <dt class="font-medium text-slate-500">Direct Upline</dt>
@@ -65,7 +65,7 @@
                     </div>
                     <div>
                         <dt class="font-medium text-slate-500">Position / Status</dt>
-                        <dd class="mt-1 text-slate-950">{{ $affiliate->direct_downlines_count > 0 ? 'Manager' : 'Affiliate' }}</dd>
+                        <dd class="mt-1"><span class="badge {{ $affiliate->direct_downlines_count > 0 ? 'badge-green' : 'badge-gray' }}">{{ $affiliate->direct_downlines_count > 0 ? 'Manager' : 'Affiliate' }}</span></dd>
                     </div>
                     <div>
                         <dt class="font-medium text-slate-500">TikTok Accounts</dt>
@@ -74,15 +74,15 @@
                 </dl>
             </div>
 
-            <div class="rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
-                <div class="border-b border-slate-200 px-6 py-4">
+            <div class="app-card overflow-hidden">
+                <div class="border-b border-slate-200 px-6 py-5">
                     <h2 class="text-lg font-semibold text-slate-950">Direct Downline</h2>
                     <p class="mt-1 text-sm text-slate-600">Affiliate with direct downline is treated as Manager for commission rule.</p>
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-slate-200 text-sm">
-                        <thead class="bg-slate-50">
+                    <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
+                        <thead>
                             <tr>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-700">Name</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
@@ -93,10 +93,10 @@
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @forelse ($affiliate->directDownlines as $downline)
                                 <tr>
-                                    <td class="px-4 py-3 font-medium text-slate-950">{{ $downline->name }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ $downline->email }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ ucfirst($downline->status) }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ $downline->tiktok_accounts_count }}</td>
+                                    <td class="font-medium text-slate-950">{{ $downline->name }}</td>
+                                    <td class="text-slate-700">{{ $downline->email }}</td>
+                                    <td><span class="badge {{ $downline->status === 'active' ? 'badge-green' : 'badge-gray' }}">{{ ucfirst($downline->status) }}</span></td>
+                                    <td class="text-slate-700">{{ $downline->tiktok_accounts_count }}</td>
                                 </tr>
                             @empty
                                 <tr>
@@ -111,14 +111,14 @@
             </div>
 
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-                <div class="rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
-                    <div class="border-b border-slate-200 px-6 py-4">
+                <div class="app-card overflow-hidden">
+                    <div class="border-b border-slate-200 px-6 py-5">
                         <h2 class="text-lg font-semibold text-slate-950">TikTok Accounts</h2>
                     </div>
 
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-200 text-sm">
-                            <thead class="bg-slate-50">
+                        <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
+                            <thead>
                                 <tr>
                                     <th class="px-4 py-3 text-left font-semibold text-slate-700">Username</th>
                                     <th class="px-4 py-3 text-left font-semibold text-slate-700">Normalized</th>
@@ -129,19 +129,19 @@
                             <tbody class="divide-y divide-slate-100 bg-white">
                                 @forelse ($affiliate->tiktokAccounts as $account)
                                     <tr>
-                                        <td class="px-4 py-3 font-medium text-slate-950">{{ $account->username }}</td>
-                                        <td class="px-4 py-3 text-slate-700">{{ $account->username_normalized }}</td>
-                                        <td class="px-4 py-3">
-                                            <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $account->status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">
+                                        <td class="font-medium text-slate-950">{{ $account->username }}</td>
+                                        <td class="text-slate-700">{{ $account->username_normalized }}</td>
+                                        <td>
+                                            <span class="badge {{ $account->status === 'active' ? 'badge-green' : 'badge-gray' }}">
                                                 {{ ucfirst($account->status) }}
                                             </span>
                                         </td>
-                                        <td class="px-4 py-3">
+                                        <td>
                                             <div class="flex justify-end">
                                                 <form method="POST" action="{{ route('admin.affiliates.tiktok-accounts.destroy', [$affiliate, $account]) }}" onsubmit="return confirm('Deactivate TikTok account ini?')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
+                                                    <button type="submit" class="btn-danger">
                                                         Deactivate
                                                     </button>
                                                 </form>
@@ -160,28 +160,26 @@
                     </div>
                 </div>
 
-                <div class="rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
+                <div class="app-card p-6">
                     <h2 class="text-lg font-semibold text-slate-950">Tambah TikTok Account</h2>
                     <form method="POST" action="{{ route('admin.affiliates.tiktok-accounts.store', $affiliate) }}" class="mt-5 space-y-5">
                         @csrf
 
                         <div>
                             <label for="username" class="block text-sm font-medium text-slate-700">Username</label>
-                            <input id="username" name="username" type="text" value="{{ old('username') }}" placeholder="@ali_shop1" required
-                                class="mt-2 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
+                            <input id="username" name="username" type="text" value="{{ old('username') }}" placeholder="@ali_shop1" required class="form-field">
                             <p class="mt-1 text-xs text-slate-500">Simbol @ akan dibuang semasa disimpan.</p>
                         </div>
 
                         <div>
                             <label for="status" class="block text-sm font-medium text-slate-700">Status</label>
-                            <select id="status" name="status"
-                                class="mt-2 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
+                            <select id="status" name="status" class="form-field">
                                 <option value="active" @selected(old('status', 'active') === 'active')>Active</option>
                                 <option value="inactive" @selected(old('status') === 'inactive')>Inactive</option>
                             </select>
                         </div>
 
-                        <button type="submit" class="w-full rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+                        <button type="submit" class="btn-primary w-full">
                             Tambah Account
                         </button>
                     </form>

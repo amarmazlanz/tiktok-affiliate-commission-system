@@ -16,15 +16,15 @@
             </div>
         </header>
 
-        <section class="mx-auto max-w-6xl px-4 py-8">
+        <section class="mx-auto max-w-7xl px-4 py-8 sm:px-6">
             @if (session('success'))
                 <div class="mb-6 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                     {{ session('success') }}
                 </div>
             @endif
 
-            <div class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
-                <div class="flex flex-col gap-3 border-b border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="app-card overflow-hidden">
+                <div class="flex flex-col gap-3 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 class="text-lg font-semibold text-slate-950">Monthly Commission Rates</h2>
                         <p class="mt-1 text-sm text-slate-600">Manage personal, manager bonus, and overriding rates by month.</p>
@@ -39,11 +39,11 @@
                         <thead>
                             <tr>
                                 <th class="text-left">Month/Year</th>
-                                <th class="text-left">Personal</th>
-                                <th class="text-left">Manager Bonus</th>
-                                <th class="text-left">L1</th>
-                                <th class="text-left">L2</th>
-                                <th class="text-left">L3</th>
+                                <th class="text-right">Personal</th>
+                                <th class="text-right">Manager Bonus</th>
+                                <th class="text-right">L1</th>
+                                <th class="text-right">L2</th>
+                                <th class="text-right">L3</th>
                                 <th class="text-left">Status</th>
                                 <th class="text-right">Action</th>
                             </tr>
@@ -52,13 +52,13 @@
                             @forelse ($settings as $commissionRateSetting)
                                 <tr>
                                     <td class="font-medium text-slate-950">{{ $months[$commissionRateSetting->month] }} {{ $commissionRateSetting->year }}</td>
-                                    <td class="text-slate-700">{{ number_format((float) $commissionRateSetting->personal_rate * 100, 2) }}%</td>
-                                    <td class="text-slate-700">{{ number_format((float) $commissionRateSetting->manager_bonus_rate * 100, 2) }}%</td>
-                                    <td class="text-slate-700">{{ number_format((float) $commissionRateSetting->l1_rate * 100, 2) }}%</td>
-                                    <td class="text-slate-700">{{ number_format((float) $commissionRateSetting->l2_rate * 100, 2) }}%</td>
-                                    <td class="text-slate-700">{{ number_format((float) $commissionRateSetting->l3_rate * 100, 2) }}%</td>
+                                    <td class="money text-slate-700">{{ number_format((float) $commissionRateSetting->personal_rate * 100, 2) }}%</td>
+                                    <td class="money text-slate-700">{{ number_format((float) $commissionRateSetting->manager_bonus_rate * 100, 2) }}%</td>
+                                    <td class="money text-slate-700">{{ number_format((float) $commissionRateSetting->l1_rate * 100, 2) }}%</td>
+                                    <td class="money text-slate-700">{{ number_format((float) $commissionRateSetting->l2_rate * 100, 2) }}%</td>
+                                    <td class="money text-slate-700">{{ number_format((float) $commissionRateSetting->l3_rate * 100, 2) }}%</td>
                                     <td>
-                                        <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $commissionRateSetting->status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">
+                                        <span class="badge {{ $commissionRateSetting->status === 'active' ? 'badge-green' : 'badge-gray' }}">
                                             {{ ucfirst($commissionRateSetting->status) }}
                                         </span>
                                     </td>

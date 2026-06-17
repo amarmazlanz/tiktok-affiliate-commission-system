@@ -36,17 +36,23 @@ class DashboardController extends Controller
             'manager_bonus' => $entries
                 ->where('commission_type', 'manager_bonus')
                 ->sum('commission_amount'),
-            'overriding_l1' => $entries
-                ->where('commission_type', 'overriding')
-                ->where('level', 1)
+            'l1_overriding' => $entries
+                ->filter(fn ($entry): bool => $entry->commission_type === 'l1_overriding'
+                    || ($entry->commission_type === 'overriding' && (int) $entry->level === 1))
                 ->sum('commission_amount'),
-            'overriding_l2' => $entries
-                ->where('commission_type', 'overriding')
-                ->where('level', 2)
+            'l1_split_seller' => $entries
+                ->where('commission_type', 'l1_split_seller')
                 ->sum('commission_amount'),
-            'overriding_l3' => $entries
-                ->where('commission_type', 'overriding')
-                ->where('level', 3)
+            'l1_split_upline' => $entries
+                ->where('commission_type', 'l1_split_upline')
+                ->sum('commission_amount'),
+            'l2_overriding' => $entries
+                ->filter(fn ($entry): bool => $entry->commission_type === 'l2_overriding'
+                    || ($entry->commission_type === 'overriding' && (int) $entry->level === 2))
+                ->sum('commission_amount'),
+            'l3_overriding' => $entries
+                ->filter(fn ($entry): bool => $entry->commission_type === 'l3_overriding'
+                    || ($entry->commission_type === 'overriding' && (int) $entry->level === 3))
                 ->sum('commission_amount'),
         ];
 
@@ -74,9 +80,11 @@ class DashboardController extends Controller
         return [
             'personal' => 0,
             'manager_bonus' => 0,
-            'overriding_l1' => 0,
-            'overriding_l2' => 0,
-            'overriding_l3' => 0,
+            'l1_overriding' => 0,
+            'l1_split_seller' => 0,
+            'l1_split_upline' => 0,
+            'l2_overriding' => 0,
+            'l3_overriding' => 0,
             'total' => 0,
         ];
     }

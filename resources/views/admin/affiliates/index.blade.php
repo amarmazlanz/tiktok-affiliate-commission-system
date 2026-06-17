@@ -25,13 +25,13 @@
             </div>
         </header>
 
-        <section class="mx-auto max-w-6xl px-4 py-8">
-            <div class="mb-6 flex items-center justify-between">
+        <section class="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+            <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h2 class="text-lg font-semibold text-slate-950">Senarai Affiliate</h2>
+                    <h2 class="text-xl font-bold text-slate-950">Senarai Affiliate</h2>
                     <p class="mt-1 text-sm text-slate-600">Tambah, edit, dan nyahaktifkan affiliate.</p>
                 </div>
-                <a href="{{ route('admin.affiliates.create') }}" class="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+                <a href="{{ route('admin.affiliates.create') }}" class="btn-primary">
                     Tambah Affiliate
                 </a>
             </div>
@@ -48,51 +48,51 @@
                 </div>
             @endif
 
-            <div class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
+            <div class="app-card overflow-hidden">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-slate-200 text-sm">
-                        <thead class="bg-slate-50">
+                    <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
+                        <thead>
                             <tr>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Name</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Phone</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Direct Upline</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Direct Downline Count</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Position / Status</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Account Status</th>
-                                <th class="px-4 py-3 text-right font-semibold text-slate-700">Action</th>
+                                <th class="text-left">Name</th>
+                                <th class="text-left">Email</th>
+                                <th class="text-left">Phone</th>
+                                <th class="text-left">Direct Upline</th>
+                                <th class="text-right">Direct Downline</th>
+                                <th class="text-left">Position</th>
+                                <th class="text-left">Account Status</th>
+                                <th class="text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @forelse ($affiliates as $affiliate)
                                 <tr>
-                                    <td class="px-4 py-3 font-medium text-slate-950">{{ $affiliate->name }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ $affiliate->email }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ $affiliate->phone ?: '-' }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ $affiliate->upline?->name ?: '-' }}</td>
-                                    <td class="px-4 py-3 text-slate-700">{{ $affiliate->direct_downlines_count }}</td>
-                                    <td class="px-4 py-3">
-                                        <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $affiliate->direct_downlines_count > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">
+                                    <td class="font-medium text-slate-950">{{ $affiliate->name }}</td>
+                                    <td class="text-slate-700">{{ $affiliate->email }}</td>
+                                    <td class="text-slate-700">{{ $affiliate->phone ?: '-' }}</td>
+                                    <td class="text-slate-700">{{ $affiliate->upline?->name ?: '-' }}</td>
+                                    <td class="money text-slate-700">{{ $affiliate->direct_downlines_count }}</td>
+                                    <td>
+                                        <span class="badge {{ $affiliate->direct_downlines_count > 0 ? 'badge-green' : 'badge-gray' }}">
                                             {{ $affiliate->direct_downlines_count > 0 ? 'Manager' : 'Affiliate' }}
                                         </span>
                                     </td>
-                                    <td class="px-4 py-3">
-                                        <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $affiliate->status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">
+                                    <td>
+                                        <span class="badge {{ $affiliate->status === 'active' ? 'badge-green' : 'badge-gray' }}">
                                             {{ ucfirst($affiliate->status) }}
                                         </span>
                                     </td>
-                                    <td class="px-4 py-3">
+                                    <td>
                                         <div class="flex justify-end gap-2">
-                                            <a href="{{ route('admin.affiliates.show', $affiliate) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                                            <a href="{{ route('admin.affiliates.show', $affiliate) }}" class="btn-secondary px-3 py-1.5 text-xs">
                                                 Detail
                                             </a>
-                                            <a href="{{ route('admin.affiliates.edit', $affiliate) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                                            <a href="{{ route('admin.affiliates.edit', $affiliate) }}" class="btn-secondary px-3 py-1.5 text-xs">
                                                 Edit
                                             </a>
                                             <form method="POST" action="{{ route('admin.affiliates.destroy', $affiliate) }}" onsubmit="return confirm('Deactivate affiliate ini?')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
+                                                <button type="submit" class="btn-danger">
                                                     Deactivate
                                                 </button>
                                             </form>
