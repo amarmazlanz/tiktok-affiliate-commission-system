@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Admin\AffiliateController;
 use App\Http\Controllers\Admin\CommissionController;
 use App\Http\Controllers\Admin\CommissionRateSettingController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\OrderImportController;
 use App\Http\Controllers\Admin\TiktokAccountController;
 use App\Http\Controllers\Affiliate\DashboardController as AffiliateDashboardController;
@@ -57,9 +58,7 @@ Route::post('/logout', function (Request $request) {
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', fn () => redirect()->route('admin.dashboard'));
 
-    Route::get('/dashboard', function () {
-        return view('admin.dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::resource('affiliates', AffiliateController::class);
     Route::post('affiliates/{affiliate}/tiktok-accounts', [TiktokAccountController::class, 'store'])

@@ -10,40 +10,136 @@
                     <p class="text-sm font-medium text-emerald-700">Admin</p>
                     <h1 class="text-xl font-semibold text-slate-950">Dashboard</h1>
                 </div>
-
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-                        Logout
-                    </button>
-                </form>
             </div>
         </header>
 
-        <section class="mx-auto max-w-6xl px-4 py-8">
+        <section class="mx-auto max-w-6xl space-y-6 px-4 py-8">
             @if (session('error'))
-                <div class="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <div class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                     {{ session('error') }}
                 </div>
             @endif
 
-            <div class="rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
-                <h2 class="text-lg font-semibold text-slate-950">Selamat datang, {{ auth()->user()->name }}</h2>
-                <p class="mt-2 text-sm text-slate-600">Ruang admin untuk pengurusan sistem komisyen affiliate TikTok.</p>
+            <div class="app-card p-6">
+                <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-emerald-700">TikTok Affiliate Commission System</p>
+                        <h2 class="mt-1 text-2xl font-semibold text-slate-950">Business Overview</h2>
+                        <p class="mt-2 text-sm text-slate-600">Monitor affiliate sales, commission activity, imported orders, and monthly rate setup.</p>
+                    </div>
+                    <p class="text-sm text-slate-500">{{ now()->format('d M Y') }}</p>
+                </div>
+            </div>
 
-                <div class="mt-6 flex flex-wrap gap-3">
-                    <a href="{{ route('admin.affiliates.index') }}" class="inline-flex rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
-                        Affiliate Management
-                    </a>
-                    <a href="{{ route('admin.orders.upload') }}" class="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                        CSV Upload
-                    </a>
-                    <a href="{{ route('admin.commissions.index') }}" class="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                        Commission Calculation
-                    </a>
-                    <a href="{{ route('admin.commission-rate-settings.index') }}" class="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                        Commission Settings
-                    </a>
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div class="app-card p-5">
+                    <p class="text-xs font-semibold uppercase text-slate-500">Total Sales This Month</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-950">RM {{ number_format($summary['total_sales_this_month'], 2) }}</p>
+                </div>
+                <div class="app-card p-5">
+                    <p class="text-xs font-semibold uppercase text-slate-500">Total Commission This Month</p>
+                    <p class="mt-2 text-2xl font-semibold text-emerald-700">RM {{ number_format($summary['total_commission_this_month'], 2) }}</p>
+                </div>
+                <div class="app-card p-5">
+                    <p class="text-xs font-semibold uppercase text-slate-500">Total Affiliates</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-950">{{ number_format($summary['total_affiliates']) }}</p>
+                </div>
+                <div class="app-card p-5">
+                    <p class="text-xs font-semibold uppercase text-slate-500">Total TikTok Accounts</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-950">{{ number_format($summary['total_tiktok_accounts']) }}</p>
+                </div>
+                <div class="app-card p-5">
+                    <p class="text-xs font-semibold uppercase text-slate-500">Total Orders Imported</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-950">{{ number_format($summary['total_orders_imported']) }}</p>
+                </div>
+                <div class="app-card p-5">
+                    <p class="text-xs font-semibold uppercase text-slate-500">Active Commission Rate</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-950">{{ $summary['active_rate_label'] }}</p>
+                </div>
+                <div class="app-card p-5">
+                    <p class="text-xs font-semibold uppercase text-slate-500">Total Commission Runs</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-950">{{ number_format($summary['total_commission_runs']) }}</p>
+                </div>
+            </div>
+
+            <div class="app-card p-6">
+                <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-950">Quick Actions</h2>
+                        <p class="mt-1 text-sm text-slate-600">Common admin workflows for daily operations.</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <a href="{{ route('admin.affiliates.index') }}" class="btn-primary">Manage Affiliates</a>
+                    <a href="{{ route('admin.orders.upload') }}" class="btn-secondary">Upload CSV</a>
+                    <a href="{{ route('admin.commissions.index') }}" class="btn-secondary">Run Commission</a>
+                    <a href="{{ route('admin.commission-rate-settings.index') }}" class="btn-secondary">Commission Settings</a>
+                </div>
+            </div>
+
+            <div class="grid gap-6 xl:grid-cols-2">
+                <div class="app-card overflow-hidden">
+                    <div class="border-b border-slate-200 px-6 py-4">
+                        <h2 class="text-lg font-semibold text-slate-950">Recent Commission Runs</h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
+                            <thead>
+                                <tr>
+                                    <th class="text-left">Month/Year</th>
+                                    <th class="text-left">Sales</th>
+                                    <th class="text-left">Commission</th>
+                                    <th class="text-left">Status</th>
+                                    <th class="text-left">Created</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                                @forelse ($recentCommissionRuns as $run)
+                                    <tr>
+                                        <td class="font-medium text-slate-950">{{ $months[$run->month] ?? $run->month }} {{ $run->year }}</td>
+                                        <td class="text-slate-700">RM {{ number_format((float) $run->total_sales, 2) }}</td>
+                                        <td class="text-slate-700">RM {{ number_format((float) $run->total_commission, 2) }}</td>
+                                        <td class="text-slate-700">{{ ucfirst($run->status) }}</td>
+                                        <td class="text-slate-700">{{ $run->created_at?->format('d/m/Y') ?: '-' }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="py-8 text-center text-slate-500">No commission runs yet.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="app-card overflow-hidden">
+                    <div class="border-b border-slate-200 px-6 py-4">
+                        <h2 class="text-lg font-semibold text-slate-950">Top Affiliates This Month</h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
+                            <thead>
+                                <tr>
+                                    <th class="text-left">Affiliate</th>
+                                    <th class="text-left">Total Sales</th>
+                                    <th class="text-left">Total Commission</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                                @forelse ($topAffiliates as $row)
+                                    <tr>
+                                        <td class="font-medium text-slate-950">{{ $row['affiliate']->name }}</td>
+                                        <td class="text-slate-700">RM {{ number_format($row['total_sales'], 2) }}</td>
+                                        <td class="text-slate-700">RM {{ number_format($row['total_commission'], 2) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="py-8 text-center text-slate-500">No affiliate sales or commission data this month.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </section>
