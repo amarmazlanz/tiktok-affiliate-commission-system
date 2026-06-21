@@ -28,7 +28,7 @@
                 </div>
             @endif
 
-            <div class="grid gap-4 md:grid-cols-5">
+            <div class="grid gap-4 md:grid-cols-6">
                 <div class="stat-card">
                     <p class="stat-label">Processed</p>
                     <p class="stat-value">{{ number_format($summary['total_rows']) }}</p>
@@ -36,6 +36,10 @@
                 <div class="stat-card">
                     <p class="stat-label">Inserted</p>
                     <p class="stat-value stat-value-money">{{ number_format($summary['inserted_orders']) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Updated</p>
+                    <p class="stat-value">{{ number_format($summary['updated_orders'] ?? 0) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Duplicates</p>

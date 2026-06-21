@@ -11,13 +11,14 @@ use Illuminate\Support\Facades\DB;
 
 class CommissionCalculatorService
 {
-    public function calculate(int $month, int $year): CommissionRun
+    public function calculate(int $month, int $year, string $status = 'provisional'): CommissionRun
     {
         $rates = CommissionRateSetting::ratesFor($month, $year);
         $start = Carbon::create($year, $month, 1)->startOfMonth();
         $end = $start->copy()->endOfMonth();
+        $status = in_array($status, ['provisional', 'final'], true) ? $status : 'provisional';
 
-        return DB::transaction(function () use ($month, $year, $rates, $start, $end): CommissionRun {
+        return DB::transaction(function () use ($month, $year, $rates, $start, $end, $status): CommissionRun {
             $run = CommissionRun::query()->firstOrCreate([
                 'month' => $month,
                 'year' => $year,
@@ -116,7 +117,7 @@ class CommissionCalculatorService
             }
 
             $run->update([
-                'status' => 'completed',
+                'status' => $status,
                 'total_sales' => round($totalSales, 2),
                 'total_commission' => round($totalCommission, 2),
                 'calculated_at' => now(),

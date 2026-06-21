@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Admin\AffiliateController;
+use App\Http\Controllers\Admin\AffiliateImportController;
 use App\Http\Controllers\Admin\CommissionController;
 use App\Http\Controllers\Admin\CommissionRateSettingController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -59,6 +60,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/', fn () => redirect()->route('admin.dashboard'));
 
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::get('affiliates/import', [AffiliateImportController::class, 'create'])->name('affiliates.import.create');
+    Route::post('affiliates/import', [AffiliateImportController::class, 'store'])->name('affiliates.import.store');
+    Route::post('affiliates/{affiliate}/reset-password', [AffiliateController::class, 'resetPassword'])->name('affiliates.reset-password');
 
     Route::resource('affiliates', AffiliateController::class);
     Route::post('affiliates/{affiliate}/tiktok-accounts', [TiktokAccountController::class, 'store'])

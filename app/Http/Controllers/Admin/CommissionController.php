@@ -25,9 +25,22 @@ class CommissionController extends Controller
         $data = $request->validate([
             'month' => ['required', 'integer', 'min:1', 'max:12'],
             'year' => ['required', 'integer', 'min:2020', 'max:2100'],
+            'report_status' => ['required', Rule::in(['provisional', 'final'])],
+            'confirm_final_recalculate' => ['nullable', 'boolean'],
         ]);
 
-        $run = $calculator->calculate((int) $data['month'], (int) $data['year']);
+        $existingRun = CommissionRun::query()
+            ->where('month', (int) $data['month'])
+            ->where('year', (int) $data['year'])
+            ->first();
+
+        if ($existingRun?->status === 'final' && ! $request->boolean('confirm_final_recalculate')) {
+            return back()
+                ->withInput()
+                ->withErrors(['confirm_final_recalculate' => 'Report ini sudah Final. Sila confirm sebelum recalculate.']);
+        }
+
+        $run = $calculator->calculate((int) $data['month'], (int) $data['year'], $data['report_status']);
 
         return redirect()
             ->route('admin.commissions.show', $run)

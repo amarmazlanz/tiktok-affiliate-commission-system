@@ -8,15 +8,30 @@ use App\Models\CommissionRateSetting;
 use App\Models\CommissionRun;
 use App\Models\TiktokAccount;
 use App\Models\TiktokOrder;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __invoke(): View
+    public function __invoke(Request $request): View
     {
         $month = now()->month;
         $year = now()->year;
+        $latestCommissionRun = CommissionRun::query()
+            ->latest('year')
+            ->latest('month')
+            ->first();
+        $selectedTopMonth = (int) $request->query('top_month', $latestCommissionRun?->month ?? $month);
+        $selectedTopYear = (int) $request->query('top_year', $latestCommissionRun?->year ?? $year);
+
+        if ($selectedTopMonth < 1 || $selectedTopMonth > 12) {
+            $selectedTopMonth = $latestCommissionRun?->month ?? $month;
+        }
+
+        if ($selectedTopYear < 2020 || $selectedTopYear > 2100) {
+            $selectedTopYear = $latestCommissionRun?->year ?? $year;
+        }
 
         $salesDateScope = function ($query) use ($month, $year): void {
             $query
@@ -55,18 +70,21 @@ class DashboardController extends Controller
                 ->latest('month')
                 ->first();
 
-        $salesByAffiliate = TiktokOrder::query()
-            ->select('affiliate_id', DB::raw('SUM(estimated_commission_base) as total_sales'))
-            ->where('order_status', 'Settled')
-            ->where('estimated_commission_base', '>', 0)
-            ->where($salesDateScope)
-            ->groupBy('affiliate_id')
-            ->pluck('total_sales', 'affiliate_id');
-
+        $selectedTopRun = CommissionRun::query()
+            ->where('month', $selectedTopMonth)
+            ->where('year', $selectedTopYear)
+            ->first();
+        $salesByAffiliate = collect();
         $commissionByAffiliate = collect();
 
-        if ($currentCommissionRun) {
-            $commissionByAffiliate = $currentCommissionRun->commissionEntries()
+        if ($selectedTopRun) {
+            $salesByAffiliate = $selectedTopRun->commissionEntries()
+                ->select('source_affiliate_id', DB::raw('SUM(base_amount) as total_sales'))
+                ->where('commission_type', 'personal')
+                ->groupBy('source_affiliate_id')
+                ->pluck('total_sales', 'source_affiliate_id');
+
+            $commissionByAffiliate = $selectedTopRun->commissionEntries()
                 ->select('receiver_affiliate_id', DB::raw('SUM(commission_amount) as total_commission'))
                 ->groupBy('receiver_affiliate_id')
                 ->pluck('total_commission', 'receiver_affiliate_id');
@@ -74,7 +92,6 @@ class DashboardController extends Controller
 
         $topAffiliateIds = $salesByAffiliate
             ->keys()
-            ->merge($commissionByAffiliate->keys())
             ->unique()
             ->values();
 
@@ -98,8 +115,19 @@ class DashboardController extends Controller
                 ];
             })
             ->filter()
-            ->sortByDesc(fn (array $row) => $row['total_sales'] ?: $row['total_commission'])
+            ->sortByDesc(fn (array $row) => $row['total_sales'])
             ->take(5)
+            ->values();
+
+        $topAffiliateYears = CommissionRun::query()
+            ->select('year')
+            ->distinct()
+            ->orderByDesc('year')
+            ->pluck('year')
+            ->push($year)
+            ->push($selectedTopYear)
+            ->unique()
+            ->sortDesc()
             ->values();
 
         return view('admin.dashboard', [
@@ -119,6 +147,10 @@ class DashboardController extends Controller
                 ->take(5)
                 ->get(),
             'topAffiliates' => $topAffiliates,
+            'selectedTopMonth' => $selectedTopMonth,
+            'selectedTopYear' => $selectedTopYear,
+            'selectedTopRun' => $selectedTopRun,
+            'topAffiliateYears' => $topAffiliateYears,
             'months' => $this->months(),
         ]);
     }

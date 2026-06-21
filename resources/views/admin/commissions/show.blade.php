@@ -3,6 +3,30 @@
 @section('title', 'Commission Report')
 
 @section('content')
+    @php
+        $commissionEntryRows = $commission->commissionEntries->sortBy('id')->values();
+        $receiverOptions = $commissionEntryRows
+            ->map(fn ($entry) => $entry->receiverAffiliate?->name)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+        $sourceOptions = $commissionEntryRows
+            ->map(fn ($entry) => $entry->sourceAffiliate?->name)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+        $typeOptions = $commissionEntryRows
+            ->map(fn ($entry) => [
+                'value' => $entry->commission_type,
+                'label' => $entryTypeLabels[$entry->commission_type] ?? ucfirst(str_replace('_', ' ', $entry->commission_type)),
+            ])
+            ->unique('value')
+            ->sortBy('label')
+            ->values();
+    @endphp
+
     <main class="min-h-screen bg-slate-100">
         <header class="border-b border-slate-200 bg-white">
             <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
@@ -39,8 +63,8 @@
                 <div class="stat-card">
                     <p class="stat-label">Status</p>
                     <p class="mt-3">
-                        <span class="badge {{ $commission->status === 'completed' ? 'badge-green' : ($commission->status === 'processing' ? 'badge-blue' : ($commission->status === 'failed' ? 'badge-red' : 'badge-amber')) }}">
-                            {{ ucfirst($commission->status) }}
+                        <span class="badge {{ in_array($commission->status, ['completed', 'final'], true) ? 'badge-green' : ($commission->status === 'processing' ? 'badge-blue' : ($commission->status === 'failed' ? 'badge-red' : 'badge-amber')) }}">
+                            {{ str($commission->status)->headline() }}
                         </span>
                     </p>
                 </div>
@@ -95,6 +119,49 @@
                 <div class="border-b border-slate-200 px-6 py-5">
                     <h2 class="text-lg font-semibold text-slate-950">Commission Entry Details</h2>
                 </div>
+
+                <div class="border-b border-slate-200 bg-white px-6 py-5">
+                    <div class="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
+                        <div>
+                            <label for="entry-filter-receiver" class="block text-sm font-semibold text-slate-700">Receiver</label>
+                            <select id="entry-filter-receiver" class="form-field js-entry-filter" data-filter="receiver">
+                                <option value="">All Receivers</option>
+                                @foreach ($receiverOptions as $receiver)
+                                    <option value="{{ $receiver }}">{{ $receiver }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="entry-filter-source" class="block text-sm font-semibold text-slate-700">Source</label>
+                            <select id="entry-filter-source" class="form-field js-entry-filter" data-filter="source">
+                                <option value="">All Sources</option>
+                                @foreach ($sourceOptions as $source)
+                                    <option value="{{ $source }}">{{ $source }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="entry-filter-type" class="block text-sm font-semibold text-slate-700">Type</label>
+                            <select id="entry-filter-type" class="form-field js-entry-filter" data-filter="type">
+                                <option value="">All Types</option>
+                                @foreach ($typeOptions as $type)
+                                    <option value="{{ $type['value'] }}">{{ $type['label'] }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <button type="button" id="entry-filter-reset" class="btn-secondary">
+                            Reset Filters
+                        </button>
+                    </div>
+
+                    <p id="entry-filter-count" class="mt-4 text-sm text-slate-600">
+                        Showing {{ number_format($commissionEntryRows->count()) }} of {{ number_format($commissionEntryRows->count()) }} entries
+                    </p>
+                </div>
+
                 <div class="max-h-[600px] overflow-auto">
                     <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
@@ -109,8 +176,11 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
-                            @forelse ($commission->commissionEntries->sortBy('id') as $entry)
-                                <tr class="hover:bg-slate-50">
+                            @forelse ($commissionEntryRows as $entry)
+                                <tr class="js-entry-row hover:bg-slate-50"
+                                    data-receiver="{{ $entry->receiverAffiliate?->name ?? '' }}"
+                                    data-source="{{ $entry->sourceAffiliate?->name ?? '' }}"
+                                    data-type="{{ $entry->commission_type }}">
                                     <td class="whitespace-nowrap px-5 py-4 font-medium text-slate-950">{{ $entry->receiverAffiliate?->name ?? '-' }}</td>
                                     <td class="whitespace-nowrap px-5 py-4 text-slate-700">{{ $entry->sourceAffiliate?->name ?? '-' }}</td>
                                     <td class="whitespace-nowrap px-5 py-4 text-slate-700">
@@ -147,4 +217,59 @@
             </div>
         </section>
     </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const filters = {
+                receiver: document.querySelector('[data-filter="receiver"]'),
+                source: document.querySelector('[data-filter="source"]'),
+                type: document.querySelector('[data-filter="type"]'),
+            };
+            const rows = Array.from(document.querySelectorAll('.js-entry-row'));
+            const counter = document.getElementById('entry-filter-count');
+            const resetButton = document.getElementById('entry-filter-reset');
+            const totalRows = rows.length;
+
+            const applyFilters = () => {
+                const selected = {
+                    receiver: filters.receiver?.value || '',
+                    source: filters.source?.value || '',
+                    type: filters.type?.value || '',
+                };
+                let visibleRows = 0;
+
+                rows.forEach((row) => {
+                    const matchesReceiver = selected.receiver === '' || row.dataset.receiver === selected.receiver;
+                    const matchesSource = selected.source === '' || row.dataset.source === selected.source;
+                    const matchesType = selected.type === '' || row.dataset.type === selected.type;
+                    const isVisible = matchesReceiver && matchesSource && matchesType;
+
+                    row.classList.toggle('hidden', !isVisible);
+
+                    if (isVisible) {
+                        visibleRows++;
+                    }
+                });
+
+                if (counter) {
+                    counter.textContent = `Showing ${visibleRows.toLocaleString()} of ${totalRows.toLocaleString()} entries`;
+                }
+            };
+
+            Object.values(filters).forEach((filter) => {
+                filter?.addEventListener('change', applyFilters);
+            });
+
+            resetButton?.addEventListener('click', () => {
+                Object.values(filters).forEach((filter) => {
+                    if (filter) {
+                        filter.value = '';
+                    }
+                });
+                applyFilters();
+            });
+
+            applyFilters();
+        });
+    </script>
 @endsection

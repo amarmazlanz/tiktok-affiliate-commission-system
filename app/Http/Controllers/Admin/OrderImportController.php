@@ -43,6 +43,7 @@ class OrderImportController extends Controller
                 'summary' => [
                     'total_rows' => 0,
                     'inserted_orders' => 0,
+                    'updated_orders' => 0,
                     'skipped_duplicates' => 0,
                     'skipped_unmatched_creators' => 0,
                     'skipped_invalid_rows' => 0,
@@ -59,6 +60,7 @@ class OrderImportController extends Controller
         $summary = [
             'total_rows' => 0,
             'inserted_orders' => 0,
+            'updated_orders' => 0,
             'skipped_duplicates' => 0,
             'skipped_unmatched_creators' => 0,
             'skipped_invalid_rows' => 0,
@@ -93,14 +95,7 @@ class OrderImportController extends Controller
                 continue;
             }
 
-            if (TiktokOrder::query()->where('order_id', $orderId)->exists()) {
-                $summary['skipped_duplicates']++;
-                $this->recordSampleSkip($summary, 'Duplicate order', $orderId, $creatorUsername);
-                continue;
-            }
-
-            TiktokOrder::create([
-                'order_id' => $orderId,
+            $orderData = [
                 'affiliate_id' => $account->affiliate_id,
                 'creator_username' => $creatorUsername,
                 'creator_username_normalized' => $creatorUsernameNormalized,
@@ -116,9 +111,20 @@ class OrderImportController extends Controller
                 'time_commission_paid' => $this->parseDate(Arr::get($row, 'Time Commission Paid')),
                 'platform' => $this->nullableString(Arr::get($row, 'Platform')),
                 'raw_data' => $row,
-            ]);
+            ];
 
-            $summary['inserted_orders']++;
+            $order = TiktokOrder::query()->where('order_id', $orderId)->first();
+
+            if ($order) {
+                $order->update($orderData);
+                $summary['updated_orders']++;
+            } else {
+                TiktokOrder::create([
+                    'order_id' => $orderId,
+                    ...$orderData,
+                ]);
+                $summary['inserted_orders']++;
+            }
         }
 
         return view('admin.orders.result', compact('summary'));

@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -37,6 +38,7 @@ class AffiliateController extends Controller
     {
         $affiliate->load([
             'upline',
+            'passwordResetBy',
             'tiktokAccounts' => fn ($query) => $query->latest(),
             'directDownlines' => fn ($query) => $query->withCount('tiktokAccounts')->orderBy('name'),
         ])->loadCount('directDownlines');
@@ -136,5 +138,37 @@ class AffiliateController extends Controller
         return redirect()
             ->route('admin.affiliates.index')
             ->with('success', 'Affiliate telah dinyahaktifkan.');
+    }
+
+    public function resetPassword(Request $request, Affiliate $affiliate): RedirectResponse
+    {
+        if (! $affiliate->user) {
+            return redirect()
+                ->route('admin.affiliates.show', $affiliate)
+                ->with('error', 'Affiliate ini tidak mempunyai akaun login.');
+        }
+
+        $temporaryPassword = Str::random(12);
+
+        DB::transaction(function () use ($request, $affiliate, $temporaryPassword): void {
+            $affiliate->user->update([
+                'password' => Hash::make($temporaryPassword),
+                'role' => 'affiliate',
+            ]);
+
+            $affiliate->update([
+                'password_reset_at' => now(),
+                'password_reset_by' => $request->user()->id,
+            ]);
+        });
+
+        return redirect()
+            ->route('admin.affiliates.show', $affiliate)
+            ->with('success', 'Password affiliate berjaya direset.')
+            ->with('reset_password', [
+                'name' => $affiliate->name,
+                'email' => $affiliate->email,
+                'temporary_password' => $temporaryPassword,
+            ]);
     }
 }

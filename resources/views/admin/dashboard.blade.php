@@ -71,6 +71,7 @@
                 </div>
                 <div class="flex flex-wrap gap-3">
                     <a href="{{ route('admin.affiliates.index') }}" class="btn-primary">Manage Affiliates</a>
+                    <a href="{{ route('admin.affiliates.import.create') }}" class="btn-secondary">Import Affiliates</a>
                     <a href="{{ route('admin.orders.upload') }}" class="btn-secondary">Upload CSV</a>
                     <a href="{{ route('admin.commissions.index') }}" class="btn-secondary">Run Commission</a>
                     <a href="{{ route('admin.commission-rate-settings.index') }}" class="btn-secondary">Commission Settings</a>
@@ -100,8 +101,8 @@
                                         <td class="money text-slate-700">RM {{ number_format((float) $run->total_sales, 2) }}</td>
                                         <td class="money font-semibold text-emerald-700">RM {{ number_format((float) $run->total_commission, 2) }}</td>
                                         <td>
-                                            <span class="badge {{ $run->status === 'completed' ? 'badge-green' : ($run->status === 'processing' ? 'badge-blue' : ($run->status === 'failed' ? 'badge-red' : 'badge-amber')) }}">
-                                                {{ ucfirst($run->status) }}
+                                            <span class="badge {{ in_array($run->status, ['completed', 'final'], true) ? 'badge-green' : ($run->status === 'processing' ? 'badge-blue' : ($run->status === 'failed' ? 'badge-red' : 'badge-amber')) }}">
+                                                {{ str($run->status)->headline() }}
                                             </span>
                                         </td>
                                         <td class="text-slate-700">{{ $run->created_at?->format('d/m/Y') ?: '-' }}</td>
@@ -118,7 +119,34 @@
 
                 <div class="app-card overflow-hidden">
                     <div class="border-b border-slate-200 px-6 py-4">
-                        <h2 class="text-lg font-semibold text-slate-950">Top Affiliates This Month</h2>
+                        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                            <div>
+                                <h2 class="text-lg font-semibold text-slate-950">Top Affiliates</h2>
+                                <p class="mt-1 text-sm text-slate-600">
+                                    Showing top 5 affiliates by total sales for {{ $months[$selectedTopMonth] ?? $selectedTopMonth }} {{ $selectedTopYear }}.
+                                </p>
+                            </div>
+
+                            <form method="GET" action="{{ route('admin.dashboard') }}" class="grid gap-3 sm:grid-cols-2 lg:w-auto" id="top-affiliates-filter">
+                                <div>
+                                    <label for="top_month" class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Month</label>
+                                    <select id="top_month" name="top_month" class="form-field min-w-40" onchange="this.form.submit()">
+                                        @foreach ($months as $number => $name)
+                                            <option value="{{ $number }}" @selected((int) $selectedTopMonth === $number)>{{ $name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label for="top_year" class="block text-xs font-semibold uppercase tracking-wide text-slate-500">Year</label>
+                                    <select id="top_year" name="top_year" class="form-field min-w-32" onchange="this.form.submit()">
+                                        @foreach ($topAffiliateYears as $topYear)
+                                            <option value="{{ $topYear }}" @selected((int) $selectedTopYear === (int) $topYear)>{{ $topYear }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
@@ -138,7 +166,9 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="3" class="py-8 text-center text-slate-500">No affiliate sales or commission data this month.</td>
+                                        <td colspan="3" class="py-8 text-center text-slate-500">
+                                            No commission data available for the selected period.
+                                        </td>
                                     </tr>
                                 @endforelse
                             </tbody>

@@ -31,9 +31,14 @@
                     <h2 class="text-xl font-bold text-slate-950">Senarai Affiliate</h2>
                     <p class="mt-1 text-sm text-slate-600">Tambah, edit, dan nyahaktifkan affiliate.</p>
                 </div>
-                <a href="{{ route('admin.affiliates.create') }}" class="btn-primary">
-                    Tambah Affiliate
-                </a>
+                <div class="flex flex-wrap gap-3">
+                    <a href="{{ route('admin.affiliates.import.create') }}" class="btn-secondary">
+                        Import Affiliates
+                    </a>
+                    <a href="{{ route('admin.affiliates.create') }}" class="btn-primary">
+                        Tambah Affiliate
+                    </a>
+                </div>
             </div>
 
             @if (session('success'))
@@ -89,6 +94,14 @@
                                             <a href="{{ route('admin.affiliates.edit', $affiliate) }}" class="btn-secondary px-3 py-1.5 text-xs">
                                                 Edit
                                             </a>
+                                            @if ($affiliate->user_id)
+                                                <form method="POST" action="{{ route('admin.affiliates.reset-password', $affiliate) }}" onsubmit="return confirm('Reset password untuk affiliate ini? Password lama tidak boleh dilihat semula dan akan digantikan.')">
+                                                    @csrf
+                                                    <button type="submit" class="btn-secondary px-3 py-1.5 text-xs">
+                                                        Reset Password
+                                                    </button>
+                                                </form>
+                                            @endif
                                             <form method="POST" action="{{ route('admin.affiliates.destroy', $affiliate) }}" onsubmit="return confirm('Deactivate affiliate ini?')">
                                                 @csrf
                                                 @method('DELETE')

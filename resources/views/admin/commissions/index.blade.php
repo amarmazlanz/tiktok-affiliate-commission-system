@@ -34,27 +34,45 @@
                     <h2 class="text-lg font-semibold text-slate-950">Run Monthly Calculation</h2>
                     <p class="mt-1 text-sm text-slate-600">Select a commission period and generate entries using the configured monthly rates.</p>
                 </div>
-                <form method="POST" action="{{ route('admin.commissions.store') }}" class="mt-5 grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                <form method="POST" action="{{ route('admin.commissions.store') }}" class="mt-5 space-y-4">
                     @csrf
 
-                    <div>
-                        <label for="month" class="block text-sm font-medium text-slate-700">Month</label>
-                        <select id="month" name="month" class="form-field">
-                            @foreach ($months as $number => $name)
-                                <option value="{{ $number }}" @selected((int) old('month', now()->month) === $number)>{{ $name }}</option>
-                            @endforeach
-                        </select>
+                    <div class="grid gap-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
+                        <div>
+                            <label for="month" class="block text-sm font-medium text-slate-700">Month</label>
+                            <select id="month" name="month" class="form-field">
+                                @foreach ($months as $number => $name)
+                                    <option value="{{ $number }}" @selected((int) old('month', now()->month) === $number)>{{ $name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="year" class="block text-sm font-medium text-slate-700">Year</label>
+                            <input id="year" name="year" type="number" min="2020" max="2100" value="{{ old('year', now()->year) }}"
+                                class="form-field">
+                        </div>
+
+                        <div>
+                            <label for="report_status" class="block text-sm font-medium text-slate-700">Report Status</label>
+                            <select id="report_status" name="report_status" class="form-field">
+                                <option value="provisional" @selected(old('report_status', 'provisional') === 'provisional')>Provisional</option>
+                                <option value="final" @selected(old('report_status') === 'final')>Final</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn-primary">
+                            Run Commission Calculation
+                        </button>
                     </div>
 
-                    <div>
-                        <label for="year" class="block text-sm font-medium text-slate-700">Year</label>
-                        <input id="year" name="year" type="number" min="2020" max="2100" value="{{ old('year', now()->year) }}"
-                            class="form-field">
-                    </div>
-
-                    <button type="submit" class="btn-primary">
-                        Run Commission Calculation
-                    </button>
+                    <label class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                        <input type="checkbox" name="confirm_final_recalculate" value="1" class="mt-1 rounded border-amber-300 text-emerald-700 focus:ring-emerald-500" @checked(old('confirm_final_recalculate'))>
+                        <span>
+                            I confirm recalculation if the selected month/year report is already Final.
+                            Existing commission entries for that month/year will be replaced.
+                        </span>
+                    </label>
                 </form>
             </div>
 
@@ -81,8 +99,8 @@
                                     <td class="money text-slate-700">RM {{ number_format((float) $run->total_sales, 2) }}</td>
                                     <td class="money font-semibold text-emerald-700">RM {{ number_format((float) $run->total_commission, 2) }}</td>
                                     <td>
-                                        <span class="badge {{ $run->status === 'completed' ? 'badge-green' : ($run->status === 'processing' ? 'badge-blue' : ($run->status === 'failed' ? 'badge-red' : 'badge-amber')) }}">
-                                            {{ ucfirst($run->status) }}
+                                        <span class="badge {{ in_array($run->status, ['completed', 'final'], true) ? 'badge-green' : ($run->status === 'processing' ? 'badge-blue' : ($run->status === 'failed' ? 'badge-red' : 'badge-amber')) }}">
+                                            {{ str($run->status)->headline() }}
                                         </span>
                                     </td>
                                     <td class="text-slate-700">{{ $run->calculated_at?->format('d/m/Y H:i') ?: '-' }}</td>

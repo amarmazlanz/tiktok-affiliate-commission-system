@@ -18,6 +18,12 @@ class Affiliate extends Model
         'email',
         'phone',
         'status',
+        'password_reset_at',
+        'password_reset_by',
+    ];
+
+    protected $casts = [
+        'password_reset_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -28,6 +34,11 @@ class Affiliate extends Model
     public function upline(): BelongsTo
     {
         return $this->belongsTo(self::class, 'upline_id');
+    }
+
+    public function passwordResetBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'password_reset_by');
     }
 
     public function directDownlines(): HasMany

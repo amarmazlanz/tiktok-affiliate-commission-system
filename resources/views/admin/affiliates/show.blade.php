@@ -29,6 +29,32 @@
                 </div>
             @endif
 
+            @if (session('error'))
+                <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            @if (session('reset_password'))
+                <div class="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+                    <p class="font-semibold text-amber-950">Copy this password now. It will not be shown again.</p>
+                    <dl class="mt-4 grid gap-4 sm:grid-cols-3">
+                        <div>
+                            <dt class="text-xs font-semibold uppercase text-amber-700">Affiliate Name</dt>
+                            <dd class="mt-1 font-medium">{{ session('reset_password.name') }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-semibold uppercase text-amber-700">Email</dt>
+                            <dd class="mt-1 font-medium">{{ session('reset_password.email') }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-semibold uppercase text-amber-700">New Temporary Password</dt>
+                            <dd class="mt-1 font-mono text-base font-bold">{{ session('reset_password.temporary_password') }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            @endif
+
             @if ($errors->any())
                 <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     {{ $errors->first() }}
@@ -41,9 +67,19 @@
                         <h2 class="text-lg font-semibold text-slate-950">{{ $affiliate->name }}</h2>
                         <p class="mt-1 text-sm text-slate-600">{{ $affiliate->email }}</p>
                     </div>
-                    <a href="{{ route('admin.affiliates.edit', $affiliate) }}" class="btn-secondary">
-                        Edit Affiliate
-                    </a>
+                    <div class="flex flex-wrap gap-3">
+                        <a href="{{ route('admin.affiliates.edit', $affiliate) }}" class="btn-secondary">
+                            Edit Affiliate
+                        </a>
+                        @if ($affiliate->user_id)
+                            <form method="POST" action="{{ route('admin.affiliates.reset-password', $affiliate) }}" onsubmit="return confirm('Reset password untuk affiliate ini? Password lama tidak boleh dilihat semula dan akan digantikan.')">
+                                @csrf
+                                <button type="submit" class="btn-primary">
+                                    Reset Password
+                                </button>
+                            </form>
+                        @endif
+                    </div>
                 </div>
 
                 <dl class="mt-6 grid gap-4 text-sm sm:grid-cols-3 lg:grid-cols-6">
@@ -70,6 +106,14 @@
                     <div>
                         <dt class="font-medium text-slate-500">TikTok Accounts</dt>
                         <dd class="mt-1 text-slate-950">{{ $affiliate->tiktokAccounts->count() }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-slate-500">Last Password Reset</dt>
+                        <dd class="mt-1 text-slate-950">{{ $affiliate->password_reset_at?->format('d/m/Y H:i') ?: '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-slate-500">Reset By</dt>
+                        <dd class="mt-1 text-slate-950">{{ $affiliate->passwordResetBy?->name ?: '-' }}</dd>
                     </div>
                 </dl>
             </div>

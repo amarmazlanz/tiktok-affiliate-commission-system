@@ -52,7 +52,8 @@
                     <div class="flex flex-wrap items-center gap-2">
                         @if (auth()->user()->role === 'admin')
                             <a href="{{ route('admin.dashboard') }}" class="btn-secondary {{ request()->routeIs('admin.dashboard') ? 'btn-nav-active' : '' }}">Admin Dashboard</a>
-                            <a href="{{ route('admin.affiliates.index') }}" class="btn-secondary {{ request()->routeIs('admin.affiliates.*') ? 'btn-nav-active' : '' }}">Affiliate Management</a>
+                            <a href="{{ route('admin.affiliates.index') }}" class="btn-secondary {{ request()->routeIs('admin.affiliates.*') && ! request()->routeIs('admin.affiliates.import.*') ? 'btn-nav-active' : '' }}">Affiliate Management</a>
+                            <a href="{{ route('admin.affiliates.import.create') }}" class="btn-secondary {{ request()->routeIs('admin.affiliates.import.*') ? 'btn-nav-active' : '' }}">Import Affiliates</a>
                             <a href="{{ route('admin.orders.upload') }}" class="btn-secondary {{ request()->routeIs('admin.orders.*') ? 'btn-nav-active' : '' }}">CSV Upload</a>
                             <a href="{{ route('admin.commissions.index') }}" class="btn-secondary {{ request()->routeIs('admin.commissions.*') ? 'btn-nav-active' : '' }}">Commission Runs</a>
                             <a href="{{ route('admin.commission-rate-settings.index') }}" class="btn-secondary {{ request()->routeIs('admin.commission-rate-settings.*') ? 'btn-nav-active' : '' }}">Commission Settings</a>
