@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Affiliate;
-use App\Models\CommissionRateSetting;
 use App\Models\CommissionRun;
 use App\Models\TiktokAccount;
 use App\Models\TiktokOrder;
@@ -58,17 +57,6 @@ class DashboardController extends Controller
             ->where('month', $month)
             ->where('year', $year)
             ->first();
-
-        $activeRateSetting = CommissionRateSetting::query()
-            ->where('status', 'active')
-            ->where('month', $month)
-            ->where('year', $year)
-            ->first()
-            ?? CommissionRateSetting::query()
-                ->where('status', 'active')
-                ->latest('year')
-                ->latest('month')
-                ->first();
 
         $selectedTopRun = CommissionRun::query()
             ->where('month', $selectedTopMonth)
@@ -137,9 +125,7 @@ class DashboardController extends Controller
                 'total_affiliates' => Affiliate::count(),
                 'total_tiktok_accounts' => TiktokAccount::count(),
                 'total_orders_imported' => TiktokOrder::count(),
-                'active_rate_label' => $activeRateSetting
-                    ? sprintf('%02d/%d', $activeRateSetting->month, $activeRateSetting->year)
-                    : '-',
+                'active_rate_label' => 'Fixed',
                 'total_commission_runs' => CommissionRun::count(),
             ],
             'recentCommissionRuns' => CommissionRun::query()

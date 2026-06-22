@@ -38,40 +38,111 @@
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-900 antialiased">
     @auth
-        <div class="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-            <div class="mx-auto max-w-7xl px-4 sm:px-6">
-                <div class="flex flex-col gap-3 py-4 lg:flex-row lg:items-center lg:justify-between">
+        @php
+            $isAdmin = auth()->user()->role === 'admin';
+            $icons = [
+                'dashboard' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13h6V4H4v9Z"/><path d="M14 20h6v-9h-6v9Z"/><path d="M4 20h6v-3H4v3Z"/><path d="M14 7h6V4h-6v3Z"/></svg>',
+                'users' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+                'upload' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>',
+                'report' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2h8l4 4v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h2Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>',
+                'home' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
+            ];
+            $menuItems = $isAdmin
+                ? [
+                    ['label' => 'Admin Dashboard', 'route' => route('admin.dashboard'), 'active' => request()->routeIs('admin.dashboard'), 'icon' => 'dashboard'],
+                    ['label' => 'Affiliate Management', 'route' => route('admin.affiliates.index'), 'active' => request()->routeIs('admin.affiliates.*'), 'icon' => 'users'],
+                    ['label' => 'CSV Upload', 'route' => route('admin.orders.upload'), 'active' => request()->routeIs('admin.orders.*'), 'icon' => 'upload'],
+                    ['label' => 'Commission Runs', 'route' => route('admin.commissions.index'), 'active' => request()->routeIs('admin.commissions.*'), 'icon' => 'report'],
+                ]
+                : [
+                    ['label' => 'Affiliate Dashboard', 'route' => route('affiliate.dashboard'), 'active' => request()->routeIs('affiliate.dashboard'), 'icon' => 'home'],
+                ];
+        @endphp
+
+        @if ($isAdmin)
+            <aside class="fixed inset-y-0 left-0 z-50 hidden w-72 border-r border-slate-200 bg-white lg:flex lg:flex-col">
+                <div class="flex h-20 items-center gap-3 border-b border-slate-200 px-6">
+                    <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-700 text-lg font-black text-white shadow-sm">
+                        TT
+                    </div>
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">TikTok Affiliate Commission System</p>
-                        <div class="mt-1 flex flex-wrap items-center gap-2">
-                            <h1 class="text-lg font-semibold text-slate-950">@yield('title', 'Dashboard')</h1>
-                            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{{ ucfirst(auth()->user()->role) }}</span>
+                        <p class="text-sm font-black leading-5 text-slate-950">TikTok Affiliate</p>
+                        <p class="text-xs font-semibold text-slate-500">Commission System</p>
+                    </div>
+                </div>
+
+                <nav class="flex-1 space-y-1 px-4 py-6">
+                    @foreach ($menuItems as $item)
+                        <a href="{{ $item['route'] }}" class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition {{ $item['active'] ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">
+                            <span class="flex h-9 w-9 items-center justify-center rounded-lg {{ $item['active'] ? 'bg-white text-emerald-700 shadow-sm' : 'bg-slate-100 text-slate-500 group-hover:text-slate-700' }}">
+                                {!! $icons[$item['icon']] !!}
+                            </span>
+                            <span>{{ $item['label'] }}</span>
+                        </a>
+                    @endforeach
+                </nav>
+
+                <div class="border-t border-slate-200 p-4">
+                    <div class="mb-3 rounded-xl bg-slate-50 p-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Signed in as</p>
+                        <p class="mt-1 truncate text-sm font-bold text-slate-950">{{ auth()->user()->name }}</p>
+                        <p class="truncate text-xs text-slate-500">{{ auth()->user()->email }}</p>
+                    </div>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="btn-secondary w-full">Logout</button>
+                    </form>
+                </div>
+            </aside>
+        @endif
+
+        <div class="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur {{ $isAdmin ? 'lg:pl-72' : '' }}">
+            <div class="px-4 sm:px-6">
+                <div class="flex min-h-20 flex-col gap-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="flex items-center gap-3">
+                        @if (! $isAdmin)
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-700 text-sm font-black text-white">TT</div>
+                        @endif
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">TikTok Affiliate Commission System</p>
+                            <div class="mt-1 flex flex-wrap items-center gap-2">
+                                <h1 class="text-xl font-black text-slate-950">@yield('title', 'Dashboard')</h1>
+                                <span class="badge badge-gray">{{ ucfirst(auth()->user()->role) }}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-2">
-                        @if (auth()->user()->role === 'admin')
-                            <a href="{{ route('admin.dashboard') }}" class="btn-secondary {{ request()->routeIs('admin.dashboard') ? 'btn-nav-active' : '' }}">Admin Dashboard</a>
-                            <a href="{{ route('admin.affiliates.index') }}" class="btn-secondary {{ request()->routeIs('admin.affiliates.*') && ! request()->routeIs('admin.affiliates.import.*') ? 'btn-nav-active' : '' }}">Affiliate Management</a>
-                            <a href="{{ route('admin.affiliates.import.create') }}" class="btn-secondary {{ request()->routeIs('admin.affiliates.import.*') ? 'btn-nav-active' : '' }}">Import Affiliates</a>
-                            <a href="{{ route('admin.orders.upload') }}" class="btn-secondary {{ request()->routeIs('admin.orders.*') ? 'btn-nav-active' : '' }}">CSV Upload</a>
-                            <a href="{{ route('admin.commissions.index') }}" class="btn-secondary {{ request()->routeIs('admin.commissions.*') ? 'btn-nav-active' : '' }}">Commission Runs</a>
-                            <a href="{{ route('admin.commission-rate-settings.index') }}" class="btn-secondary {{ request()->routeIs('admin.commission-rate-settings.*') ? 'btn-nav-active' : '' }}">Commission Settings</a>
-                        @else
-                            <a href="{{ route('affiliate.dashboard') }}" class="btn-secondary {{ request()->routeIs('affiliate.dashboard') ? 'btn-nav-active' : '' }}">Affiliate Dashboard</a>
+                    <div class="hidden items-center gap-3 lg:flex">
+                        <div class="text-right">
+                            <p class="text-sm font-bold text-slate-950">{{ auth()->user()->name }}</p>
+                            <p class="text-xs text-slate-500">{{ auth()->user()->email }}</p>
+                        </div>
+                        @if (! $isAdmin)
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="btn-secondary">Logout</button>
+                            </form>
                         @endif
-
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="btn-secondary">Logout</button>
-                        </form>
                     </div>
+                </div>
+
+                <div class="flex gap-2 overflow-x-auto border-t border-slate-100 py-3 lg:hidden">
+                    @foreach ($menuItems as $item)
+                        <a href="{{ $item['route'] }}" class="inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold {{ $item['active'] ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-white text-slate-600 ring-1 ring-slate-200' }}">
+                            {!! $icons[$item['icon']] !!}
+                            <span>{{ $item['label'] }}</span>
+                        </a>
+                    @endforeach
+                    <form method="POST" action="{{ route('logout') }}" class="shrink-0">
+                        @csrf
+                        <button type="submit" class="btn-secondary py-2">Logout</button>
+                    </form>
                 </div>
             </div>
         </div>
     @endauth
 
-    <div class="@auth app-shell @endauth">
+    <div class="@auth app-shell {{ auth()->user()->role === 'admin' ? 'lg:pl-72' : '' }} @endauth">
         @yield('content')
     </div>
 </body>

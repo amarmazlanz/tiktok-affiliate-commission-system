@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Affiliate;
-use App\Models\CommissionRateSetting;
 use App\Models\CommissionRun;
 use App\Models\TiktokOrder;
 use Carbon\Carbon;
@@ -13,7 +12,7 @@ class CommissionCalculatorService
 {
     public function calculate(int $month, int $year, string $status = 'provisional'): CommissionRun
     {
-        $rates = CommissionRateSetting::ratesFor($month, $year);
+        $rates = $this->fixedRates();
         $start = Carbon::create($year, $month, 1)->startOfMonth();
         $end = $start->copy()->endOfMonth();
         $status = in_array($status, ['provisional', 'final'], true) ? $status : 'provisional';
@@ -125,6 +124,17 @@ class CommissionCalculatorService
 
             return $run->refresh();
         });
+    }
+
+    private function fixedRates(): array
+    {
+        return [
+            'personal_rate' => 0.10,
+            'manager_bonus_rate' => 0.01,
+            'l1_rate' => 0.01,
+            'l2_rate' => 0.003,
+            'l3_rate' => 0.002,
+        ];
     }
 
     private function eligibleOrdersQuery(Carbon $start, Carbon $end)

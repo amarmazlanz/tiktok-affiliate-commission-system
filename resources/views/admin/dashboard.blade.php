@@ -25,7 +25,7 @@
                     <div>
                         <p class="text-sm font-semibold text-emerald-700">TikTok Affiliate Commission System</p>
                         <h2 class="mt-1 text-2xl font-bold text-slate-950">Business Overview</h2>
-                        <p class="mt-2 text-sm text-slate-600">Monitor affiliate sales, commission activity, imported orders, and monthly rate setup.</p>
+                        <p class="mt-2 text-sm text-slate-600">Monitor affiliate sales, commission activity, imported orders, and fixed-rate commission runs.</p>
                     </div>
                     <p class="text-sm text-slate-500">{{ now()->format('d M Y') }}</p>
                 </div>
@@ -53,7 +53,7 @@
                     <p class="stat-value">{{ number_format($summary['total_orders_imported']) }}</p>
                 </div>
                 <div class="stat-card">
-                    <p class="stat-label">Active Commission Rate</p>
+                    <p class="stat-label">Commission Rate Mode</p>
                     <p class="stat-value">{{ $summary['active_rate_label'] }}</p>
                 </div>
                 <div class="stat-card">
@@ -71,10 +71,8 @@
                 </div>
                 <div class="flex flex-wrap gap-3">
                     <a href="{{ route('admin.affiliates.index') }}" class="btn-primary">Manage Affiliates</a>
-                    <a href="{{ route('admin.affiliates.import.create') }}" class="btn-secondary">Import Affiliates</a>
                     <a href="{{ route('admin.orders.upload') }}" class="btn-secondary">Upload CSV</a>
                     <a href="{{ route('admin.commissions.index') }}" class="btn-secondary">Run Commission</a>
-                    <a href="{{ route('admin.commission-rate-settings.index') }}" class="btn-secondary">Commission Settings</a>
                 </div>
             </div>
 
