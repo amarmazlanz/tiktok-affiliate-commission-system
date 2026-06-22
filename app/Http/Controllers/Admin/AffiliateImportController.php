@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Affiliate;
 use App\Models\TiktokAccount;
 use App\Models\User;
+use App\Services\AffiliateHierarchyImportService;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
@@ -21,7 +22,7 @@ class AffiliateImportController extends Controller
         return view('admin.affiliates.import');
     }
 
-    public function store(Request $request): View
+    public function store(Request $request, AffiliateHierarchyImportService $hierarchyImporter): View
     {
         $request->validate([
             'csv_file' => ['required', 'file', 'mimes:xlsx,csv,txt', 'max:51200'],
@@ -34,7 +35,7 @@ class AffiliateImportController extends Controller
 
         $results = [];
 
-        DB::transaction(function () use ($parsedRows, &$results): void {
+        DB::transaction(function () use ($parsedRows, &$results, $hierarchyImporter): void {
             $processedAffiliates = [];
             $profileStatusByKey = [];
 
@@ -43,7 +44,7 @@ class AffiliateImportController extends Controller
                 $results[] = $result;
             }
 
-            $this->resolveHierarchy($results);
+            $hierarchyImporter->resolve($results);
         });
 
         $resultCollection = collect($results);
@@ -56,8 +57,12 @@ class AffiliateImportController extends Controller
                 'external_created' => $resultCollection->where('status', 'External Created')->count(),
                 'updated' => $resultCollection->where('status', 'Profile Updated')->count(),
                 'tiktok_added' => $resultCollection->where('tiktok_status', 'TikTok Account Added')->count(),
-                'hierarchy_linked' => $resultCollection->where('upline_match', 'Linked')->count(),
+                'hierarchy_linked' => $resultCollection->whereIn('upline_match', ['Linked', 'Shifted to L2', 'Shifted to L3'])->count(),
+                'self_reference_detected' => $resultCollection->where('self_reference_detected', true)->count(),
+                'shifted_to_l2' => $resultCollection->where('shifted_to_l2', true)->count(),
+                'shifted_to_l3' => $resultCollection->where('shifted_to_l3', true)->count(),
                 'needs_mapping' => $resultCollection->whereIn('upline_match', ['Needs Mapping', 'Needs Review'])->count(),
+                'cycle_prevented' => $resultCollection->where('cycle_prevented', true)->count(),
                 'username_conflicts' => $resultCollection->where('tiktok_status', 'Username Conflict')->count(),
                 'skipped' => $resultCollection->where('status', 'Skipped')->count(),
                 'missing_columns' => [],

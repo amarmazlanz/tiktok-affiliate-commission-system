@@ -24,7 +24,7 @@
                 </div>
             @endif
 
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
                 <div class="stat-card">
                     <p class="stat-label">Total Rows</p>
                     <p class="stat-value">{{ number_format($summary['total_rows'] ?? 0) }}</p>
@@ -50,8 +50,24 @@
                     <p class="stat-value">{{ number_format($summary['hierarchy_linked'] ?? 0) }}</p>
                 </div>
                 <div class="stat-card">
+                    <p class="stat-label">Self Reference</p>
+                    <p class="stat-value">{{ number_format($summary['self_reference_detected'] ?? 0) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Shifted to L2</p>
+                    <p class="stat-value">{{ number_format($summary['shifted_to_l2'] ?? 0) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Shifted to L3</p>
+                    <p class="stat-value">{{ number_format($summary['shifted_to_l3'] ?? 0) }}</p>
+                </div>
+                <div class="stat-card">
                     <p class="stat-label">Needs Mapping</p>
                     <p class="stat-value">{{ number_format($summary['needs_mapping'] ?? 0) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Cycle Prevented</p>
+                    <p class="stat-value">{{ number_format($summary['cycle_prevented'] ?? 0) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Username Conflicts</p>
@@ -116,6 +132,7 @@
                                                 'External Created' => 'badge-blue',
                                                 'Profile Updated' => 'badge-teal',
                                                 'Needs Mapping', 'Needs Review' => 'badge-amber',
+                                                'Hierarchy Conflict' => 'badge-red',
                                                 'Skipped' => 'badge-red',
                                                 default => 'badge-red',
                                             };

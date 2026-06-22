@@ -115,7 +115,16 @@
                             @forelse ($affiliates as $affiliate)
                                 <tr>
                                     <td>
-                                        <div class="font-medium text-slate-950">{{ $affiliate->name }}</div>
+                                        <div class="whitespace-normal break-words leading-snug">
+                                            @if ($affiliate->id)
+                                                <a href="{{ route('admin.affiliates.show', $affiliate) }}"
+                                                    class="cursor-pointer rounded-sm font-semibold text-slate-900 hover:text-emerald-700 hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                                    {{ $affiliate->name }}
+                                                </a>
+                                            @else
+                                                <span class="font-semibold text-slate-950">{{ $affiliate->name }}</span>
+                                            @endif
+                                        </div>
                                         @if ($affiliate->phone)
                                             <div class="mt-1 text-xs text-slate-500">{{ $affiliate->phone }}</div>
                                         @endif
