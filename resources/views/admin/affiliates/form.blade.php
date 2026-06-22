@@ -11,9 +11,11 @@
 
 <div>
     <label for="email" class="block text-sm font-medium text-slate-700">Email</label>
-    <input id="email" name="email" type="email" value="{{ old('email', $affiliate->email) }}" required class="form-field">
+    <input id="email" name="email" type="email" value="{{ old('email', $affiliate->email) }}" @required(! $affiliate->exists || $affiliate->user) class="form-field">
     @if (! $affiliate->exists)
         <p class="mt-1 text-xs text-slate-500">Login affiliate akan dibuat automatik dengan password default: password.</p>
+    @elseif (! $affiliate->user)
+        <p class="mt-1 text-xs text-slate-500">Affiliate luar tidak mempunyai login access. Email boleh dibiarkan kosong.</p>
     @endif
 </div>
 
@@ -37,7 +39,7 @@
             <option value="">No upline</option>
             @foreach ($uplines as $upline)
                 <option value="{{ $upline->id }}" @selected((string) old('upline_id', $affiliate->upline_id) === (string) $upline->id)>
-                    {{ $upline->name }} ({{ $upline->email }})
+                    {{ $upline->name }} ({{ $upline->affiliate_code ?: ($upline->email ?: 'No login access') }})
                 </option>
             @endforeach
         </select>

@@ -15,15 +15,37 @@ use Illuminate\View\View;
 
 class AffiliateController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $affiliates = Affiliate::query()
-            ->with('upline')
-            ->withCount('directDownlines')
-            ->latest()
-            ->paginate(15);
+            ->with(['upline', 'user', 'tiktokAccounts'])
+            ->withCount(['directDownlines', 'tiktokAccounts'])
+            ->when($request->filled('group'), fn ($query) => $query->where('group_name', (string) $request->input('group')))
+            ->when($request->filled('type'), fn ($query) => $query->where('affiliate_type', (string) $request->input('type')))
+            ->when($request->filled('status'), fn ($query) => $query->where('status', (string) $request->input('status')))
+            ->when($request->filled('search'), function ($query) use ($request): void {
+                $search = trim((string) $request->input('search'));
 
-        return view('admin.affiliates.index', compact('affiliates'));
+                $query->where(function ($query) use ($search): void {
+                    $query->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('affiliate_code', 'like', '%'.$search.'%')
+                        ->orWhereHas('tiktokAccounts', fn ($query) => $query->where('username', 'like', '%'.$search.'%')
+                            ->orWhere('username_normalized', 'like', '%'.strtolower(ltrim($search, '@')).'%'));
+                });
+            })
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('admin.affiliates.index', [
+            'affiliates' => $affiliates,
+            'groups' => Affiliate::query()
+                ->whereNotNull('group_name')
+                ->distinct()
+                ->orderBy('group_name')
+                ->pluck('group_name'),
+            'filters' => $request->only(['group', 'type', 'status', 'search']),
+        ]);
     }
 
     public function create(): View
@@ -67,6 +89,7 @@ class AffiliateController extends Controller
             Affiliate::create([
                 'user_id' => $user->id,
                 'upline_id' => $data['upline_id'] ?? null,
+                'affiliate_type' => 'inhouse',
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'] ?? null,
@@ -93,15 +116,17 @@ class AffiliateController extends Controller
 
     public function update(Request $request, Affiliate $affiliate): RedirectResponse
     {
+        $emailRules = [
+            $affiliate->user ? 'required' : 'nullable',
+            'email',
+            'max:255',
+            Rule::unique('users', 'email')->ignore($affiliate->user_id),
+            Rule::unique('affiliates', 'email')->ignore($affiliate->id),
+        ];
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($affiliate->user_id),
-                Rule::unique('affiliates', 'email')->ignore($affiliate->id),
-            ],
+            'email' => $emailRules,
             'phone' => ['nullable', 'string', 'max:50'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
             'upline_id' => [
@@ -115,15 +140,18 @@ class AffiliateController extends Controller
             $affiliate->update([
                 'upline_id' => $data['upline_id'] ?? null,
                 'name' => $data['name'],
-                'email' => $data['email'],
+                'email' => $data['email'] ?? null,
                 'phone' => $data['phone'] ?? null,
                 'status' => $data['status'],
             ]);
 
-            $affiliate->user->update([
-                'name' => $data['name'],
-                'email' => $data['email'],
-            ]);
+            $userUpdate = ['name' => $data['name']];
+
+            if (! empty($data['email'])) {
+                $userUpdate['email'] = $data['email'];
+            }
+
+            $affiliate->user?->update($userUpdate);
         });
 
         return redirect()
@@ -167,7 +195,7 @@ class AffiliateController extends Controller
             ->with('success', 'Password affiliate berjaya direset.')
             ->with('reset_password', [
                 'name' => $affiliate->name,
-                'email' => $affiliate->email,
+                'email' => $affiliate->user?->email ?? $affiliate->email ?? $affiliate->affiliate_code,
                 'temporary_password' => $temporaryPassword,
             ]);
     }

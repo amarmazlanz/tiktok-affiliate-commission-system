@@ -13,10 +13,21 @@ class Affiliate extends Model
 
     protected $fillable = [
         'user_id',
+        'affiliate_code',
         'upline_id',
+        'group_name',
+        'affiliate_type',
         'name',
+        'name_normalized',
         'email',
         'phone',
+        'raw_upline_text',
+        'raw_l1',
+        'raw_l2',
+        'raw_l3',
+        'hierarchy_import_status',
+        'hierarchy_import_remark',
+        'raw_import_data',
         'status',
         'password_reset_at',
         'password_reset_by',
@@ -24,6 +35,7 @@ class Affiliate extends Model
 
     protected $casts = [
         'password_reset_at' => 'datetime',
+        'raw_import_data' => 'array',
     ];
 
     public function user(): BelongsTo

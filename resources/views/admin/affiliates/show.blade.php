@@ -65,7 +65,9 @@
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <h2 class="text-lg font-semibold text-slate-950">{{ $affiliate->name }}</h2>
-                        <p class="mt-1 text-sm text-slate-600">{{ $affiliate->email }}</p>
+                        <p class="mt-1 text-sm text-slate-600">
+                            {{ $affiliate->user ? ($affiliate->affiliate_code ?: $affiliate->user->email) : 'No login access' }}
+                        </p>
                     </div>
                     <div class="flex flex-wrap gap-3">
                         <a href="{{ route('admin.affiliates.edit', $affiliate) }}" class="btn-secondary">
@@ -86,6 +88,20 @@
                     <div>
                         <dt class="font-medium text-slate-500">Phone</dt>
                         <dd class="mt-1 text-slate-950">{{ $affiliate->phone ?: '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-slate-500">Group</dt>
+                        <dd class="mt-1"><span class="badge badge-blue">{{ $affiliate->group_name ?: '-' }}</span></dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-slate-500">Type</dt>
+                        <dd class="mt-1"><span class="badge {{ $affiliate->affiliate_type === 'external' ? 'badge-amber' : 'badge-teal' }}">{{ $affiliate->affiliate_type === 'external' ? 'Affiliate Luar' : 'Inhouse' }}</span></dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-slate-500">Login / Email</dt>
+                        <dd class="mt-1 text-slate-950">
+                            {{ $affiliate->user ? ($affiliate->affiliate_code ?: $affiliate->user->email) : 'No login access' }}
+                        </dd>
                     </div>
                     <div>
                         <dt class="font-medium text-slate-500">Status</dt>

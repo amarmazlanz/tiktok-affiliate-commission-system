@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Admin\AffiliateController;
+use App\Http\Controllers\Admin\AffiliateHierarchyController;
 use App\Http\Controllers\Admin\AffiliateImportController;
 use App\Http\Controllers\Admin\CommissionController;
 use App\Http\Controllers\Admin\CommissionRateSettingController;
@@ -28,15 +29,19 @@ Route::middleware('guest')->group(function () {
     })->name('login');
 
     Route::post('/login', function (Request $request) {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
+        $data = $request->validate([
+            'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        $login = trim($data['login']);
+        $loginField = str_contains($login, '@') ? 'email' : 'affiliate_code';
+        $login = $loginField === 'affiliate_code' ? strtoupper($login) : $login;
+
+        if (! Auth::attempt([$loginField => $login, 'password' => $data['password']], $request->boolean('remember'))) {
             return back()
-                ->withErrors(['email' => 'Maklumat login tidak sah.'])
-                ->onlyInput('email');
+                ->withErrors(['login' => 'Maklumat login tidak sah.'])
+                ->onlyInput('login');
         }
 
         $request->session()->regenerate();
@@ -61,6 +66,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
+    Route::get('affiliates/hierarchy', AffiliateHierarchyController::class)->name('affiliates.hierarchy');
     Route::get('affiliates/import', [AffiliateImportController::class, 'create'])->name('affiliates.import.create');
     Route::post('affiliates/import', [AffiliateImportController::class, 'store'])->name('affiliates.import.store');
     Route::post('affiliates/{affiliate}/reset-password', [AffiliateController::class, 'resetPassword'])->name('affiliates.reset-password');

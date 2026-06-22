@@ -26,9 +26,10 @@
                 @csrf
 
                 <div>
-                    <label for="email" class="block text-sm font-medium text-slate-700">Email</label>
-                    <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus
+                    <label for="login" class="block text-sm font-medium text-slate-700">Email or Affiliate Code</label>
+                    <input id="login" name="login" type="text" value="{{ old('login') }}" required autofocus
                         class="mt-2 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
+                    <p class="mt-1 text-xs text-slate-500">Admin login uses email. Affiliate login uses affiliate code.</p>
                 </div>
 
                 <div>
