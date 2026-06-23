@@ -34,16 +34,17 @@ class AffiliateImportController extends Controller
             : $this->parseCsv($file);
 
         $results = [];
+        $importState = $this->buildImportState($parsedRows);
 
-        DB::transaction(function () use ($parsedRows, &$results, $hierarchyImporter): void {
-            $processedAffiliates = [];
-            $profileStatusByKey = [];
+        foreach (array_chunk($parsedRows, 500) as $batch) {
+            DB::transaction(function () use ($batch, &$results, &$importState): void {
+                foreach ($batch as $row) {
+                    $results[] = $this->importAffiliateRow($row, $importState);
+                }
+            });
+        }
 
-            foreach ($parsedRows as $row) {
-                $result = $this->importAffiliateRow($row, $processedAffiliates, $profileStatusByKey);
-                $results[] = $result;
-            }
-
+        DB::transaction(function () use (&$results, $hierarchyImporter): void {
             $hierarchyImporter->resolve($results);
         });
 
@@ -70,7 +71,80 @@ class AffiliateImportController extends Controller
         ]);
     }
 
-    private function importAffiliateRow(array $row, array &$processedAffiliates, array &$profileStatusByKey): array
+    private function buildImportState(array $parsedRows): array
+    {
+        $groups = [];
+        $usernames = [];
+        $prefixes = [];
+
+        foreach ($parsedRows as $row) {
+            $groupName = $this->normalizeDisplayName($row['group_name'] ?? 'Unknown Group');
+            $username = $this->normalizeUsername((string) ($row['tiktok_username'] ?? ''));
+
+            $groups[$groupName] = $groupName;
+            $prefixes[$this->groupPrefix($groupName)] = $this->groupPrefix($groupName);
+
+            if ($username !== '') {
+                $usernames[$username] = $username;
+            }
+        }
+
+        $affiliatesByKey = [];
+
+        Affiliate::query()
+            ->with('user')
+            ->whereIn('group_name', array_values($groups) ?: [''])
+            ->get()
+            ->each(function (Affiliate $affiliate) use (&$affiliatesByKey): void {
+                $key = strtolower((string) $affiliate->group_name).'|'.($affiliate->affiliate_type === 'external' ? 'external' : 'inhouse').'|'.$this->normalizeName($affiliate->name);
+                $affiliatesByKey[$key] = $affiliate;
+            });
+
+        $tiktokAccountsByUsername = [];
+
+        if ($usernames !== []) {
+            TiktokAccount::query()
+                ->whereIn('username_normalized', array_values($usernames))
+                ->get()
+                ->each(function (TiktokAccount $account) use (&$tiktokAccountsByUsername): void {
+                    $tiktokAccountsByUsername[$account->username_normalized] = $account;
+                });
+        }
+
+        $latestCodeNumberByPrefix = [];
+
+        foreach ($prefixes as $prefix) {
+            $latestCodeNumberByPrefix[$prefix] = Affiliate::query()
+                ->where('affiliate_code', 'like', $prefix.'-%')
+                ->pluck('affiliate_code')
+                ->map(fn ($code): int => (int) Str::after((string) $code, $prefix.'-'))
+                ->max() ?? 0;
+        }
+
+        $usedAffiliateCodes = Affiliate::query()
+            ->whereNotNull('affiliate_code')
+            ->pluck('affiliate_code')
+            ->filter()
+            ->flip()
+            ->all();
+        $usedUserAffiliateCodes = User::query()
+            ->whereNotNull('affiliate_code')
+            ->pluck('affiliate_code')
+            ->filter()
+            ->flip()
+            ->all();
+
+        return [
+            'affiliates_by_key' => $affiliatesByKey,
+            'profile_status_by_key' => [],
+            'tiktok_accounts_by_username' => $tiktokAccountsByUsername,
+            'latest_code_number_by_prefix' => $latestCodeNumberByPrefix,
+            'used_affiliate_codes' => $usedAffiliateCodes,
+            'used_user_affiliate_codes' => $usedUserAffiliateCodes,
+        ];
+    }
+
+    private function importAffiliateRow(array $row, array &$importState): array
     {
         $originalName = $this->normalizeDisplayName($row['name'] ?? '');
         $nameNormalized = $this->normalizeName($originalName);
@@ -101,17 +175,12 @@ class AffiliateImportController extends Controller
             return $result;
         }
 
-        $affiliate = $processedAffiliates[$affiliateKey] ?? Affiliate::query()
-            ->where('group_name', $groupName)
-            ->where('affiliate_type', $affiliateType)
-            ->where('name_normalized', $nameNormalized)
-            ->first();
-
-        $profileStatus = $profileStatusByKey[$affiliateKey] ?? null;
+        $affiliate = $importState['affiliates_by_key'][$affiliateKey] ?? null;
+        $profileStatus = $importState['profile_status_by_key'][$affiliateKey] ?? null;
         $temporaryPassword = '-';
 
         if (! $affiliate) {
-            $affiliateCode = $this->generateAffiliateCode($groupName);
+            $affiliateCode = $this->generateAffiliateCodeFromState($groupName, $importState);
             $user = null;
             $email = null;
 
@@ -146,7 +215,7 @@ class AffiliateImportController extends Controller
             ]);
 
             $profileStatus = $affiliateType === 'inhouse' ? 'Inhouse Created' : 'External Created';
-            $profileStatusByKey[$affiliateKey] = $profileStatus;
+            $importState['profile_status_by_key'][$affiliateKey] = $profileStatus;
         } else {
             $affiliate->update([
                 'name' => $originalName,
@@ -185,7 +254,7 @@ class AffiliateImportController extends Controller
             $profileStatus ??= 'Profile Updated';
         }
 
-        $processedAffiliates[$affiliateKey] = $affiliate;
+        $importState['affiliates_by_key'][$affiliateKey] = $affiliate;
 
         $result['affiliate_id'] = $affiliate->id;
         $result['affiliate_code'] = $affiliate->affiliate_code ?: '-';
@@ -199,9 +268,7 @@ class AffiliateImportController extends Controller
             return $result;
         }
 
-        $existingAccount = TiktokAccount::query()
-            ->where('username_normalized', $usernameNormalized)
-            ->first();
+        $existingAccount = $importState['tiktok_accounts_by_username'][$usernameNormalized] ?? null;
 
         if ($existingAccount && (int) $existingAccount->affiliate_id !== (int) $affiliate->id) {
             $result['tiktok_status'] = 'Username Conflict';
@@ -217,11 +284,13 @@ class AffiliateImportController extends Controller
             return $result;
         }
 
-        $affiliate->tiktokAccounts()->create([
+        $newAccount = $affiliate->tiktokAccounts()->create([
             'username' => ltrim($rawUsername, '@'),
             'username_normalized' => $usernameNormalized,
             'status' => 'active',
         ]);
+
+        $importState['tiktok_accounts_by_username'][$usernameNormalized] = $newAccount;
 
         $result['tiktok_status'] = 'TikTok Account Added';
         $result['error'] = '-';
@@ -713,6 +782,26 @@ class AffiliateImportController extends Controller
             $latest++;
             $code = sprintf('%s-%04d', $prefix, $latest);
         } while (Affiliate::query()->where('affiliate_code', $code)->exists() || User::query()->where('affiliate_code', $code)->exists());
+
+        return $code;
+    }
+
+    private function generateAffiliateCodeFromState(string $groupName, array &$importState): string
+    {
+        $prefix = $this->groupPrefix($groupName);
+        $latest = (int) ($importState['latest_code_number_by_prefix'][$prefix] ?? 0);
+
+        do {
+            $latest++;
+            $code = sprintf('%s-%04d', $prefix, $latest);
+        } while (
+            isset($importState['used_affiliate_codes'][$code])
+            || isset($importState['used_user_affiliate_codes'][$code])
+        );
+
+        $importState['latest_code_number_by_prefix'][$prefix] = $latest;
+        $importState['used_affiliate_codes'][$code] = true;
+        $importState['used_user_affiliate_codes'][$code] = true;
 
         return $code;
     }

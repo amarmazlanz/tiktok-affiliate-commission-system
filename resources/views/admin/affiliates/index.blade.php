@@ -38,6 +38,9 @@
                     <a href="{{ route('admin.affiliates.import.create') }}" class="btn-secondary">
                         Import Affiliates
                     </a>
+                    <a href="{{ route('admin.affiliates.export', request()->query()) }}" class="btn-primary bg-emerald-700" onclick="this.classList.add('opacity-75','pointer-events-none'); this.textContent='Exporting...';">
+                        Export Affiliates
+                    </a>
                     <a href="{{ route('admin.affiliates.create') }}" class="btn-primary">
                         Tambah Affiliate
                     </a>

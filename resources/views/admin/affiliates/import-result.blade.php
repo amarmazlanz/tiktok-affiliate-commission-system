@@ -85,9 +85,9 @@
                     <p class="mt-1 text-sm text-slate-600">Temporary passwords are shown once for newly created affiliate users.</p>
                 </div>
 
-                <div class="overflow-x-auto">
+                <div class="max-h-[560px] overflow-y-auto overflow-x-auto">
                     <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
-                        <thead>
+                        <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
                             <tr>
                                 <th class="text-left">Sheet / Group</th>
                                 <th class="text-left">Section / Type</th>
@@ -104,16 +104,16 @@
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @forelse ($results as $result)
                                 <tr>
-                                    <td class="font-medium text-slate-950">{{ $result['sheet'] ?? '-' }}</td>
+                                    <td class="whitespace-normal break-words font-medium leading-snug text-slate-950">{{ $result['sheet'] ?? '-' }}</td>
                                     <td>
                                         <span class="badge {{ ($result['section'] ?? '') === 'external' ? 'badge-amber' : 'badge-teal' }}">
                                             {{ ($result['section'] ?? '') === 'external' ? 'Affiliate Luar' : 'Inhouse' }}
                                         </span>
                                     </td>
-                                    <td class="text-slate-700">{{ $result['name'] ?? '-' }}</td>
-                                    <td class="font-mono text-slate-700">{{ $result['affiliate_code'] ?? '-' }}</td>
-                                    <td class="text-slate-700">{{ $result['tiktok_username'] ?? '-' }}</td>
-                                    <td class="text-slate-700">{{ $result['raw_l1'] ?? '-' }}</td>
+                                    <td class="whitespace-normal break-words leading-snug text-slate-700">{{ $result['name'] ?? '-' }}</td>
+                                    <td class="whitespace-normal break-words font-mono leading-snug text-slate-700">{{ $result['affiliate_code'] ?? '-' }}</td>
+                                    <td class="whitespace-normal break-words leading-snug text-slate-700">{{ $result['tiktok_username'] ?? '-' }}</td>
+                                    <td class="whitespace-normal break-words leading-snug text-slate-700">{{ $result['raw_l1'] ?? '-' }}</td>
                                     <td>
                                         @php
                                             $uplineBadge = match ($result['upline_match'] ?? '') {
@@ -152,8 +152,8 @@
                                             @endif
                                         </div>
                                     </td>
-                                    <td class="font-mono text-slate-700">{{ $result['temporary_password'] ?? '-' }}</td>
-                                    <td class="text-slate-700">{{ $result['error'] ?: '-' }}</td>
+                                    <td class="whitespace-normal break-words font-mono leading-snug text-slate-700">{{ $result['temporary_password'] ?? '-' }}</td>
+                                    <td class="whitespace-normal break-words leading-snug text-slate-700">{{ $result['error'] ?: '-' }}</td>
                                 </tr>
                             @empty
                                 <tr>

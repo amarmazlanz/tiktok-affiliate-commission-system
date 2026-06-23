@@ -68,6 +68,19 @@
                 </div>
             </div>
 
+            <div class="flex flex-wrap justify-end gap-3">
+                <a href="{{ route('admin.commissions.export.pdf', array_merge(['commission' => $commission], request()->only(['summary_group', 'summary_affiliate']))) }}"
+                    class="btn-secondary border-red-200 text-red-700 hover:bg-red-50"
+                    onclick="this.classList.add('opacity-75','pointer-events-none'); this.textContent='Exporting PDF...';">
+                    Export PDF
+                </a>
+                <a href="{{ route('admin.commissions.export.excel', array_merge(['commission' => $commission], request()->only(['summary_group', 'summary_affiliate']))) }}"
+                    class="btn-primary"
+                    onclick="this.classList.add('opacity-75','pointer-events-none'); this.textContent='Exporting Excel...';">
+                    Export Excel
+                </a>
+            </div>
+
             <div class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
                 <div class="border-b border-slate-200 px-6 py-5">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">

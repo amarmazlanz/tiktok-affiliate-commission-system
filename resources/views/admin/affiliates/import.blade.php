@@ -29,7 +29,7 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('admin.affiliates.import.store') }}" enctype="multipart/form-data" class="space-y-5">
+                <form method="POST" action="{{ route('admin.affiliates.import.store') }}" enctype="multipart/form-data" class="space-y-5" data-import-form>
                     @csrf
 
                     <div>
@@ -52,11 +52,49 @@
                         and <span class="font-semibold">General Manager (L3)</span>. Ambiguous upline names will be marked for mapping instead of guessed.
                     </div>
 
-                    <button type="submit" class="btn-primary">
-                        Upload & Import Affiliates
+                    <button type="submit" class="btn-primary" data-import-submit>
+                        <svg class="hidden h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" data-import-spinner>
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z"></path>
+                        </svg>
+                        <span data-import-button-text>Upload & Import Affiliates</span>
                     </button>
+
+                    <p class="hidden text-sm font-medium text-emerald-700" data-import-loading>
+                        Importing affiliates. Please wait...
+                    </p>
                 </form>
             </div>
         </section>
     </main>
+
+    <script>
+        (() => {
+            const form = document.querySelector('[data-import-form]');
+
+            if (! form) {
+                return;
+            }
+
+            form.addEventListener('submit', () => {
+                const button = form.querySelector('[data-import-submit]');
+                const spinner = form.querySelector('[data-import-spinner]');
+                const text = form.querySelector('[data-import-button-text]');
+                const loading = form.querySelector('[data-import-loading]');
+
+                if (button) {
+                    button.disabled = true;
+                    button.classList.add('cursor-not-allowed', 'opacity-75');
+                }
+
+                spinner?.classList.remove('hidden');
+
+                if (text) {
+                    text.textContent = 'Importing...';
+                }
+
+                loading?.classList.remove('hidden');
+            });
+        })();
+    </script>
 @endsection

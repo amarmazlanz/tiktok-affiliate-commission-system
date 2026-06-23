@@ -6,17 +6,35 @@ use App\Models\Affiliate;
 
 class AffiliateHierarchyImportService
 {
+    private array $groupAffiliateCache = [];
+
+    private array $uplineMap = [];
+
     public function resolve(array &$results): void
     {
         $outcomes = [];
+        $affiliateIds = collect($results)->pluck('affiliate_id')->filter()->unique()->values();
 
-        foreach (collect($results)->pluck('affiliate_id')->filter()->unique()->values() as $affiliateId) {
-            $affiliate = Affiliate::query()->find($affiliateId);
+        if ($affiliateIds->isEmpty()) {
+            return;
+        }
 
-            if (! $affiliate) {
-                continue;
-            }
+        $affiliates = Affiliate::query()
+            ->whereKey($affiliateIds)
+            ->get();
+        $groups = $affiliates->pluck('group_name')->filter()->unique()->values();
 
+        $this->groupAffiliateCache = Affiliate::query()
+            ->whereIn('group_name', $groups)
+            ->get()
+            ->groupBy('group_name')
+            ->all();
+        $this->uplineMap = Affiliate::query()
+            ->whereIn('group_name', $groups)
+            ->pluck('upline_id', 'id')
+            ->all();
+
+        foreach ($affiliates as $affiliate) {
             $outcomes[$affiliate->id] = $this->resolveAffiliate($affiliate);
         }
 
@@ -54,13 +72,14 @@ class AffiliateHierarchyImportService
             $match = $this->resolveAffiliateAlias((string) $rawValue, (string) $affiliate->group_name, $affiliate->id);
 
             if ($match['status'] !== 'matched') {
-                $affiliate->update([
-                    'upline_id' => null,
-                    'hierarchy_import_status' => 'needs_mapping',
-                    'hierarchy_import_remark' => $match['remark'],
-                ]);
+            $affiliate->update([
+                'upline_id' => null,
+                'hierarchy_import_status' => 'needs_mapping',
+                'hierarchy_import_remark' => $match['remark'],
+            ]);
+            $this->uplineMap[$affiliate->id] = null;
 
-                return $this->outcome(
+            return $this->outcome(
                     'Needs Mapping',
                     'Needs Mapping',
                     $match['remark'],
@@ -77,11 +96,12 @@ class AffiliateHierarchyImportService
 
                 $affiliate->update([
                     'upline_id' => null,
-                    'hierarchy_import_status' => 'cycle_prevented',
-                    'hierarchy_import_remark' => $remark,
-                ]);
+                'hierarchy_import_status' => 'cycle_prevented',
+                'hierarchy_import_remark' => $remark,
+            ]);
+            $this->uplineMap[$affiliate->id] = null;
 
-                return $this->outcome(
+            return $this->outcome(
                     'Hierarchy Conflict',
                     'Hierarchy Conflict',
                     $remark,
@@ -98,6 +118,7 @@ class AffiliateHierarchyImportService
                     ? 'Self-reference alias detected. Effective upline shifted to L'.$level.'.'
                     : null,
             ]);
+            $this->uplineMap[$affiliate->id] = $upline->id;
 
             $uplineMatch = match ($level) {
                 2 => 'Shifted to L2',
@@ -108,10 +129,10 @@ class AffiliateHierarchyImportService
             $validationRemark = $this->validateUpperLevels($affiliate->fresh('upline.upline'), $level);
 
             if ($validationRemark) {
-                $affiliate->update([
-                    'hierarchy_import_status' => 'needs_review',
-                    'hierarchy_import_remark' => $validationRemark,
-                ]);
+            $affiliate->update([
+                'hierarchy_import_status' => 'needs_review',
+                'hierarchy_import_remark' => $validationRemark,
+            ]);
 
                 return $this->outcome(
                     'Needs Review',
@@ -141,6 +162,7 @@ class AffiliateHierarchyImportService
                 ? 'Self-reference alias detected and no valid higher upline was found.'
                 : null,
         ]);
+        $this->uplineMap[$affiliate->id] = null;
 
         return $this->outcome(
             'No Upline',
@@ -221,10 +243,8 @@ class AffiliateHierarchyImportService
 
         $aliasTokens = $this->aliasTokens($normalizedAlias);
 
-        $matches = Affiliate::query()
-            ->where('group_name', $groupName)
-            ->when($excludeId, fn ($query) => $query->whereKeyNot($excludeId))
-            ->get()
+        $matches = collect($this->groupAffiliateCache[$groupName] ?? [])
+            ->when($excludeId, fn ($affiliates) => $affiliates->where('id', '!=', $excludeId))
             ->filter(function (Affiliate $affiliate) use ($normalizedAlias, $aliasTokens): bool {
                 $candidate = $this->normalizeAlias($affiliate->name);
 
@@ -277,19 +297,19 @@ class AffiliateHierarchyImportService
         }
 
         $visited = [];
-        $current = $proposedUpline;
+        $currentId = (int) $proposedUpline->id;
 
-        while ($current) {
-            if ((int) $current->id === (int) $affiliate->id) {
+        while ($currentId) {
+            if ($currentId === (int) $affiliate->id) {
                 return true;
             }
 
-            if (in_array((int) $current->id, $visited, true)) {
+            if (in_array($currentId, $visited, true)) {
                 return true;
             }
 
-            $visited[] = (int) $current->id;
-            $current = $current->upline;
+            $visited[] = $currentId;
+            $currentId = (int) ($this->uplineMap[$currentId] ?? 0);
         }
 
         return false;

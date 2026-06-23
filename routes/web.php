@@ -2,14 +2,17 @@
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Admin\AffiliateController;
+use App\Http\Controllers\Admin\AffiliateExportController;
 use App\Http\Controllers\Admin\AffiliateHierarchyController;
 use App\Http\Controllers\Admin\AffiliateImportController;
 use App\Http\Controllers\Admin\CommissionController;
+use App\Http\Controllers\Admin\CommissionExportController;
 use App\Http\Controllers\Admin\CommissionRateSettingController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\OrderImportController;
 use App\Http\Controllers\Admin\TiktokAccountController;
 use App\Http\Controllers\Affiliate\DashboardController as AffiliateDashboardController;
+use App\Http\Controllers\Affiliate\PasswordController as AffiliatePasswordController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -67,6 +70,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('affiliates/hierarchy', AffiliateHierarchyController::class)->name('affiliates.hierarchy');
+    Route::get('affiliates/export', AffiliateExportController::class)->name('affiliates.export');
     Route::get('affiliates/import', [AffiliateImportController::class, 'create'])->name('affiliates.import.create');
     Route::post('affiliates/import', [AffiliateImportController::class, 'store'])->name('affiliates.import.store');
     Route::post('affiliates/{affiliate}/reset-password', [AffiliateController::class, 'resetPassword'])->name('affiliates.reset-password');
@@ -83,6 +87,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('commissions', [CommissionController::class, 'index'])->name('commissions.index');
     Route::post('commissions', [CommissionController::class, 'store'])->name('commissions.store');
     Route::get('commissions/{commission}', [CommissionController::class, 'show'])->name('commissions.show');
+    Route::get('commissions/{commission}/export/pdf', [CommissionExportController::class, 'pdf'])->name('commissions.export.pdf');
+    Route::get('commissions/{commission}/export/excel', [CommissionExportController::class, 'excel'])->name('commissions.export.excel');
 
     Route::resource('commission-rate-settings', CommissionRateSettingController::class)
         ->except(['show', 'destroy']);
@@ -92,4 +98,6 @@ Route::middleware(['auth', 'role:affiliate'])->prefix('affiliate')->name('affili
     Route::get('/', fn () => redirect()->route('affiliate.dashboard'));
 
     Route::get('/dashboard', AffiliateDashboardController::class)->name('dashboard');
+    Route::get('/password', [AffiliatePasswordController::class, 'edit'])->name('password.edit');
+    Route::post('/password', [AffiliatePasswordController::class, 'update'])->name('password.update');
 });
