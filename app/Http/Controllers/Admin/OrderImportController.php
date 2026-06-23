@@ -67,6 +67,8 @@ class OrderImportController extends Controller
             'missing_columns' => [],
             'sample_skipped_rows' => [],
         ];
+        $pendingOrders = [];
+        $now = now();
 
         while (! $csv->eof()) {
             $line = $csv->fgetcsv();
@@ -106,28 +108,67 @@ class OrderImportController extends Controller
                 'payment_amount' => $this->parseDecimal(Arr::get($row, 'Payment Amount')),
                 'currency' => $this->nullableString(Arr::get($row, 'Currency')),
                 'quantity' => $this->parseInteger(Arr::get($row, 'Quantity')),
-                'time_created' => $this->parseDate(Arr::get($row, 'Time Created')),
-                'payment_time' => $this->parseDate(Arr::get($row, 'Payment time')),
-                'time_commission_paid' => $this->parseDate(Arr::get($row, 'Time Commission Paid')),
+                'time_created' => $this->parseDate(Arr::get($row, 'Time Created'))?->toDateTimeString(),
+                'payment_time' => $this->parseDate(Arr::get($row, 'Payment time'))?->toDateTimeString(),
+                'time_commission_paid' => $this->parseDate(Arr::get($row, 'Time Commission Paid'))?->toDateTimeString(),
                 'platform' => $this->nullableString(Arr::get($row, 'Platform')),
-                'raw_data' => $row,
+                'raw_data' => json_encode($row),
+                'created_at' => $now,
+                'updated_at' => $now,
             ];
 
-            $order = TiktokOrder::query()->where('order_id', $orderId)->first();
+            $pendingOrders[$orderId] = [
+                'order_id' => $orderId,
+                ...$orderData,
+            ];
 
-            if ($order) {
-                $order->update($orderData);
-                $summary['updated_orders']++;
-            } else {
-                TiktokOrder::create([
-                    'order_id' => $orderId,
-                    ...$orderData,
-                ]);
-                $summary['inserted_orders']++;
+            if (count($pendingOrders) >= 1000) {
+                $this->flushOrderBatch($pendingOrders, $summary);
+                $pendingOrders = [];
             }
         }
 
+        if ($pendingOrders !== []) {
+            $this->flushOrderBatch($pendingOrders, $summary);
+        }
+
         return view('admin.orders.result', compact('summary'));
+    }
+
+    private function flushOrderBatch(array $orders, array &$summary): void
+    {
+        $orderIds = array_keys($orders);
+        $existingOrderIds = TiktokOrder::query()
+            ->whereIn('order_id', $orderIds)
+            ->pluck('order_id')
+            ->all();
+        $existingCount = count($existingOrderIds);
+
+        TiktokOrder::query()->upsert(
+            array_values($orders),
+            ['order_id'],
+            [
+                'affiliate_id',
+                'creator_username',
+                'creator_username_normalized',
+                'order_status',
+                'estimated_commission_base',
+                'actual_commission_base',
+                'actual_commission_payment',
+                'payment_amount',
+                'currency',
+                'quantity',
+                'time_created',
+                'payment_time',
+                'time_commission_paid',
+                'platform',
+                'raw_data',
+                'updated_at',
+            ]
+        );
+
+        $summary['updated_orders'] += $existingCount;
+        $summary['inserted_orders'] += count($orders) - $existingCount;
     }
 
     private function normalizeHeaders(array $headers): array

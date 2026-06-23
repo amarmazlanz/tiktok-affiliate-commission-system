@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CommissionEntry;
 use App\Models\CommissionRun;
 use App\Services\CommissionCalculatorService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -47,72 +49,188 @@ class CommissionController extends Controller
             ->with('success', 'Commission calculation berjaya dijalankan.');
     }
 
-    public function show(CommissionRun $commission): View
+    public function show(Request $request, CommissionRun $commission): View
     {
-        $commission->load([
-            'commissionEntries.receiverAffiliate',
-            'commissionEntries.sourceAffiliate',
-            'commissionEntries.tiktokOrder',
-        ]);
+        $entryTypeLabels = $this->entryTypeLabels();
+        $perPage = in_array((int) $request->query('per_page', 50), [50, 100, 200], true)
+            ? (int) $request->query('per_page', 50)
+            : 50;
 
-        $commissionEntries = $commission->commissionEntries;
+        $summaryPerPage = 50;
+        $summarySort = in_array($request->query('summary_sort'), [
+            'affiliate',
+            'total_sales',
+            'personal',
+            'manager_bonus',
+            'l1_earnings',
+            'l2_earnings',
+            'l3_earnings',
+            'total',
+        ], true) ? (string) $request->query('summary_sort') : 'affiliate';
+        $summaryDirection = $request->query('summary_dir') === 'desc' ? 'desc' : 'asc';
+        $summaryGroup = trim((string) $request->query('summary_group', ''));
+        $summaryAffiliate = $request->filled('summary_affiliate') ? $request->integer('summary_affiliate') : null;
+        $entryGroup = trim((string) $request->query('entry_group', ''));
+        $receiver = $request->filled('receiver') ? $request->integer('receiver') : null;
 
-        $salesByAffiliate = $commissionEntries
-            ->where('commission_type', 'personal')
-            ->groupBy('source_affiliate_id')
-            ->map(fn ($entries) => $entries->sum('base_amount'));
+        if ($summaryAffiliate && ! $this->affiliateBelongsToGroup($summaryAffiliate, $summaryGroup)) {
+            $summaryAffiliate = null;
+        }
 
-        $summaries = $commissionEntries
-            ->groupBy('receiver_affiliate_id')
-            ->map(function ($entries) use ($salesByAffiliate) {
-                $affiliate = $entries->first()->receiverAffiliate;
+        if ($receiver && ! $this->affiliateBelongsToGroup($receiver, $entryGroup)) {
+            $receiver = null;
+        }
 
-                $personal = $entries
-                    ->where('commission_type', 'personal')
-                    ->sum('commission_amount');
-                $managerBonus = $entries
-                    ->where('commission_type', 'manager_bonus')
-                    ->sum('commission_amount');
-                $l1Overriding = $entries
-                    ->filter(fn ($entry): bool => $entry->commission_type === 'l1_overriding'
-                        || ($entry->commission_type === 'overriding' && (int) $entry->level === 1))
-                    ->sum('commission_amount');
-                $l1SplitSeller = $entries
-                    ->where('commission_type', 'l1_split_seller')
-                    ->sum('commission_amount');
-                $l1SplitUpline = $entries
-                    ->where('commission_type', 'l1_split_upline')
-                    ->sum('commission_amount');
-                $l1Earnings = $l1Overriding + $l1SplitSeller + $l1SplitUpline;
-                $l2Overriding = $entries
-                    ->filter(fn ($entry): bool => $entry->commission_type === 'l2_overriding'
-                        || ($entry->commission_type === 'overriding' && (int) $entry->level === 2))
-                    ->sum('commission_amount');
-                $l3Overriding = $entries
-                    ->filter(fn ($entry): bool => $entry->commission_type === 'l3_overriding'
-                        || ($entry->commission_type === 'overriding' && (int) $entry->level === 3))
-                    ->sum('commission_amount');
+        $summaryQuery = $this->summaryQuery($commission->id)
+            ->when($summaryGroup !== '', fn ($query) => $query->where('affiliates.group_name', $summaryGroup))
+            ->when($summaryAffiliate, fn ($query) => $query->where('affiliates.id', $summaryAffiliate));
+        $filteredSummarySalesTotal = (float) DB::query()
+            ->fromSub(clone $summaryQuery, 'filtered_summaries')
+            ->sum('total_sales');
 
-                return [
-                    'affiliate' => $affiliate,
-                    'total_sales' => (float) ($salesByAffiliate[$affiliate->id] ?? 0),
-                    'personal' => $personal,
-                    'manager_bonus' => $managerBonus,
-                    'l1_earnings' => $l1Earnings,
-                    'l2_earnings' => $l2Overriding,
-                    'l3_earnings' => $l3Overriding,
-                    'total' => $personal + $managerBonus + $l1Earnings + $l2Overriding + $l3Overriding,
-                ];
+        $summaryOrderColumn = $summarySort === 'affiliate' ? 'affiliate_name' : $summarySort;
+        $summaries = $summaryQuery
+            ->orderBy($summaryOrderColumn, $summaryDirection)
+            ->paginate($summaryPerPage, ['*'], 'summary_page')
+            ->withQueryString();
+
+        $entryQuery = CommissionEntry::query()
+            ->select([
+                'id',
+                'commission_run_id',
+                'receiver_affiliate_id',
+                'source_affiliate_id',
+                'tiktok_order_id',
+                'commission_type',
+                'level',
+                'rate',
+                'base_amount',
+                'commission_amount',
+            ])
+            ->where('commission_run_id', $commission->id)
+            ->with([
+                'receiverAffiliate:id,name',
+                'sourceAffiliate:id,name',
+                'tiktokOrder:id,order_id',
+            ])
+            ->when($entryGroup !== '', fn ($query) => $query->whereHas('receiverAffiliate', fn ($query) => $query->where('group_name', $entryGroup)))
+            ->when($receiver, fn ($query) => $query->where('receiver_affiliate_id', $receiver))
+            ->when($request->filled('source'), fn ($query) => $query->where('source_affiliate_id', $request->integer('source')))
+            ->when($request->filled('type'), fn ($query) => $query->where('commission_type', (string) $request->query('type')))
+            ->when($request->filled('order_id'), function ($query) use ($request): void {
+                $orderId = trim((string) $request->query('order_id'));
+
+                $query->whereHas('tiktokOrder', fn ($query) => $query->where('order_id', 'like', '%'.$orderId.'%'));
             })
-            ->sortBy(fn ($summary) => $summary['affiliate']->name)
-            ->values();
+            ->latest('id');
+
+        $commissionEntries = $entryQuery
+            ->paginate($perPage, ['*'], 'entries_page')
+            ->withQueryString();
+
+        $baseEntryQuery = CommissionEntry::query()->where('commission_run_id', $commission->id);
+        $summaryAffiliateOptions = (clone $baseEntryQuery)
+            ->join('affiliates', 'affiliates.id', '=', 'commission_entries.receiver_affiliate_id')
+            ->select('affiliates.id', 'affiliates.name', 'affiliates.affiliate_code')
+            ->when($summaryGroup !== '', fn ($query) => $query->where('affiliates.group_name', $summaryGroup))
+            ->distinct()
+            ->orderBy('affiliates.name')
+            ->get();
+        $receiverOptions = (clone $baseEntryQuery)
+            ->join('affiliates', 'affiliates.id', '=', 'commission_entries.receiver_affiliate_id')
+            ->select('affiliates.id', 'affiliates.name', 'affiliates.affiliate_code')
+            ->when($entryGroup !== '', fn ($query) => $query->where('affiliates.group_name', $entryGroup))
+            ->distinct()
+            ->orderBy('affiliates.name')
+            ->get();
+        $sourceOptions = (clone $baseEntryQuery)
+            ->join('affiliates', 'affiliates.id', '=', 'commission_entries.source_affiliate_id')
+            ->select('affiliates.id', 'affiliates.name')
+            ->distinct()
+            ->orderBy('affiliates.name')
+            ->get();
+        $typeOptions = (clone $baseEntryQuery)
+            ->select('commission_type')
+            ->distinct()
+            ->orderBy('commission_type')
+            ->pluck('commission_type')
+            ->map(fn ($type) => [
+                'value' => $type,
+                'label' => $entryTypeLabels[$type] ?? ucfirst(str_replace('_', ' ', $type)),
+            ]);
+        $summaryGroupOptions = (clone $baseEntryQuery)
+            ->join('affiliates', 'affiliates.id', '=', 'commission_entries.receiver_affiliate_id')
+            ->whereNotNull('affiliates.group_name')
+            ->where('affiliates.group_name', '<>', '')
+            ->distinct()
+            ->orderBy('affiliates.group_name')
+            ->pluck('affiliates.group_name');
 
         return view('admin.commissions.show', [
             'commission' => $commission,
             'summaries' => $summaries,
+            'filteredSummarySalesTotal' => $filteredSummarySalesTotal,
+            'commissionEntries' => $commissionEntries,
+            'summaryAffiliateOptions' => $summaryAffiliateOptions,
+            'receiverOptions' => $receiverOptions,
+            'sourceOptions' => $sourceOptions,
+            'typeOptions' => $typeOptions,
+            'summaryGroupOptions' => $summaryGroupOptions,
+            'filters' => [
+                'entry_group' => $entryGroup,
+                'receiver' => $receiver,
+                'source' => $request->query('source'),
+                'type' => $request->query('type'),
+                'order_id' => $request->query('order_id'),
+                'per_page' => $perPage,
+                'summary_group' => $summaryGroup,
+                'summary_affiliate' => $summaryAffiliate,
+                'summary_sort' => $summarySort,
+                'summary_dir' => $summaryDirection,
+            ],
             'months' => $this->months(),
-            'entryTypeLabels' => $this->entryTypeLabels(),
+            'entryTypeLabels' => $entryTypeLabels,
         ]);
+    }
+
+    private function summaryQuery(int $commissionRunId)
+    {
+        $salesSubquery = DB::table('commission_entries')
+            ->select('source_affiliate_id', DB::raw('SUM(base_amount) as total_sales'))
+            ->where('commission_run_id', $commissionRunId)
+            ->where('commission_type', 'personal')
+            ->groupBy('source_affiliate_id');
+
+        return DB::table('commission_entries')
+            ->join('affiliates', 'affiliates.id', '=', 'commission_entries.receiver_affiliate_id')
+            ->leftJoinSub($salesSubquery, 'sales', fn ($join) => $join->on('sales.source_affiliate_id', '=', 'affiliates.id'))
+            ->where('commission_entries.commission_run_id', $commissionRunId)
+            ->groupBy('affiliates.id', 'affiliates.name', 'affiliates.group_name', 'affiliates.affiliate_type', 'sales.total_sales')
+            ->select([
+                'affiliates.id as affiliate_id',
+                'affiliates.name as affiliate_name',
+                'affiliates.group_name',
+                'affiliates.affiliate_type',
+                DB::raw('COALESCE(sales.total_sales, 0) as total_sales'),
+                DB::raw("SUM(CASE WHEN commission_entries.commission_type = 'personal' THEN commission_entries.commission_amount ELSE 0 END) as personal"),
+                DB::raw("SUM(CASE WHEN commission_entries.commission_type = 'manager_bonus' THEN commission_entries.commission_amount ELSE 0 END) as manager_bonus"),
+                DB::raw("SUM(CASE WHEN commission_entries.commission_type IN ('l1_overriding', 'l1_split_seller', 'l1_split_upline') OR (commission_entries.commission_type = 'overriding' AND commission_entries.level = 1) THEN commission_entries.commission_amount ELSE 0 END) as l1_earnings"),
+                DB::raw("SUM(CASE WHEN commission_entries.commission_type = 'l2_overriding' OR (commission_entries.commission_type = 'overriding' AND commission_entries.level = 2) THEN commission_entries.commission_amount ELSE 0 END) as l2_earnings"),
+                DB::raw("SUM(CASE WHEN commission_entries.commission_type = 'l3_overriding' OR (commission_entries.commission_type = 'overriding' AND commission_entries.level = 3) THEN commission_entries.commission_amount ELSE 0 END) as l3_earnings"),
+                DB::raw('SUM(commission_entries.commission_amount) as total'),
+            ]);
+    }
+
+    private function affiliateBelongsToGroup(int $affiliateId, string $groupName): bool
+    {
+        if ($groupName === '') {
+            return true;
+        }
+
+        return DB::table('affiliates')
+            ->where('id', $affiliateId)
+            ->where('group_name', $groupName)
+            ->exists();
     }
 
     private function entryTypeLabels(): array
