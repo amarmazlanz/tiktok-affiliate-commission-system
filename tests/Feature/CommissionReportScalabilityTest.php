@@ -155,6 +155,109 @@ class CommissionReportScalabilityTest extends TestCase
             ->assertSee('Showing 1-50 of 40,000 entries')
             ->assertSee('entry_group=SWG', false);
 
+        $ajaxGroupResponse = $this
+            ->actingAs($admin)
+            ->getJson(route('admin.commissions.show', [
+                'commission' => $run,
+                'ajax' => 1,
+                'entry_group' => 'SWG',
+                'per_page' => 50,
+            ]));
+
+        $ajaxGroupResponse
+            ->assertOk()
+            ->assertJsonPath('resultCount', 40000)
+            ->assertJsonPath('receiverOptions.0.id', $senior->id)
+            ->assertJsonCount(1, 'receiverOptions')
+            ->assertJsonCount(0, 'sourceOptions')
+            ->assertJsonPath('selectedReceiver', null)
+            ->assertJsonPath('selectedSource', null)
+            ->assertSee('Showing 1-50 of 40,000 entries', false)
+            ->assertSee('Large Senior', false)
+            ->assertDontSee('Affiliate Income Summary', false);
+
+        $ajaxInvalidReceiverResponse = $this
+            ->actingAs($admin)
+            ->getJson(route('admin.commissions.show', [
+                'commission' => $run,
+                'ajax' => 1,
+                'entry_group' => 'SWG',
+                'receiver' => $seller->id,
+                'per_page' => 50,
+            ]));
+
+        $ajaxInvalidReceiverResponse
+            ->assertOk()
+            ->assertJsonPath('selectedReceiver', null)
+            ->assertJsonPath('resultCount', 40000);
+
+        $ajaxInvalidSourceResponse = $this
+            ->actingAs($admin)
+            ->getJson(route('admin.commissions.show', [
+                'commission' => $run,
+                'ajax' => 1,
+                'entry_group' => 'SWG',
+                'source' => $seller->id,
+                'per_page' => 50,
+            ]));
+
+        $ajaxInvalidSourceResponse
+            ->assertOk()
+            ->assertJsonPath('selectedSource', null)
+            ->assertJsonCount(0, 'sourceOptions')
+            ->assertJsonPath('resultCount', 40000);
+
+        $ajaxTitanResponse = $this
+            ->actingAs($admin)
+            ->getJson(route('admin.commissions.show', [
+                'commission' => $run,
+                'ajax' => 1,
+                'entry_group' => 'Titan Group',
+                'receiver' => $seller->id,
+                'source' => $seller->id,
+                'per_page' => 50,
+            ]));
+
+        $ajaxTitanResponse
+            ->assertOk()
+            ->assertJsonPath('receiverOptions.0.id', $seller->id)
+            ->assertJsonPath('sourceOptions.0.id', $seller->id)
+            ->assertJsonPath('selectedReceiver', $seller->id)
+            ->assertJsonPath('selectedSource', $seller->id)
+            ->assertJsonPath('resultCount', 40000);
+
+        $ajaxAllGroupsResponse = $this
+            ->actingAs($admin)
+            ->getJson(route('admin.commissions.show', [
+                'commission' => $run,
+                'ajax' => 1,
+                'per_page' => 50,
+            ]));
+
+        $ajaxAllGroupsResponse
+            ->assertOk()
+            ->assertJsonCount(3, 'receiverOptions')
+            ->assertJsonCount(1, 'sourceOptions')
+            ->assertJsonPath('sourceOptions.0.id', $seller->id);
+
+        $ajaxPaginationResponse = $this
+            ->actingAs($admin)
+            ->getJson(route('admin.commissions.show', [
+                'commission' => $run,
+                'ajax' => 1,
+                'receiver' => $seller->id,
+                'type' => 'personal',
+                'per_page' => 100,
+                'entries_page' => 2,
+            ]));
+
+        $ajaxPaginationResponse
+            ->assertOk()
+            ->assertJsonPath('resultCount', 40000)
+            ->assertSee('Showing 101-200 of 40,000 entries', false)
+            ->assertSee('entries_page=3', false)
+            ->assertSee('receiver='.$seller->id, false);
+
         $filteredResponse = $this
             ->actingAs($admin)
             ->get(route('admin.commissions.show', [

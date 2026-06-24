@@ -68,19 +68,6 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap justify-end gap-3">
-                <a href="{{ route('admin.commissions.export.pdf', array_merge(['commission' => $commission], request()->only(['summary_group', 'summary_affiliate']))) }}"
-                    class="btn-secondary border-red-200 text-red-700 hover:bg-red-50"
-                    onclick="this.classList.add('opacity-75','pointer-events-none'); this.textContent='Exporting PDF...';">
-                    Export PDF
-                </a>
-                <a href="{{ route('admin.commissions.export.excel', array_merge(['commission' => $commission], request()->only(['summary_group', 'summary_affiliate']))) }}"
-                    class="btn-primary"
-                    onclick="this.classList.add('opacity-75','pointer-events-none'); this.textContent='Exporting Excel...';">
-                    Export Excel
-                </a>
-            </div>
-
             <div class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
                 <div class="border-b border-slate-200 px-6 py-5">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -249,7 +236,7 @@
                     <h2 class="text-lg font-semibold text-slate-950">Commission Entry Details</h2>
                 </div>
 
-                <form method="GET" action="{{ route('admin.commissions.show', $commission) }}" class="border-b border-slate-200 bg-white px-6 py-5" data-auto-filter-form>
+                <form method="GET" action="{{ route('admin.commissions.show', $commission) }}" class="border-b border-slate-200 bg-white px-6 py-5" data-entry-filter-form>
                     @foreach (request()->except(['entry_group', 'receiver', 'source', 'type', 'order_id', 'per_page', 'entries_page', 'page']) as $key => $value)
                         @if (is_scalar($value))
                             <input type="hidden" name="{{ $key }}" value="{{ $value }}">
@@ -258,7 +245,7 @@
                     <div class="grid gap-4 lg:grid-cols-[180px_1fr_1fr_1fr_1fr_120px_auto] lg:items-end">
                         <div>
                             <label for="entry_group" class="block text-sm font-semibold text-slate-700">Group</label>
-                            <select id="entry_group" name="entry_group" class="form-field" data-auto-submit data-clear-target="receiver">
+                            <select id="entry_group" name="entry_group" class="form-field" data-auto-submit data-clear-target="receiver,source">
                                 <option value="">All Groups</option>
                                 @foreach ($summaryGroupOptions as $groupName)
                                     <option value="{{ $groupName }}" @selected(($filters['entry_group'] ?? '') === $groupName)>{{ $groupName }}</option>
@@ -268,57 +255,18 @@
 
                         <div>
                             <label for="receiver" class="block text-sm font-semibold text-slate-700">Receiver</label>
-                            <div class="relative" data-combobox>
-                                <input id="receiver" name="receiver" type="hidden" value="{{ $filters['receiver'] }}" data-combobox-value>
-                                <div class="mt-2 flex overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-100">
-                                    <input
-                                        id="receiver_search"
-                                        type="text"
-                                        autocomplete="off"
-                                        placeholder="All Receivers"
-                                        class="min-w-0 flex-1 border-0 px-3 py-2.5 text-sm outline-none"
-                                        data-combobox-input
-                                    >
-                                    <button type="button" class="border-l border-slate-200 px-3 text-xs font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-900" data-combobox-clear>
-                                        Clear
-                                    </button>
-                                </div>
-                                <div class="absolute z-30 mt-2 hidden max-h-72 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg" data-combobox-options>
-                                    <button type="button" class="block w-full px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800" data-combobox-option data-id="" data-label="All Receivers" data-search="all receivers">
-                                        All Receivers
-                                    </button>
-                                    @foreach ($receiverOptions as $receiver)
-                                        @php
-                                            $receiverLabel = trim($receiver->name.' '.($receiver->affiliate_code ? '('.$receiver->affiliate_code.')' : ''));
-                                            $receiverSearch = strtolower(trim($receiver->name.' '.$receiver->affiliate_code));
-                                        @endphp
-                                        <button
-                                            type="button"
-                                            class="block w-full px-3 py-2 text-left text-sm hover:bg-emerald-50"
-                                            data-combobox-option
-                                            data-id="{{ $receiver->id }}"
-                                            data-label="{{ $receiverLabel }}"
-                                            data-search="{{ $receiverSearch }}"
-                                        >
-                                            <span class="block font-semibold text-slate-900">{{ $receiver->name }}</span>
-                                            @if ($receiver->affiliate_code)
-                                                <span class="block text-xs text-slate-500">{{ $receiver->affiliate_code }}</span>
-                                            @endif
-                                        </button>
-                                    @endforeach
-                                    <p class="hidden px-3 py-3 text-sm text-slate-500" data-combobox-empty>No receiver found</p>
-                                </div>
-                            </div>
+                            @include('admin.commissions.partials.receiver-combobox', [
+                                'receiverOptions' => $receiverOptions,
+                                'selectedReceiver' => $filters['receiver'],
+                            ])
                         </div>
 
                         <div>
                             <label for="source" class="block text-sm font-semibold text-slate-700">Source</label>
-                            <select id="source" name="source" class="form-field" data-auto-submit>
-                                <option value="">All Sources</option>
-                                @foreach ($sourceOptions as $source)
-                                    <option value="{{ $source->id }}" @selected((string) $filters['source'] === (string) $source->id)>{{ $source->name }}</option>
-                                @endforeach
-                            </select>
+                            @include('admin.commissions.partials.source-combobox', [
+                                'sourceOptions' => $sourceOptions,
+                                'selectedSource' => $filters['source'],
+                            ])
                         </div>
 
                         <div>
@@ -346,67 +294,22 @@
                         </div>
 
                         <div class="flex gap-2">
-                            <a href="{{ route('admin.commissions.show', array_merge(['commission' => $commission], request()->except(['entry_group', 'receiver', 'source', 'type', 'order_id', 'per_page', 'entries_page', 'page']))) }}" class="btn-secondary">Reset</a>
+                            <button type="button" class="btn-secondary" data-entry-reset>Reset</button>
                         </div>
                     </div>
 
-                    <p class="mt-4 text-sm text-slate-600">
-                        Showing {{ number_format($commissionEntries->firstItem() ?? 0) }}-{{ number_format($commissionEntries->lastItem() ?? 0) }} of {{ number_format($commissionEntries->total()) }} entries
+                    <p class="mt-4 hidden items-center gap-2 text-sm font-semibold text-emerald-700" data-entry-loading>
+                        <span class="h-4 w-4 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-700"></span>
+                        Loading...
                     </p>
+                    <p class="mt-4 hidden text-sm font-semibold text-red-700" data-entry-error>Unable to load results. Please try again.</p>
                 </form>
 
-                <div class="max-h-[600px] overflow-auto">
-                    <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
-                        <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
-                            <tr>
-                                <th class="px-5 py-3.5 text-left font-semibold text-slate-700">Receiver</th>
-                                <th class="px-5 py-3.5 text-left font-semibold text-slate-700">Source</th>
-                                <th class="px-5 py-3.5 text-left font-semibold text-slate-700">Type</th>
-                                <th class="px-5 py-3.5 text-left font-semibold text-slate-700">Order ID</th>
-                                <th class="px-5 py-3.5 text-right font-semibold text-slate-700">Rate</th>
-                                <th class="px-5 py-3.5 text-right font-semibold text-slate-700">Base Amount</th>
-                                <th class="px-5 py-3.5 text-right font-semibold text-slate-700">Commission</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 bg-white">
-                            @forelse ($commissionEntries as $entry)
-                                <tr class="hover:bg-slate-50">
-                                    <td class="whitespace-nowrap px-5 py-4 font-medium text-slate-950">{{ $entry->receiverAffiliate?->name ?? '-' }}</td>
-                                    <td class="whitespace-nowrap px-5 py-4 text-slate-700">{{ $entry->sourceAffiliate?->name ?? '-' }}</td>
-                                    <td class="whitespace-nowrap px-5 py-4 text-slate-700">
-                                        @php
-                                            $typeBadge = match ($entry->commission_type) {
-                                                'personal' => 'badge-blue',
-                                                'manager_bonus' => 'badge-purple',
-                                                'l1_overriding' => 'badge-green',
-                                                'l1_split_seller', 'l1_split_upline' => 'badge-amber',
-                                                'l2_overriding' => 'badge-teal',
-                                                'l3_overriding' => 'badge-gray',
-                                                default => 'badge-gray',
-                                            };
-                                        @endphp
-                                        <span class="badge {{ $typeBadge }}">
-                                            {{ $entryTypeLabels[$entry->commission_type] ?? ucfirst(str_replace('_', ' ', $entry->commission_type)) }}
-                                        </span>
-                                    </td>
-                                    <td class="whitespace-nowrap px-5 py-4 text-slate-700">{{ $entry->tiktokOrder?->order_id ?? '-' }}</td>
-                                    <td class="whitespace-nowrap px-5 py-4 text-right text-slate-700">{{ number_format((float) $entry->rate * 100, 2) }}%</td>
-                                    <td class="whitespace-nowrap px-5 py-4 text-right text-slate-700">{{ $money($entry->base_amount) }}</td>
-                                    <td class="whitespace-nowrap px-5 py-4 text-right font-semibold text-slate-950">{{ $money($entry->commission_amount) }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="7" class="px-5 py-10 text-center text-slate-500">
-                                        Tiada commission detail untuk filter semasa.
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="border-t border-slate-100 bg-slate-50 px-6 py-4">
-                    {{ $commissionEntries->links() }}
+                <div data-entry-results>
+                    @include('admin.commissions.partials.entry-results', [
+                        'commissionEntries' => $commissionEntries,
+                        'entryTypeLabels' => $entryTypeLabels,
+                    ])
                 </div>
             </div>
         </section>
@@ -414,49 +317,116 @@
 
     <script>
         (() => {
+            const entryForm = document.querySelector('[data-entry-filter-form]');
+            const entryResults = document.querySelector('[data-entry-results]');
+            const entryLoading = entryForm?.querySelector('[data-entry-loading]');
+            const entryError = entryForm?.querySelector('[data-entry-error]');
+            let activeRequest = null;
+
+            const entryParameterNames = ['entry_group', 'receiver', 'source', 'type', 'order_id', 'per_page', 'entries_page'];
+
+            const setLoading = (loading) => {
+                entryLoading?.classList.toggle('hidden', ! loading);
+                entryLoading?.classList.toggle('flex', loading);
+                entryError?.classList.add('hidden');
+                entryResults?.classList.toggle('opacity-60', loading);
+                entryForm?.querySelectorAll('select, input, button').forEach((control) => {
+                    control.disabled = loading;
+                });
+            };
+
+            const browserUrl = (requestUrl) => {
+                const url = new URL(requestUrl, window.location.href);
+                url.searchParams.delete('ajax');
+                return `${url.pathname}${url.search}${url.hash}`;
+            };
+
+            const replaceReceiverCombobox = (html) => {
+                const current = entryForm?.querySelector('[data-entry-receiver-combobox]');
+                if (! current || ! html) return;
+
+                current.outerHTML = html;
+                initializeCombobox(entryForm.querySelector('[data-entry-receiver-combobox]'));
+            };
+
+            const replaceSourceCombobox = (html) => {
+                const current = entryForm?.querySelector('[data-entry-source-combobox]');
+                if (! current || ! html) return;
+
+                current.outerHTML = html;
+                initializeCombobox(entryForm.querySelector('[data-entry-source-combobox]'));
+            };
+
+            const fetchEntryResults = async (targetUrl = null, updateHistory = true) => {
+                if (! entryForm || ! entryResults) return;
+
+                activeRequest?.abort();
+                const requestController = new AbortController();
+                activeRequest = requestController;
+
+                const url = targetUrl
+                    ? new URL(targetUrl, window.location.href)
+                    : new URL(entryForm.action, window.location.href);
+
+                if (! targetUrl) {
+                    const formData = new FormData(entryForm);
+                    url.search = '';
+                    formData.forEach((value, key) => {
+                        if (String(value) !== '') url.searchParams.append(key, value);
+                    });
+                    url.searchParams.delete('entries_page');
+                }
+
+                url.searchParams.set('ajax', '1');
+                setLoading(true);
+
+                try {
+                    const response = await fetch(url, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        signal: requestController.signal,
+                    });
+
+                    if (! response.ok) throw new Error(`Request failed with status ${response.status}`);
+
+                    const data = await response.json();
+                    entryResults.innerHTML = data.html;
+                    replaceReceiverCombobox(data.receiverHtml);
+                    replaceSourceCombobox(data.sourceHtml);
+
+                    if (updateHistory) {
+                        window.history.replaceState({ commissionEntries: true }, '', browserUrl(url));
+                    }
+                } catch (error) {
+                    if (error.name !== 'AbortError') entryError?.classList.remove('hidden');
+                } finally {
+                    if (activeRequest === requestController) {
+                        setLoading(false);
+                        activeRequest = null;
+                    }
+                }
+            };
+
             const submitForm = (form) => {
-                if (form.requestSubmit) {
+                if (form?.matches('[data-entry-filter-form]')) {
+                    fetchEntryResults();
+                    return;
+                }
+
+                if (form?.requestSubmit) {
                     form.requestSubmit();
                     return;
                 }
 
-                form.submit();
+                form?.submit();
             };
 
-            document.querySelectorAll('[data-auto-submit]').forEach((field) => {
-                field.addEventListener('change', () => {
-                    const clearTarget = field.dataset.clearTarget;
+            const initializeCombobox = (root) => {
+                if (! root || root.dataset.comboboxReady === 'true') return;
+                root.dataset.comboboxReady = 'true';
 
-                    if (clearTarget) {
-                        const target = field.form?.querySelector(`[name="${clearTarget}"]`);
-
-                        if (target) {
-                            target.value = '';
-                        }
-                    }
-
-                    submitForm(field.form);
-                });
-            });
-
-            document.querySelectorAll('[data-auto-submit-debounce]').forEach((field) => {
-                let timer = null;
-
-                field.addEventListener('input', () => {
-                    window.clearTimeout(timer);
-                    timer = window.setTimeout(() => submitForm(field.form), 650);
-                });
-
-                field.addEventListener('keydown', (event) => {
-                    if (event.key === 'Enter') {
-                        event.preventDefault();
-                        window.clearTimeout(timer);
-                        submitForm(field.form);
-                    }
-                });
-            });
-
-            document.querySelectorAll('[data-combobox]').forEach((root) => {
                 const hiddenInput = root.querySelector('[data-combobox-value]');
                 const searchInput = root.querySelector('[data-combobox-input]');
                 const optionsPanel = root.querySelector('[data-combobox-options]');
@@ -472,10 +442,8 @@
                     activeIndex = -1;
                     options.forEach((option) => option.classList.remove('bg-emerald-50', 'text-emerald-800'));
                 };
-
                 const setActive = (index) => {
                     const visible = visibleOptions();
-
                     options.forEach((option) => option.classList.remove('bg-emerald-50', 'text-emerald-800'));
 
                     if (! visible.length) {
@@ -487,7 +455,6 @@
                     visible[activeIndex].classList.add('bg-emerald-50', 'text-emerald-800');
                     visible[activeIndex].scrollIntoView({ block: 'nearest' });
                 };
-
                 const selectOption = (option) => {
                     hiddenInput.value = option.dataset.id || '';
                     searchInput.value = option.dataset.id ? option.dataset.label : '';
@@ -495,7 +462,6 @@
                     closePanel();
                     submitForm(hiddenInput.form);
                 };
-
                 const filterOptions = () => {
                     const term = searchInput.value.trim().toLowerCase();
                     let matchCount = 0;
@@ -504,21 +470,16 @@
                         const matches = term === ''
                             || option.dataset.search.includes(term)
                             || option.dataset.label.toLowerCase().includes(term);
-
                         option.classList.toggle('hidden', ! matches);
-
-                        if (matches) {
-                            matchCount += 1;
-                        }
+                        if (matches) matchCount += 1;
                     });
 
                     emptyState.classList.toggle('hidden', matchCount > 0);
                     setActive(0);
                 };
-
                 const selectedOption = options.find((option) => option.dataset.id === hiddenInput.value);
 
-                if (selectedOption && selectedOption.dataset.id) {
+                if (selectedOption?.dataset.id) {
                     searchInput.value = selectedOption.dataset.label;
                     searchInput.placeholder = selectedOption.dataset.label;
                 }
@@ -527,57 +488,112 @@
                     openPanel();
                     filterOptions();
                 });
-
                 searchInput.addEventListener('input', () => {
                     hiddenInput.value = '';
                     openPanel();
                     filterOptions();
                 });
-
                 searchInput.addEventListener('keydown', (event) => {
                     const visible = visibleOptions();
 
-                    if (event.key === 'Escape') {
-                        closePanel();
-                    }
-
+                    if (event.key === 'Escape') closePanel();
                     if (event.key === 'ArrowDown') {
                         event.preventDefault();
                         openPanel();
                         setActive(activeIndex + 1);
                     }
-
                     if (event.key === 'ArrowUp') {
                         event.preventDefault();
                         openPanel();
                         setActive(activeIndex - 1);
                     }
-
                     if (event.key === 'Enter' && ! optionsPanel.classList.contains('hidden') && visible[activeIndex]) {
                         event.preventDefault();
                         selectOption(visible[activeIndex]);
                     }
                 });
-
-                options.forEach((option) => {
-                    option.addEventListener('mousedown', (event) => {
-                        event.preventDefault();
-                        selectOption(option);
-                    });
-                });
-
+                options.forEach((option) => option.addEventListener('mousedown', (event) => {
+                    event.preventDefault();
+                    selectOption(option);
+                }));
                 clearButton.addEventListener('click', () => {
                     hiddenInput.value = '';
                     searchInput.value = '';
                     searchInput.placeholder = options[0]?.dataset.label || 'All';
                     submitForm(hiddenInput.form);
                 });
-
                 document.addEventListener('click', (event) => {
-                    if (! root.contains(event.target)) {
-                        closePanel();
+                    if (! root.contains(event.target)) closePanel();
+                });
+            };
+
+            document.querySelectorAll('[data-combobox]').forEach(initializeCombobox);
+
+            document.querySelectorAll('[data-auto-submit]').forEach((field) => {
+                field.addEventListener('change', () => {
+                    const clearTarget = field.dataset.clearTarget;
+
+                    if (clearTarget) {
+                        clearTarget.split(',').forEach((targetName) => {
+                            const target = field.form?.querySelector(`[name="${targetName.trim()}"]`);
+                            if (target) target.value = '';
+                        });
+                    }
+
+                    submitForm(field.form);
+                });
+            });
+
+            document.querySelectorAll('[data-auto-submit-debounce]').forEach((field) => {
+                let timer = null;
+
+                field.addEventListener('input', () => {
+                    window.clearTimeout(timer);
+                    timer = window.setTimeout(() => submitForm(field.form), 650);
+                });
+                field.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        window.clearTimeout(timer);
+                        submitForm(field.form);
                     }
                 });
+            });
+
+            entryForm?.addEventListener('submit', (event) => {
+                event.preventDefault();
+                fetchEntryResults();
+            });
+
+            entryForm?.querySelector('[data-entry-reset]')?.addEventListener('click', () => {
+                entryParameterNames.forEach((name) => {
+                    const field = entryForm.querySelector(`[name="${name}"]`);
+                    if (field) field.value = name === 'per_page' ? '50' : '';
+                });
+                const receiverSearch = entryForm.querySelector('[data-entry-receiver-combobox] [data-combobox-input]');
+                const sourceSearch = entryForm.querySelector('[data-entry-source-combobox] [data-combobox-input]');
+                if (receiverSearch) receiverSearch.value = '';
+                if (sourceSearch) sourceSearch.value = '';
+                fetchEntryResults();
+            });
+
+            entryResults?.addEventListener('click', (event) => {
+                const link = event.target.closest('a[href]');
+                if (! link || ! link.closest('[data-entry-pagination]')) return;
+
+                event.preventDefault();
+                fetchEntryResults(link.href);
+            });
+
+            window.addEventListener('popstate', () => {
+                if (! entryForm) return;
+
+                const parameters = new URL(window.location.href).searchParams;
+                entryParameterNames.forEach((name) => {
+                    const field = entryForm.querySelector(`[name="${name}"]`);
+                    if (field) field.value = parameters.get(name) || (name === 'per_page' ? '50' : '');
+                });
+                fetchEntryResults(window.location.href, false);
             });
         })();
     </script>

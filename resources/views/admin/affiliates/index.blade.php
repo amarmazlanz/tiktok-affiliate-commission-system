@@ -38,8 +38,8 @@
                     <a href="{{ route('admin.affiliates.import.create') }}" class="btn-secondary">
                         Import Affiliates
                     </a>
-                    <a href="{{ route('admin.affiliates.export', request()->query()) }}" class="btn-primary bg-emerald-700" onclick="this.classList.add('opacity-75','pointer-events-none'); this.textContent='Exporting...';">
-                        Export Affiliates
+                    <a href="{{ route('admin.affiliates.login-report', array_filter($filters)) }}" class="btn-secondary">
+                        Print Login Report
                     </a>
                     <a href="{{ route('admin.affiliates.create') }}" class="btn-primary">
                         Tambah Affiliate
@@ -96,11 +96,52 @@
                 </div>
             </form>
 
+            <form id="login-report-actions" method="POST" action="{{ route('admin.affiliates.login-report.generate') }}"
+                class="app-card mb-6 flex flex-col gap-4 p-5 lg:flex-row lg:items-end lg:justify-between">
+                @csrf
+                @foreach ($filters as $key => $value)
+                    @if ($value !== null && $value !== '')
+                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                    @endif
+                @endforeach
+
+                <div>
+                    <p class="text-sm font-bold text-slate-950">Affiliate Login Report</p>
+                    <p class="mt-1 max-w-3xl text-sm text-slate-600">
+                        Generate secure temporary passwords for Inhouse login accounts. Passwords are shown once in the printable report and are never stored as plain text.
+                    </p>
+                    <p class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+                        This action will replace the current passwords of the affected Inhouse affiliates. Their existing passwords will stop working immediately.
+                    </p>
+                </div>
+
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <div>
+                        <label for="generation_scope" class="block text-xs font-bold uppercase text-slate-500">Password Scope</label>
+                        <select id="generation_scope" name="generation_scope" class="form-field mt-2 min-w-48">
+                            <option value="never_logged_in" selected>Never Logged In</option>
+                            <option value="must_change_password">Must Change Password</option>
+                            <option value="selected">Selected Affiliates</option>
+                            <option value="filtered">All Filtered Inhouse Affiliates</option>
+                        </select>
+                    </div>
+                    <button type="button" id="print-selected-affiliates" class="btn-secondary">
+                        Print Selected
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        Generate Temporary Passwords
+                    </button>
+                </div>
+            </form>
+
             <div class="app-card overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
                         <thead>
                             <tr>
+                                <th class="w-10 text-center">
+                                    <input id="select-all-affiliates" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" aria-label="Select all affiliates on this page">
+                                </th>
                                 <th class="text-left">Affiliate</th>
                                 <th class="text-left">Affiliate Code</th>
                                 <th class="text-left">Group</th>
@@ -117,6 +158,11 @@
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @forelse ($affiliates as $affiliate)
                                 <tr>
+                                    <td class="text-center">
+                                        <input type="checkbox" name="selected[]" value="{{ $affiliate->id }}" form="login-report-actions"
+                                            class="affiliate-select h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                            aria-label="Select {{ $affiliate->name }}">
+                                    </td>
                                     <td>
                                         <div class="whitespace-normal break-words leading-snug">
                                             @if ($affiliate->id)
@@ -183,7 +229,7 @@
                                             <a href="{{ route('admin.affiliates.edit', $affiliate) }}" class="btn-secondary px-3 py-1.5 text-xs">
                                                 Edit
                                             </a>
-                                            @if ($affiliate->user_id)
+                                            @if ($affiliate->affiliate_type !== 'external' && $affiliate->user_id)
                                                 <form method="POST" action="{{ route('admin.affiliates.reset-password', $affiliate) }}" onsubmit="return confirm('Reset password untuk affiliate ini? Password lama tidak boleh dilihat semula dan akan digantikan.')">
                                                     @csrf
                                                     <button type="submit" class="btn-secondary px-3 py-1.5 text-xs">
@@ -203,7 +249,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="11" class="px-4 py-8 text-center text-slate-500">
+                                    <td colspan="12" class="px-4 py-8 text-center text-slate-500">
                                         Belum ada affiliate.
                                     </td>
                                 </tr>
@@ -218,4 +264,40 @@
             </div>
         </section>
     </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const selectAll = document.getElementById('select-all-affiliates');
+            const affiliateCheckboxes = Array.from(document.querySelectorAll('.affiliate-select'));
+            const printSelected = document.getElementById('print-selected-affiliates');
+            const reportUrl = @json(route('admin.affiliates.login-report'));
+            const filters = @json(array_filter($filters));
+
+            selectAll?.addEventListener('change', () => {
+                affiliateCheckboxes.forEach((checkbox) => {
+                    checkbox.checked = selectAll.checked;
+                });
+            });
+
+            affiliateCheckboxes.forEach((checkbox) => {
+                checkbox.addEventListener('change', () => {
+                    selectAll.checked = affiliateCheckboxes.length > 0 && affiliateCheckboxes.every((item) => item.checked);
+                    selectAll.indeterminate = !selectAll.checked && affiliateCheckboxes.some((item) => item.checked);
+                });
+            });
+
+            printSelected?.addEventListener('click', () => {
+                const selected = affiliateCheckboxes.filter((checkbox) => checkbox.checked).map((checkbox) => checkbox.value);
+
+                if (selected.length === 0) {
+                    window.alert('Select at least one affiliate to print.');
+                    return;
+                }
+
+                const parameters = new URLSearchParams(filters);
+                selected.forEach((id) => parameters.append('selected[]', id));
+                window.location.href = `${reportUrl}?${parameters.toString()}`;
+            });
+        });
+    </script>
 @endsection

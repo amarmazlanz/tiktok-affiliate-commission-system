@@ -2,11 +2,10 @@
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Admin\AffiliateController;
-use App\Http\Controllers\Admin\AffiliateExportController;
 use App\Http\Controllers\Admin\AffiliateHierarchyController;
 use App\Http\Controllers\Admin\AffiliateImportController;
+use App\Http\Controllers\Admin\AffiliateLoginReportController;
 use App\Http\Controllers\Admin\CommissionController;
-use App\Http\Controllers\Admin\CommissionExportController;
 use App\Http\Controllers\Admin\CommissionRateSettingController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\OrderImportController;
@@ -48,9 +47,14 @@ Route::middleware('guest')->group(function () {
         }
 
         $request->session()->regenerate();
+        Auth::user()->forceFill(['last_login_at' => now()])->save();
 
-        return Auth::user()->role === 'admin'
-            ? redirect()->intended(route('admin.dashboard'))
+        if (Auth::user()->role === 'admin') {
+            return redirect()->intended(route('admin.dashboard'));
+        }
+
+        return Auth::user()->must_change_password
+            ? redirect()->route('affiliate.password.edit')
             : redirect()->intended(route('affiliate.dashboard'));
     })->name('login.store');
 });
@@ -70,7 +74,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('affiliates/hierarchy', AffiliateHierarchyController::class)->name('affiliates.hierarchy');
-    Route::get('affiliates/export', AffiliateExportController::class)->name('affiliates.export');
+    Route::get('affiliates/login-report', [AffiliateLoginReportController::class, 'show'])->name('affiliates.login-report');
+    Route::post('affiliates/login-report/generate', [AffiliateLoginReportController::class, 'confirm'])->name('affiliates.login-report.generate');
+    Route::post('affiliates/login-report/generate/confirm', [AffiliateLoginReportController::class, 'generate'])->name('affiliates.login-report.generate.confirm');
     Route::get('affiliates/import', [AffiliateImportController::class, 'create'])->name('affiliates.import.create');
     Route::post('affiliates/import', [AffiliateImportController::class, 'store'])->name('affiliates.import.store');
     Route::post('affiliates/{affiliate}/reset-password', [AffiliateController::class, 'resetPassword'])->name('affiliates.reset-password');
@@ -87,17 +93,17 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('commissions', [CommissionController::class, 'index'])->name('commissions.index');
     Route::post('commissions', [CommissionController::class, 'store'])->name('commissions.store');
     Route::get('commissions/{commission}', [CommissionController::class, 'show'])->name('commissions.show');
-    Route::get('commissions/{commission}/export/pdf', [CommissionExportController::class, 'pdf'])->name('commissions.export.pdf');
-    Route::get('commissions/{commission}/export/excel', [CommissionExportController::class, 'excel'])->name('commissions.export.excel');
 
     Route::resource('commission-rate-settings', CommissionRateSettingController::class)
         ->except(['show', 'destroy']);
 });
 
 Route::middleware(['auth', 'role:affiliate'])->prefix('affiliate')->name('affiliate.')->group(function () {
-    Route::get('/', fn () => redirect()->route('affiliate.dashboard'));
-
-    Route::get('/dashboard', AffiliateDashboardController::class)->name('dashboard');
     Route::get('/password', [AffiliatePasswordController::class, 'edit'])->name('password.edit');
     Route::post('/password', [AffiliatePasswordController::class, 'update'])->name('password.update');
+
+    Route::middleware('password.changed')->group(function () {
+        Route::get('/', fn () => redirect()->route('affiliate.dashboard'));
+        Route::get('/dashboard', AffiliateDashboardController::class)->name('dashboard');
+    });
 });

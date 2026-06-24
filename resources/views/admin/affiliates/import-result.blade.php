@@ -18,6 +18,15 @@
         </header>
 
         <section class="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
+            <div class="app-card flex flex-wrap items-center gap-3 px-5 py-4 text-sm">
+                <span class="font-bold text-slate-950">Import Mode:</span>
+                <span class="badge badge-blue">{{ ($options['import_mode'] ?? 'sync') === 'sync' ? 'Sync / Update Existing Data' : 'Append New Affiliates Only' }}</span>
+                <span class="font-bold text-slate-950">TikTok Sync:</span>
+                <span class="badge badge-gray">{{ ($options['tiktok_sync'] ?? 'safe') === 'mirror' ? 'Mirror Latest Excel' : 'Safe Update' }}</span>
+                <span class="font-bold text-slate-950">Missing:</span>
+                <span class="badge badge-gray">{{ str($options['missing_affiliates'] ?? 'keep')->headline() }}</span>
+            </div>
+
             @if (! empty($summary['missing_columns']))
                 <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     Missing required columns: {{ implode(', ', $summary['missing_columns']) }}
@@ -28,6 +37,10 @@
                 <div class="stat-card">
                     <p class="stat-label">Total Rows</p>
                     <p class="stat-value">{{ number_format($summary['total_rows'] ?? 0) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">New Affiliates</p>
+                    <p class="stat-value">{{ number_format($summary['new_created'] ?? 0) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Inhouse Created</p>
@@ -46,8 +59,28 @@
                     <p class="stat-value">{{ number_format($summary['tiktok_added'] ?? 0) }}</p>
                 </div>
                 <div class="stat-card">
+                    <p class="stat-label">TikTok Unchanged</p>
+                    <p class="stat-value">{{ number_format($summary['tiktok_unchanged'] ?? 0) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">TikTok Inactive</p>
+                    <p class="stat-value">{{ number_format($summary['tiktok_marked_inactive'] ?? 0) }}</p>
+                </div>
+                <div class="stat-card">
                     <p class="stat-label">Hierarchy Linked</p>
                     <p class="stat-value">{{ number_format($summary['hierarchy_linked'] ?? 0) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Hierarchy Updated</p>
+                    <p class="stat-value">{{ number_format($summary['hierarchy_updated'] ?? 0) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Hierarchy Unchanged</p>
+                    <p class="stat-value">{{ number_format($summary['hierarchy_unchanged'] ?? 0) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Previous Upline Replaced</p>
+                    <p class="stat-value">{{ number_format($summary['previous_upline_replaced'] ?? 0) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Self Reference</p>
@@ -77,6 +110,10 @@
                     <p class="stat-label">Skipped Rows</p>
                     <p class="stat-value">{{ number_format($summary['skipped'] ?? 0) }}</p>
                 </div>
+                <div class="stat-card">
+                    <p class="stat-label">Missing From Latest</p>
+                    <p class="stat-value">{{ number_format($summary['missing_affiliates'] ?? 0) }}</p>
+                </div>
             </div>
 
             <div class="app-card overflow-hidden">
@@ -97,6 +134,9 @@
                                 <th class="text-left">L1 Raw Value</th>
                                 <th class="text-left">Upline Match</th>
                                 <th class="text-left">Status</th>
+                                <th class="text-left">Profile Changes</th>
+                                <th class="text-left">Upline Changes</th>
+                                <th class="text-left">TikTok Changes</th>
                                 <th class="text-left">Temporary Password</th>
                                 <th class="text-left">Error / Remark</th>
                             </tr>
@@ -131,6 +171,9 @@
                                                 'Inhouse Created' => 'badge-green',
                                                 'External Created' => 'badge-blue',
                                                 'Profile Updated' => 'badge-teal',
+                                                'Unchanged', 'Skipped Existing' => 'badge-gray',
+                                                'Missing From Latest' => 'badge-amber',
+                                                'Ambiguous Match' => 'badge-red',
                                                 'Needs Mapping', 'Needs Review' => 'badge-amber',
                                                 'Hierarchy Conflict' => 'badge-red',
                                                 'Skipped' => 'badge-red',
@@ -144,6 +187,7 @@
                                                     $tiktokBadge = match ($result['tiktok_status'] ?? '') {
                                                         'TikTok Account Added' => 'badge-green',
                                                         'Already Exists' => 'badge-gray',
+                                                        'Marked Inactive' => 'badge-amber',
                                                         'Username Conflict', 'Skipped' => 'badge-red',
                                                         default => 'badge-gray',
                                                     };
@@ -152,12 +196,24 @@
                                             @endif
                                         </div>
                                     </td>
+                                    <td class="whitespace-normal text-xs leading-relaxed text-slate-700">
+                                        <div><strong>Group:</strong> {{ $result['previous_group'] ?? '-' }} &rarr; {{ $result['new_group'] ?? '-' }}</div>
+                                        <div><strong>Type:</strong> {{ str($result['previous_type'] ?? '-')->headline() }} &rarr; {{ str($result['new_type'] ?? '-')->headline() }}</div>
+                                    </td>
+                                    <td class="whitespace-normal text-xs leading-relaxed text-slate-700">
+                                        {{ $result['previous_upline'] ?? '-' }} &rarr; {{ $result['new_upline'] ?? '-' }}
+                                    </td>
+                                    <td class="whitespace-normal text-xs leading-relaxed text-slate-700">
+                                        <div><strong>Added:</strong> {{ implode(', ', $result['tiktok_added'] ?? []) ?: '-' }}</div>
+                                        <div><strong>Unchanged:</strong> {{ implode(', ', $result['tiktok_unchanged'] ?? []) ?: '-' }}</div>
+                                        <div><strong>Inactive:</strong> {{ number_format($result['tiktok_marked_inactive'] ?? 0) }}</div>
+                                    </td>
                                     <td class="whitespace-normal break-words font-mono leading-snug text-slate-700">{{ $result['temporary_password'] ?? '-' }}</td>
                                     <td class="whitespace-normal break-words leading-snug text-slate-700">{{ $result['error'] ?: '-' }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="10" class="px-5 py-10 text-center text-slate-500">
+                                    <td colspan="13" class="px-5 py-10 text-center text-slate-500">
                                         No affiliate rows imported.
                                     </td>
                                 </tr>

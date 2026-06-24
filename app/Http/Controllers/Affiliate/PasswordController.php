@@ -37,12 +37,14 @@ class PasswordController extends Controller
 
         $request->user()->forceFill([
             'password' => Hash::make($data['password']),
+            'must_change_password' => false,
+            'password_changed_at' => now(),
         ])->save();
 
         $request->session()->regenerate();
 
         return redirect()
             ->route('affiliate.password.edit')
-            ->with('success', 'Password changed successfully.');
+            ->with('success', 'Password changed successfully. You may now continue to your dashboard.');
     }
 }

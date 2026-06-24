@@ -26,6 +26,7 @@
 
                     <div class="flex flex-wrap gap-3">
                         <a href="{{ route('admin.affiliates.index') }}" class="btn-secondary">Affiliate Management</a>
+                        <button type="button" id="hierarchy-expand-one" class="btn-secondary">Expand 1 Level</button>
                         <button type="button" id="hierarchy-expand-all" class="btn-secondary">Expand All</button>
                         <button type="button" id="hierarchy-collapse-all" class="btn-secondary">Collapse All</button>
                     </div>
@@ -35,19 +36,19 @@
             <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div class="stat-card">
                     <p class="stat-label">Total Affiliates</p>
-                    <p class="stat-value">{{ number_format($totalAffiliates) }}</p>
+                    <p id="hierarchy-total-affiliates" class="stat-value">{{ number_format($totalAffiliates) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Total Managers</p>
-                    <p class="stat-value">{{ number_format($totalManagers) }}</p>
+                    <p id="hierarchy-total-managers" class="stat-value">{{ number_format($totalManagers) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Root Affiliates</p>
-                    <p class="stat-value">{{ number_format($tree->count()) }}</p>
+                    <p id="hierarchy-root-affiliates" class="stat-value">{{ number_format($tree->count()) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Max Hierarchy Depth</p>
-                    <p class="stat-value">{{ number_format($maxDepth) }}</p>
+                    <p id="hierarchy-max-depth" class="stat-value">{{ number_format($maxDepth) }}</p>
                 </div>
             </div>
 
@@ -116,19 +117,32 @@
                     </div>
                 @else
                     <div id="hierarchy-tree-view">
-                        <div class="max-h-[70vh] overflow-auto">
-                            <div class="min-w-[52rem] space-y-3 bg-slate-50 p-4 sm:p-6">
+                        <div class="border-b border-slate-200 bg-white px-5 py-3">
+                            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-slate-600">
+                                <span class="text-[11px] font-black uppercase text-slate-400">Hierarchy legend</span>
+                                <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-emerald-600"></span>Root Manager</span>
+                                <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-blue-500"></span>Level 1</span>
+                                <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-amber-500"></span>Level 2</span>
+                                <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-slate-400"></span>Level 3+</span>
+                                <span class="badge badge-teal">Inhouse</span>
+                                <span class="badge badge-amber">Affiliate Luar</span>
+                            </div>
+                        </div>
+                        <div class="max-h-[70vh] overflow-y-auto overflow-x-hidden">
+                            <div class="space-y-5 bg-slate-50 p-3 sm:p-6">
                                 <div id="hierarchy-no-match" class="hidden rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
                                     No matching affiliate found.
                                 </div>
 
                                 @foreach ($tree as $rootNode)
-                                    @include('admin.affiliates.partials.hierarchy-node', [
-                                        'node' => $rootNode,
-                                        'parentId' => '',
-                                        'ancestorIds' => '',
-                                        'depth' => 0,
-                                    ])
+                                    <section class="rounded-xl border border-slate-200 bg-white/60 p-2 shadow-sm sm:p-3">
+                                        @include('admin.affiliates.partials.hierarchy-node', [
+                                            'node' => $rootNode,
+                                            'parentId' => '',
+                                            'ancestorIds' => '',
+                                            'depth' => 0,
+                                        ])
+                                    </section>
                                 @endforeach
                             </div>
                         </div>
@@ -251,6 +265,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const tableRows = @json($tableRows);
             const nodes = Array.from(document.querySelectorAll('[data-hierarchy-node]'));
+            const nodesById = new Map(nodes.map((node) => [node.dataset.nodeId, node]));
             const searchInput = document.getElementById('hierarchy-search');
             const groupFilter = document.getElementById('hierarchy-group-filter');
             const typeFilter = document.getElementById('hierarchy-type-filter');
@@ -266,6 +281,10 @@
             const prevPage = document.getElementById('hierarchy-prev-page');
             const nextPage = document.getElementById('hierarchy-next-page');
             const detailPanel = document.getElementById('hierarchy-detail-panel');
+            const totalAffiliatesStat = document.getElementById('hierarchy-total-affiliates');
+            const totalManagersStat = document.getElementById('hierarchy-total-managers');
+            const rootAffiliatesStat = document.getElementById('hierarchy-root-affiliates');
+            const maxDepthStat = document.getElementById('hierarchy-max-depth');
             const perPage = 20;
             let currentPage = 1;
             let sortKey = 'name';
@@ -307,8 +326,12 @@
                 if (!children || !toggle) return;
 
                 children.classList.toggle('hidden', !expanded);
-                toggle.textContent = expanded ? '-' : '+';
                 toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                toggle.setAttribute('aria-label', `${expanded ? 'Collapse' : 'Expand'} affiliate branch`);
+                const chevron = toggle.querySelector('[data-chevron]');
+                chevron?.classList.toggle('-rotate-45', !expanded);
+                chevron?.classList.toggle('rotate-45', expanded);
+                chevron?.classList.toggle('-translate-y-0.5', expanded);
             };
 
             const expandParentChain = (node) => {
@@ -354,6 +377,23 @@
                     searchCount.textContent = filtering
                         ? `${matchingIds.size.toLocaleString()} matching affiliate${matchingIds.size === 1 ? '' : 's'}`
                         : `${nodes.length.toLocaleString()} affiliates in hierarchy`;
+                }
+
+                const matchingRows = tableRows.filter((row) => rowMatches(row, filters));
+                const matchingRowIds = new Set(matchingRows.map((row) => String(row.id)));
+                const matchingRootCount = matchingRows.filter((row) => {
+                    const node = nodesById.get(String(row.id));
+                    return node && (node.dataset.parentId === '' || !matchingRowIds.has(node.dataset.parentId));
+                }).length;
+
+                if (totalAffiliatesStat) totalAffiliatesStat.textContent = matchingRows.length.toLocaleString();
+                if (totalManagersStat) totalManagersStat.textContent = matchingRows.filter((row) => row.position === 'Manager').length.toLocaleString();
+                if (rootAffiliatesStat) rootAffiliatesStat.textContent = matchingRootCount.toLocaleString();
+                if (maxDepthStat) {
+                    const filteredMaxDepth = matchingRows.length
+                        ? Math.max(...matchingRows.map((row) => Number(row.depth))) + 1
+                        : 0;
+                    maxDepthStat.textContent = filteredMaxDepth.toLocaleString();
                 }
             };
 
@@ -458,6 +498,12 @@
             });
 
             document.getElementById('hierarchy-detail-close')?.addEventListener('click', () => detailPanel?.classList.add('hidden'));
+            document.getElementById('hierarchy-expand-one')?.addEventListener('click', () => {
+                document.querySelectorAll('[data-hierarchy-children]').forEach((children) => {
+                    const owner = document.querySelector(`[data-node-id="${children.dataset.hierarchyChildren}"]`);
+                    setExpanded(children.dataset.hierarchyChildren, owner?.dataset.nodeDepth === '0');
+                });
+            });
             document.getElementById('hierarchy-expand-all')?.addEventListener('click', () => {
                 document.querySelectorAll('[data-hierarchy-children]').forEach((children) => setExpanded(children.dataset.hierarchyChildren, true));
             });

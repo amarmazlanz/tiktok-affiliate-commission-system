@@ -9,7 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -83,6 +83,7 @@ class AffiliateController extends Controller
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'password' => Hash::make('password'),
+                'must_change_password' => true,
                 'role' => 'affiliate',
             ]);
 
@@ -170,18 +171,19 @@ class AffiliateController extends Controller
 
     public function resetPassword(Request $request, Affiliate $affiliate): RedirectResponse
     {
-        if (! $affiliate->user) {
+        if ($affiliate->affiliate_type === 'external' || ! $affiliate->user) {
             return redirect()
                 ->route('admin.affiliates.show', $affiliate)
                 ->with('error', 'Affiliate ini tidak mempunyai akaun login.');
         }
 
-        $temporaryPassword = Str::random(12);
+        $temporaryPassword = $this->temporaryPassword();
 
         DB::transaction(function () use ($request, $affiliate, $temporaryPassword): void {
             $affiliate->user->update([
                 'password' => Hash::make($temporaryPassword),
                 'role' => 'affiliate',
+                'must_change_password' => true,
             ]);
 
             $affiliate->update([
@@ -190,13 +192,43 @@ class AffiliateController extends Controller
             ]);
         });
 
+        Log::notice('Affiliate password reset by admin.', [
+            'admin_user_id' => $request->user()->id,
+            'affiliate_id' => $affiliate->id,
+            'reset_at' => now()->toIso8601String(),
+        ]);
+
         return redirect()
             ->route('admin.affiliates.show', $affiliate)
             ->with('success', 'Password affiliate berjaya direset.')
             ->with('reset_password', [
                 'name' => $affiliate->name,
-                'email' => $affiliate->user?->email ?? $affiliate->email ?? $affiliate->affiliate_code,
+                'login_id' => $affiliate->affiliate_code
+                    ?: ($affiliate->user?->email ?? $affiliate->email),
                 'temporary_password' => $temporaryPassword,
             ]);
+    }
+
+    private function temporaryPassword(): string
+    {
+        $characters = [
+            chr(random_int(65, 90)),
+            chr(random_int(97, 122)),
+            (string) random_int(0, 9),
+            '!@#$%&*'[random_int(0, 6)],
+        ];
+
+        $pool = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*';
+
+        while (count($characters) < 12) {
+            $characters[] = $pool[random_int(0, strlen($pool) - 1)];
+        }
+
+        for ($index = count($characters) - 1; $index > 0; $index--) {
+            $swap = random_int(0, $index);
+            [$characters[$index], $characters[$swap]] = [$characters[$swap], $characters[$index]];
+        }
+
+        return implode('', $characters);
     }
 }

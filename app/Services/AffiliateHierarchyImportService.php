@@ -3,16 +3,18 @@
 namespace App\Services;
 
 use App\Models\Affiliate;
+use Illuminate\Support\Collection;
 
 class AffiliateHierarchyImportService
 {
     private array $groupAffiliateCache = [];
 
+    private array $knownAliasMap = [];
+
     private array $uplineMap = [];
 
     public function resolve(array &$results): void
     {
-        $outcomes = [];
         $affiliateIds = collect($results)->pluck('affiliate_id')->filter()->unique()->values();
 
         if ($affiliateIds->isEmpty()) {
@@ -34,8 +36,158 @@ class AffiliateHierarchyImportService
             ->pluck('upline_id', 'id')
             ->all();
 
-        foreach ($affiliates as $affiliate) {
-            $outcomes[$affiliate->id] = $this->resolveAffiliate($affiliate);
+        // Register every self-marker before resolving any relationship so later
+        // rows can use short aliases declared by an upline's own row.
+        $this->buildKnownAliasMap(
+            collect($this->groupAffiliateCache)
+                ->flatMap(fn ($groupAffiliates) => $groupAffiliates)
+                ->values()
+        );
+
+        $plans = $affiliates
+            ->mapWithKeys(fn (Affiliate $affiliate): array => [
+                $affiliate->id => $this->planAffiliate($affiliate),
+            ])
+            ->all();
+
+        $proposedUplineMap = $this->uplineMap;
+        foreach ($plans as $affiliateId => $plan) {
+            $proposedUplineMap[$affiliateId] = $plan['status'] === 'matched'
+                ? $plan['upline']->id
+                : null;
+        }
+
+        $cycleAffiliateIds = collect($plans)
+            ->filter(fn (array $plan): bool => $plan['status'] === 'matched')
+            ->filter(fn (array $plan): bool => $this->wouldCreateCycle(
+                $plan['affiliate']->id,
+                $plan['upline']->id,
+                $proposedUplineMap,
+            ))
+            ->keys()
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        $outcomes = [];
+
+        foreach ($plans as $affiliateId => $plan) {
+            $affiliate = $plan['affiliate'];
+
+            if (in_array((int) $affiliateId, $cycleAffiliateIds, true)) {
+                $remark = 'Hierarchy conflict: assigning this upline would create a cycle.';
+                $affiliate->update([
+                    'upline_id' => null,
+                    'hierarchy_import_status' => 'cycle_prevented',
+                    'hierarchy_import_remark' => $remark,
+                ]);
+                $this->uplineMap[$affiliateId] = null;
+                $outcomes[$affiliateId] = $this->outcome(
+                    'Hierarchy Conflict',
+                    'Hierarchy Conflict',
+                    $remark,
+                    $plan['self_reference_detected'],
+                    $plan['self_reference_levels'],
+                    registeredAliases: $plan['registered_aliases'],
+                    cyclePrevented: true,
+                );
+
+                continue;
+            }
+
+            if ($plan['status'] === 'unresolved') {
+                $affiliate->update([
+                    'upline_id' => null,
+                    'hierarchy_import_status' => 'needs_mapping',
+                    'hierarchy_import_remark' => $plan['remark'],
+                ]);
+                $this->uplineMap[$affiliateId] = null;
+                $outcomes[$affiliateId] = $this->outcome(
+                    'Needs Mapping',
+                    'Needs Mapping',
+                    $plan['remark'],
+                    $plan['self_reference_detected'],
+                    $plan['self_reference_levels'],
+                    registeredAliases: $plan['registered_aliases'],
+                );
+
+                continue;
+            }
+
+            if ($plan['status'] === 'none') {
+                $remark = $plan['self_reference_detected']
+                    ? 'Self-reference alias detected and no valid higher upline was found.'
+                    : null;
+                $affiliate->update([
+                    'upline_id' => null,
+                    'hierarchy_import_status' => $plan['self_reference_detected'] ? 'self_reference_no_upline' : 'no_upline',
+                    'hierarchy_import_remark' => $remark,
+                ]);
+                $this->uplineMap[$affiliateId] = null;
+                $outcomes[$affiliateId] = $this->outcome(
+                    'No Upline',
+                    'No Upline',
+                    $remark ?: '-',
+                    $plan['self_reference_detected'],
+                    $plan['self_reference_levels'],
+                    registeredAliases: $plan['registered_aliases'],
+                );
+
+                continue;
+            }
+
+            $level = $plan['level'];
+            $upline = $plan['upline'];
+            $affiliate->update([
+                'upline_id' => $upline->id,
+                'hierarchy_import_status' => $level === 1 ? 'linked' : 'shifted_to_l'.$level,
+                'hierarchy_import_remark' => $plan['self_reference_detected']
+                    ? 'Self-reference alias detected. Effective upline shifted to L'.$level.'.'
+                    : null,
+            ]);
+            $this->uplineMap[$affiliateId] = $upline->id;
+
+            $uplineMatch = match ($level) {
+                2 => 'Shifted to L2',
+                3 => 'Shifted to L3',
+                default => 'Linked',
+            };
+            $outcomes[$affiliateId] = $this->outcome(
+                $uplineMatch,
+                $uplineMatch,
+                $plan['self_reference_detected']
+                    ? 'Self-reference alias detected. Effective upline shifted to L'.$level.'.'
+                    : '-',
+                $plan['self_reference_detected'],
+                $plan['self_reference_levels'],
+                $level > 1 ? $level : null,
+                registeredAliases: $plan['registered_aliases'],
+                linked: true,
+            );
+        }
+
+        // Validate L2/L3 only after all direct uplines have been saved. This
+        // makes the result independent of Excel row order.
+        foreach ($plans as $affiliateId => $plan) {
+            if ($plan['status'] !== 'matched' || in_array((int) $affiliateId, $cycleAffiliateIds, true)) {
+                continue;
+            }
+
+            $validationRemark = $this->validateUpperLevels(
+                $plan['affiliate']->fresh('upline.upline.upline'),
+                $plan['level'],
+            );
+
+            if (! $validationRemark) {
+                continue;
+            }
+
+            $plan['affiliate']->update([
+                'hierarchy_import_status' => 'needs_review',
+                'hierarchy_import_remark' => $validationRemark,
+            ]);
+            $outcomes[$affiliateId]['upline_match'] = 'Needs Review';
+            $outcomes[$affiliateId]['status'] = 'Needs Review';
+            $outcomes[$affiliateId]['error'] = $validationRemark;
         }
 
         foreach ($results as &$result) {
@@ -47,16 +199,33 @@ class AffiliateHierarchyImportService
         }
     }
 
-    private function resolveAffiliate(Affiliate $affiliate): array
+    private function buildKnownAliasMap(Collection $affiliates): void
+    {
+        $this->knownAliasMap = [];
+
+        foreach ($affiliates as $affiliate) {
+            foreach ([$affiliate->raw_l1, $affiliate->raw_l2, $affiliate->raw_l3] as $rawValue) {
+                $alias = $this->nullableString($rawValue);
+
+                if ($this->isNoUplineValue($alias) || ! $this->aliasMatchesAffiliate((string) $alias, $affiliate)) {
+                    continue;
+                }
+
+                $normalizedAlias = $this->normalizeAlias((string) $alias);
+                $this->knownAliasMap[$affiliate->group_name][$normalizedAlias][$affiliate->id] = true;
+            }
+        }
+    }
+
+    private function planAffiliate(Affiliate $affiliate): array
     {
         $candidates = [
             1 => $this->nullableString($affiliate->raw_l1),
             2 => $this->nullableString($affiliate->raw_l2),
             3 => $this->nullableString($affiliate->raw_l3),
         ];
-
-        $selfReferenceDetected = false;
         $selfReferenceLevels = [];
+        $registeredAliases = $this->registeredAliasesFor($affiliate);
 
         foreach ($candidates as $level => $rawValue) {
             if ($this->isNoUplineValue($rawValue)) {
@@ -64,113 +233,60 @@ class AffiliateHierarchyImportService
             }
 
             if ($this->aliasMatchesAffiliate((string) $rawValue, $affiliate)) {
-                $selfReferenceDetected = true;
                 $selfReferenceLevels[] = $level;
                 continue;
             }
 
-            $match = $this->resolveAffiliateAlias((string) $rawValue, (string) $affiliate->group_name, $affiliate->id);
+            $match = $this->resolveAffiliateAlias(
+                (string) $rawValue,
+                (string) $affiliate->group_name,
+                $affiliate->id,
+            );
 
             if ($match['status'] !== 'matched') {
-            $affiliate->update([
-                'upline_id' => null,
-                'hierarchy_import_status' => 'needs_mapping',
-                'hierarchy_import_remark' => $match['remark'],
-            ]);
-            $this->uplineMap[$affiliate->id] = null;
-
-            return $this->outcome(
-                    'Needs Mapping',
-                    'Needs Mapping',
-                    $match['remark'],
-                    $selfReferenceDetected,
-                    $selfReferenceLevels,
-                );
+                return [
+                    'status' => 'unresolved',
+                    'affiliate' => $affiliate,
+                    'upline' => null,
+                    'level' => null,
+                    'remark' => $match['remark'],
+                    'self_reference_detected' => $selfReferenceLevels !== [],
+                    'self_reference_levels' => $selfReferenceLevels,
+                    'registered_aliases' => $registeredAliases,
+                ];
             }
 
-            /** @var Affiliate $upline */
-            $upline = $match['affiliate'];
-
-            if ($this->wouldCreateCycle($affiliate, $upline)) {
-                $remark = 'Hierarchy conflict: assigning this upline would create a cycle.';
-
-                $affiliate->update([
-                    'upline_id' => null,
-                'hierarchy_import_status' => 'cycle_prevented',
-                'hierarchy_import_remark' => $remark,
-            ]);
-            $this->uplineMap[$affiliate->id] = null;
-
-            return $this->outcome(
-                    'Hierarchy Conflict',
-                    'Hierarchy Conflict',
-                    $remark,
-                    $selfReferenceDetected,
-                    $selfReferenceLevels,
-                    cyclePrevented: true,
-                );
-            }
-
-            $affiliate->update([
-                'upline_id' => $upline->id,
-                'hierarchy_import_status' => $level === 1 ? 'linked' : 'shifted_to_l'.$level,
-                'hierarchy_import_remark' => $selfReferenceDetected
-                    ? 'Self-reference alias detected. Effective upline shifted to L'.$level.'.'
-                    : null,
-            ]);
-            $this->uplineMap[$affiliate->id] = $upline->id;
-
-            $uplineMatch = match ($level) {
-                2 => 'Shifted to L2',
-                3 => 'Shifted to L3',
-                default => 'Linked',
-            };
-
-            $validationRemark = $this->validateUpperLevels($affiliate->fresh('upline.upline'), $level);
-
-            if ($validationRemark) {
-            $affiliate->update([
-                'hierarchy_import_status' => 'needs_review',
-                'hierarchy_import_remark' => $validationRemark,
-            ]);
-
-                return $this->outcome(
-                    'Needs Review',
-                    'Needs Review',
-                    $validationRemark,
-                    $selfReferenceDetected,
-                    $selfReferenceLevels,
-                    shiftedToLevel: $level > 1 ? $level : null,
-                );
-            }
-
-            return $this->outcome(
-                $uplineMatch,
-                $uplineMatch,
-                $selfReferenceDetected ? 'Self-reference alias detected. Effective upline shifted to L'.$level.'.' : '-',
-                $selfReferenceDetected,
-                $selfReferenceLevels,
-                shiftedToLevel: $level > 1 ? $level : null,
-                linked: true,
-            );
+            return [
+                'status' => 'matched',
+                'affiliate' => $affiliate,
+                'upline' => $match['affiliate'],
+                'level' => $level,
+                'remark' => null,
+                'self_reference_detected' => $selfReferenceLevels !== [],
+                'self_reference_levels' => $selfReferenceLevels,
+                'registered_aliases' => $registeredAliases,
+            ];
         }
 
-        $affiliate->update([
-            'upline_id' => null,
-            'hierarchy_import_status' => $selfReferenceDetected ? 'self_reference_no_upline' : 'no_upline',
-            'hierarchy_import_remark' => $selfReferenceDetected
-                ? 'Self-reference alias detected and no valid higher upline was found.'
-                : null,
-        ]);
-        $this->uplineMap[$affiliate->id] = null;
+        return [
+            'status' => 'none',
+            'affiliate' => $affiliate,
+            'upline' => null,
+            'level' => null,
+            'remark' => null,
+            'self_reference_detected' => $selfReferenceLevels !== [],
+            'self_reference_levels' => $selfReferenceLevels,
+            'registered_aliases' => $registeredAliases,
+        ];
+    }
 
-        return $this->outcome(
-            'No Upline',
-            'No Upline',
-            $selfReferenceDetected ? 'Self-reference alias detected and no valid higher upline was found.' : '-',
-            $selfReferenceDetected,
-            $selfReferenceLevels,
-        );
+    private function registeredAliasesFor(Affiliate $affiliate): array
+    {
+        return collect($this->knownAliasMap[$affiliate->group_name] ?? [])
+            ->filter(fn (array $affiliateIds): bool => isset($affiliateIds[$affiliate->id]))
+            ->keys()
+            ->values()
+            ->all();
     }
 
     private function outcome(
@@ -180,6 +296,7 @@ class AffiliateHierarchyImportService
         bool $selfReferenceDetected = false,
         array $selfReferenceLevels = [],
         ?int $shiftedToLevel = null,
+        array $registeredAliases = [],
         bool $cyclePrevented = false,
         bool $linked = false,
     ): array {
@@ -188,6 +305,7 @@ class AffiliateHierarchyImportService
             'error' => $remark ?: '-',
             'self_reference_detected' => $selfReferenceDetected,
             'self_reference_levels' => $selfReferenceLevels,
+            'registered_aliases' => $registeredAliases,
             'shifted_to_l2' => $shiftedToLevel === 2,
             'shifted_to_l3' => $shiftedToLevel === 3,
             'cycle_prevented' => $cyclePrevented,
@@ -219,7 +337,11 @@ class AffiliateHierarchyImportService
                 continue;
             }
 
-            $match = $this->resolveAffiliateAlias((string) $rawValue, (string) $affiliate->group_name, $affiliate->id);
+            $match = $this->resolveAffiliateAlias(
+                (string) $rawValue,
+                (string) $affiliate->group_name,
+                $affiliate->id,
+            );
 
             if ($match['status'] !== 'matched') {
                 return 'L'.$level.' needs mapping: '.$rawValue;
@@ -241,10 +363,15 @@ class AffiliateHierarchyImportService
             return ['status' => 'none', 'affiliate' => null, 'remark' => 'No upline value.'];
         }
 
-        $aliasTokens = $this->aliasTokens($normalizedAlias);
+        $knownIds = collect(array_keys($this->knownAliasMap[$groupName][$normalizedAlias] ?? []))
+            ->map(fn ($id): int => (int) $id)
+            ->when($excludeId, fn (Collection $ids) => $ids->reject(fn (int $id): bool => $id === (int) $excludeId))
+            ->values();
 
-        $matches = collect($this->groupAffiliateCache[$groupName] ?? [])
-            ->when($excludeId, fn ($affiliates) => $affiliates->where('id', '!=', $excludeId))
+        $aliasTokens = $this->aliasTokens($normalizedAlias);
+        $groupAffiliates = collect($this->groupAffiliateCache[$groupName] ?? []);
+        $fuzzyIds = $groupAffiliates
+            ->when($excludeId, fn (Collection $affiliates) => $affiliates->where('id', '!=', $excludeId))
             ->filter(function (Affiliate $affiliate) use ($normalizedAlias, $aliasTokens): bool {
                 $candidate = $this->normalizeAlias($affiliate->name);
 
@@ -252,19 +379,25 @@ class AffiliateHierarchyImportService
                     return true;
                 }
 
-                if ($aliasTokens === []) {
-                    return false;
-                }
-
-                return collect($aliasTokens)->every(fn (string $token): bool => str_contains(' '.$candidate.' ', ' '.$token.' '));
+                return $aliasTokens !== []
+                    && collect($aliasTokens)->every(fn (string $token): bool => str_contains(' '.$candidate.' ', ' '.$token.' '));
             })
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id);
+        $matchIds = $knownIds
+            ->merge($fuzzyIds)
+            ->unique()
             ->values();
 
-        if ($matches->count() === 1) {
-            return ['status' => 'matched', 'affiliate' => $matches->first(), 'remark' => null];
+        if ($matchIds->count() === 1) {
+            return [
+                'status' => 'matched',
+                'affiliate' => $groupAffiliates->firstWhere('id', $matchIds->first()),
+                'remark' => null,
+            ];
         }
 
-        if ($matches->count() > 1) {
+        if ($matchIds->count() > 1) {
             return ['status' => 'ambiguous', 'affiliate' => null, 'remark' => 'Ambiguous upline alias: '.$alias];
         }
 
@@ -290,26 +423,22 @@ class AffiliateHierarchyImportService
             && $aliasTokens->every(fn (string $token): bool => str_contains(' '.$candidate.' ', ' '.$token.' '));
     }
 
-    private function wouldCreateCycle(Affiliate $affiliate, Affiliate $proposedUpline): bool
+    private function wouldCreateCycle(int $affiliateId, int $proposedUplineId, array $uplineMap): bool
     {
-        if ((int) $affiliate->id === (int) $proposedUpline->id) {
+        if ($affiliateId === $proposedUplineId) {
             return true;
         }
 
         $visited = [];
-        $currentId = (int) $proposedUpline->id;
+        $currentId = $proposedUplineId;
 
         while ($currentId) {
-            if ($currentId === (int) $affiliate->id) {
-                return true;
-            }
-
-            if (in_array($currentId, $visited, true)) {
+            if ($currentId === $affiliateId || in_array($currentId, $visited, true)) {
                 return true;
             }
 
             $visited[] = $currentId;
-            $currentId = (int) ($this->uplineMap[$currentId] ?? 0);
+            $currentId = (int) ($uplineMap[$currentId] ?? 0);
         }
 
         return false;

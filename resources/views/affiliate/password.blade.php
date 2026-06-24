@@ -18,6 +18,11 @@
                     {{ session('success') }}
                 </div>
             @endif
+            @if (session('warning'))
+                <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                    {{ session('warning') }}
+                </div>
+            @endif
 
             <div class="app-card p-6 sm:p-7">
                 <form method="POST" action="{{ route('affiliate.password.update') }}" class="space-y-5">

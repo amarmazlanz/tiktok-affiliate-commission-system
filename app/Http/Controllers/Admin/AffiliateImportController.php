@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Affiliate;
 use App\Models\TiktokAccount;
 use App\Models\User;
-use App\Services\AffiliateHierarchyImportService;
+use App\Services\AffiliateExcelSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
@@ -22,52 +22,33 @@ class AffiliateImportController extends Controller
         return view('admin.affiliates.import');
     }
 
-    public function store(Request $request, AffiliateHierarchyImportService $hierarchyImporter): View
+    public function store(Request $request, AffiliateExcelSyncService $syncService): View
     {
         $request->validate([
             'csv_file' => ['required', 'file', 'mimes:xlsx,csv,txt', 'max:51200'],
         ]);
+        $options = [
+            'import_mode' => 'sync',
+            'tiktok_sync' => 'safe',
+            'missing_affiliates' => 'keep',
+        ];
 
         $file = $request->file('csv_file');
         $parsedRows = strtolower($file->getClientOriginalExtension()) === 'xlsx'
             ? $this->parseXlsx($file)
             : $this->parseCsv($file);
 
-        $results = [];
-        $importState = $this->buildImportState($parsedRows);
-
-        foreach (array_chunk($parsedRows, 500) as $batch) {
-            DB::transaction(function () use ($batch, &$results, &$importState): void {
-                foreach ($batch as $row) {
-                    $results[] = $this->importAffiliateRow($row, $importState);
-                }
-            });
-        }
-
-        DB::transaction(function () use (&$results, $hierarchyImporter): void {
-            $hierarchyImporter->resolve($results);
-        });
-
-        $resultCollection = collect($results);
+        $import = $syncService->import(
+            $parsedRows,
+            $options,
+            $request->user(),
+            $file->getClientOriginalName(),
+        );
 
         return view('admin.affiliates.import-result', [
-            'results' => $results,
-            'summary' => [
-                'total_rows' => $resultCollection->count(),
-                'inhouse_created' => $resultCollection->where('status', 'Inhouse Created')->count(),
-                'external_created' => $resultCollection->where('status', 'External Created')->count(),
-                'updated' => $resultCollection->where('status', 'Profile Updated')->count(),
-                'tiktok_added' => $resultCollection->where('tiktok_status', 'TikTok Account Added')->count(),
-                'hierarchy_linked' => $resultCollection->whereIn('upline_match', ['Linked', 'Shifted to L2', 'Shifted to L3'])->count(),
-                'self_reference_detected' => $resultCollection->where('self_reference_detected', true)->count(),
-                'shifted_to_l2' => $resultCollection->where('shifted_to_l2', true)->count(),
-                'shifted_to_l3' => $resultCollection->where('shifted_to_l3', true)->count(),
-                'needs_mapping' => $resultCollection->whereIn('upline_match', ['Needs Mapping', 'Needs Review'])->count(),
-                'cycle_prevented' => $resultCollection->where('cycle_prevented', true)->count(),
-                'username_conflicts' => $resultCollection->where('tiktok_status', 'Username Conflict')->count(),
-                'skipped' => $resultCollection->where('status', 'Skipped')->count(),
-                'missing_columns' => [],
-            ],
+            'results' => $import['results'],
+            'summary' => $import['summary'],
+            'options' => $options,
         ]);
     }
 
@@ -192,6 +173,7 @@ class AffiliateImportController extends Controller
                     'email' => $email,
                     'affiliate_code' => $affiliateCode,
                     'password' => Hash::make($temporaryPassword),
+                    'must_change_password' => true,
                     'role' => 'affiliate',
                 ]);
             }
@@ -236,6 +218,7 @@ class AffiliateImportController extends Controller
                     'email' => strtolower($affiliate->affiliate_code).'@inhouse.local',
                     'affiliate_code' => $affiliate->affiliate_code,
                     'password' => Hash::make($temporaryPassword),
+                    'must_change_password' => true,
                     'role' => 'affiliate',
                 ]);
 
@@ -536,14 +519,14 @@ class AffiliateImportController extends Controller
             $mapped = $this->mapManagementRow($row, $headers);
 
             if ($mapped['name'] === '' && ($mapped['tiktok_username'] ?? '') !== '' && $lastProfile !== []) {
-                $mapped = array_merge($mapped, Arr::only($lastProfile, ['name', 'phone', 'raw_l1', 'raw_l2', 'raw_l3']));
+                $mapped = array_merge($mapped, Arr::only($lastProfile, ['affiliate_code', 'name', 'phone', 'status', 'raw_l1', 'raw_l2', 'raw_l3']));
             }
 
             if ($mapped['name'] === '') {
                 continue;
             }
 
-            $lastProfile = Arr::only($mapped, ['name', 'phone', 'raw_l1', 'raw_l2', 'raw_l3']);
+            $lastProfile = Arr::only($mapped, ['affiliate_code', 'name', 'phone', 'status', 'raw_l1', 'raw_l2', 'raw_l3']);
             $usernames = $this->splitUsernames($mapped['tiktok_username'] ?? '');
 
             if ($usernames === []) {
@@ -552,10 +535,12 @@ class AffiliateImportController extends Controller
 
             foreach ($usernames as $username) {
                 $rows[] = [
+                    'affiliate_code' => $mapped['affiliate_code'] ?? '',
                     'group_name' => $groupName,
                     'affiliate_type' => $section,
                     'name' => $mapped['name'],
                     'phone' => $mapped['phone'] ?? '',
+                    'status' => $mapped['status'] ?? '',
                     'tiktok_username' => $username,
                     'raw_l1' => $mapped['raw_l1'] ?? '',
                     'raw_l2' => $mapped['raw_l2'] ?? '',
@@ -571,8 +556,10 @@ class AffiliateImportController extends Controller
     private function mapManagementRow(array $row, array $headers): array
     {
         return [
+            'affiliate_code' => $this->firstValue($row, $this->findColumns($headers, ['affiliate code', 'affiliate_code', 'kod affiliate', 'code'])),
             'name' => $this->firstValue($row, $this->findColumns($headers, ['nama penuh', 'name', 'nama'])),
             'phone' => $this->firstValue($row, $this->findColumns($headers, ['phone', 'telefon', 'whatsapp', 'contact'])),
+            'status' => $this->firstValue($row, $this->findColumns($headers, ['status'])),
             'tiktok_username' => $this->firstValue($row, $this->findColumns($headers, ['user id tiktok', 'tiktok', 'username'])),
             'raw_l1' => $this->firstValue($row, $this->findColumns($headers, ['manager (l1)', 'manager l1', 'l1', 'manager'], ['senior', 'general'])),
             'raw_l2' => $this->firstValue($row, $this->findColumns($headers, ['senior manager (l2)', 'senior manager', 'l2'])),
@@ -592,10 +579,12 @@ class AffiliateImportController extends Controller
 
             foreach ($this->splitUsernames($row['user id tiktok'] ?? $row['tiktok_username'] ?? $row['username'] ?? '') ?: [''] as $username) {
                 $rows[] = [
+                    'affiliate_code' => $row['affiliate code'] ?? $row['affiliate_code'] ?? $row['kod affiliate'] ?? '',
                     'group_name' => $this->normalizeDisplayName((string) ($row['group_name'] ?? $row['group'] ?? 'CSV Import')),
                     'affiliate_type' => strtolower((string) ($row['affiliate_type'] ?? $row['type'] ?? 'inhouse')) === 'external' ? 'external' : 'inhouse',
                     'name' => $row['nama penuh'] ?? $row['name'] ?? $row['nama'] ?? '',
                     'phone' => $row['phone'] ?? '',
+                    'status' => $row['status'] ?? '',
                     'tiktok_username' => $username,
                     'raw_l1' => $row['manager (l1)'] ?? $row['manager'] ?? $row['l1'] ?? '',
                     'raw_l2' => $row['senior manager (l2)'] ?? $row['senior manager'] ?? $row['l2'] ?? '',

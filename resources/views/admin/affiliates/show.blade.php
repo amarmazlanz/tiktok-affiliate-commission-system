@@ -35,26 +35,6 @@
                 </div>
             @endif
 
-            @if (session('reset_password'))
-                <div class="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
-                    <p class="font-semibold text-amber-950">Copy this password now. It will not be shown again.</p>
-                    <dl class="mt-4 grid gap-4 sm:grid-cols-3">
-                        <div>
-                            <dt class="text-xs font-semibold uppercase text-amber-700">Affiliate Name</dt>
-                            <dd class="mt-1 font-medium">{{ session('reset_password.name') }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs font-semibold uppercase text-amber-700">Email</dt>
-                            <dd class="mt-1 font-medium">{{ session('reset_password.email') }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs font-semibold uppercase text-amber-700">New Temporary Password</dt>
-                            <dd class="mt-1 font-mono text-base font-bold">{{ session('reset_password.temporary_password') }}</dd>
-                        </div>
-                    </dl>
-                </div>
-            @endif
-
             @if ($errors->any())
                 <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     {{ $errors->first() }}
@@ -73,8 +53,8 @@
                         <a href="{{ route('admin.affiliates.edit', $affiliate) }}" class="btn-secondary">
                             Edit Affiliate
                         </a>
-                        @if ($affiliate->user_id)
-                            <form method="POST" action="{{ route('admin.affiliates.reset-password', $affiliate) }}" onsubmit="return confirm('Reset password untuk affiliate ini? Password lama tidak boleh dilihat semula dan akan digantikan.')">
+                        @if ($affiliate->affiliate_type !== 'external' && $affiliate->user_id)
+                            <form method="POST" action="{{ route('admin.affiliates.reset-password', $affiliate) }}" onsubmit="return confirm('This will replace the affiliate\\'s current password with a temporary password. Continue?')">
                                 @csrf
                                 <button type="submit" class="btn-primary">
                                     Reset Password
@@ -98,9 +78,17 @@
                         <dd class="mt-1"><span class="badge {{ $affiliate->affiliate_type === 'external' ? 'badge-amber' : 'badge-teal' }}">{{ $affiliate->affiliate_type === 'external' ? 'Affiliate Luar' : 'Inhouse' }}</span></dd>
                     </div>
                     <div>
-                        <dt class="font-medium text-slate-500">Login / Email</dt>
+                        <dt class="font-medium text-slate-500">Login ID</dt>
                         <dd class="mt-1 text-slate-950">
-                            {{ $affiliate->user ? ($affiliate->affiliate_code ?: $affiliate->user->email) : 'No login access' }}
+                            {{ $affiliate->affiliate_type === 'external' || ! $affiliate->user ? 'No login access' : ($affiliate->affiliate_code ?: $affiliate->user->email) }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-slate-500">Login Access</dt>
+                        <dd class="mt-1">
+                            <span class="badge {{ $affiliate->affiliate_type !== 'external' && $affiliate->user ? 'badge-green' : 'badge-gray' }}">
+                                {{ $affiliate->affiliate_type !== 'external' && $affiliate->user ? 'Active' : 'No login access' }}
+                            </span>
                         </dd>
                     </div>
                     <div>
@@ -131,6 +119,18 @@
                         <dt class="font-medium text-slate-500">Reset By</dt>
                         <dd class="mt-1 text-slate-950">{{ $affiliate->passwordResetBy?->name ?: '-' }}</dd>
                     </div>
+                    <div>
+                        <dt class="font-medium text-slate-500">Must Change Password</dt>
+                        <dd class="mt-1">
+                            @if ($affiliate->affiliate_type === 'external' || ! $affiliate->user)
+                                <span class="badge badge-gray">Not applicable</span>
+                            @else
+                                <span class="badge {{ $affiliate->user->must_change_password ? 'badge-amber' : 'badge-green' }}">
+                                    {{ $affiliate->user->must_change_password ? 'Yes' : 'No' }}
+                                </span>
+                            @endif
+                        </dd>
+                    </div>
                 </dl>
             </div>
 
@@ -140,9 +140,9 @@
                     <p class="mt-1 text-sm text-slate-600">Affiliate with direct downline is treated as Manager for commission rule.</p>
                 </div>
 
-                <div class="overflow-x-auto">
+                <div class="max-h-[500px] overflow-x-auto overflow-y-auto">
                     <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
-                        <thead>
+                        <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
                             <tr>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-700">Name</th>
                                 <th class="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
@@ -153,8 +153,10 @@
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @forelse ($affiliate->directDownlines as $downline)
                                 <tr>
-                                    <td class="font-medium text-slate-950">{{ $downline->name }}</td>
-                                    <td class="text-slate-700">{{ $downline->email }}</td>
+                                    <td class="whitespace-normal break-words font-medium leading-snug text-slate-950">{{ $downline->name }}</td>
+                                    <td class="whitespace-normal break-words leading-snug text-slate-700">
+                                        {{ $downline->affiliate_code ?: ($downline->email ?: 'No login access') }}
+                                    </td>
                                     <td><span class="badge {{ $downline->status === 'active' ? 'badge-green' : 'badge-gray' }}">{{ ucfirst($downline->status) }}</span></td>
                                     <td class="text-slate-700">{{ $downline->tiktok_accounts_count }}</td>
                                 </tr>
@@ -246,5 +248,78 @@
                 </div>
             </div>
         </section>
+
+        @if (session('reset_password'))
+            <div id="reset-password-modal" class="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 p-4" role="dialog" aria-modal="true" aria-labelledby="reset-password-title">
+                <div class="w-full max-w-lg rounded-lg bg-white shadow-2xl ring-1 ring-slate-900/10">
+                    <div class="border-b border-slate-200 px-6 py-5">
+                        <p class="text-sm font-bold text-emerald-700">Password reset successful</p>
+                        <h2 id="reset-password-title" class="mt-1 text-xl font-black text-slate-950">Temporary Login Password</h2>
+                    </div>
+                    <div class="space-y-5 px-6 py-5">
+                        <p class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+                            Copy this password now. It will not be shown again.
+                        </p>
+                        <dl class="grid gap-4 text-sm sm:grid-cols-2">
+                            <div>
+                                <dt class="text-xs font-bold uppercase text-slate-500">Affiliate</dt>
+                                <dd class="mt-1 font-semibold text-slate-950">{{ session('reset_password.name') }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-bold uppercase text-slate-500">Login ID</dt>
+                                <dd class="mt-1 font-mono font-semibold text-slate-950">{{ session('reset_password.login_id') }}</dd>
+                            </div>
+                        </dl>
+                        <div>
+                            <label for="temporary-password-value" class="text-xs font-bold uppercase text-slate-500">Temporary Password</label>
+                            <div class="mt-2 flex gap-2">
+                                <input id="temporary-password-value" type="text" readonly
+                                    value="{{ session('reset_password.temporary_password') }}"
+                                    class="min-w-0 flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 font-mono text-base font-black text-slate-950">
+                                <button type="button" id="copy-temporary-password" class="btn-primary">Copy Password</button>
+                            </div>
+                            <p id="copy-password-status" class="mt-2 hidden text-sm font-semibold text-emerald-700">Password copied.</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end border-t border-slate-200 px-6 py-4">
+                        <button type="button" id="close-reset-password-modal" class="btn-secondary">Close</button>
+                    </div>
+                </div>
+            </div>
+        @endif
     </main>
+
+    @if (session('reset_password'))
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const modal = document.getElementById('reset-password-modal');
+                const passwordInput = document.getElementById('temporary-password-value');
+                const copyButton = document.getElementById('copy-temporary-password');
+                const copyStatus = document.getElementById('copy-password-status');
+                const closeButton = document.getElementById('close-reset-password-modal');
+
+                const closeModal = () => modal?.remove();
+
+                copyButton?.addEventListener('click', async () => {
+                    try {
+                        await navigator.clipboard.writeText(passwordInput.value);
+                    } catch (error) {
+                        passwordInput.select();
+                        document.execCommand('copy');
+                    }
+
+                    copyStatus?.classList.remove('hidden');
+                    copyButton.textContent = 'Copied';
+                });
+
+                closeButton?.addEventListener('click', closeModal);
+                modal?.addEventListener('click', (event) => {
+                    if (event.target === modal) closeModal();
+                });
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') closeModal();
+                });
+            });
+        </script>
+    @endif
 @endsection

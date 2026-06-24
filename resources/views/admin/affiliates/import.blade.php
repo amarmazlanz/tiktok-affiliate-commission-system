@@ -39,17 +39,13 @@
                         <p class="mt-2 text-xs text-slate-500">
                             Accepted formats: .xlsx or .csv. For Excel files, every sheet will be imported as a separate affiliate group.
                         </p>
+                        <p class="mt-1 text-xs leading-relaxed text-slate-500">
+                            Expected columns: Nama Penuh, User ID TikTok, Manager (L1), Senior Manager (L2), General Manager (L3).
+                        </p>
                     </div>
 
-                    <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                        The importer detects <span class="font-semibold">INHOUSE</span> and <span class="font-semibold">AFFILIATE LUAR</span> sections.
-                        Inhouse affiliates receive login access with an affiliate code and temporary password. Affiliate luar profiles do not receive login access.
-                    </div>
-
-                    <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                        Expected columns: <span class="font-semibold">Nama Penuh</span>, <span class="font-semibold">User id Tiktok</span>,
-                        <span class="font-semibold">Manager (L1)</span>, <span class="font-semibold">Senior Manager (L2)</span>,
-                        and <span class="font-semibold">General Manager (L3)</span>. Ambiguous upline names will be marked for mapping instead of guessed.
+                    <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-relaxed text-emerald-900">
+                        This import will create new affiliates, update existing records, add new TikTok accounts, and rebuild hierarchy links using the latest file. Existing orders and commission records will remain unchanged.
                     </div>
 
                     <button type="submit" class="btn-primary" data-import-submit>

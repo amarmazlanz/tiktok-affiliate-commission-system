@@ -86,6 +86,143 @@ class AffiliateHierarchyImportServiceTest extends TestCase
         $this->assertTrue($results[0]['cycle_prevented']);
     }
 
+    public function test_amirul_self_marker_is_registered_before_hierarchy_resolution(): void
+    {
+        $azman = $this->affiliate('AZMAN BIN MUHAMAD @ MUHAMAD NOR', [
+            'group_name' => 'Aurora Group',
+        ]);
+        $amirul = $this->affiliate('MOHAMAD AMIRUL JAMALUDIN', [
+            'group_name' => 'Aurora Group',
+            'raw_l1' => 'AMIRUL',
+            'raw_l2' => 'En Azman',
+            'raw_l3' => 'Tiada',
+        ]);
+
+        $results = [$this->resultFor($amirul)];
+
+        app(AffiliateHierarchyImportService::class)->resolve($results);
+
+        $this->assertSame($azman->id, $amirul->fresh()->upline_id);
+        $this->assertContains('amirul', $results[0]['registered_aliases']);
+        $this->assertSame('Shifted to L2', $results[0]['upline_match']);
+    }
+
+    public function test_downline_uses_amirul_alias_even_when_downline_row_is_resolved_first(): void
+    {
+        $azman = $this->affiliate('AZMAN BIN MUHAMAD @ MUHAMAD NOR', [
+            'group_name' => 'Aurora Group',
+        ]);
+        $amirul = $this->affiliate('MOHAMAD AMIRUL JAMALUDIN', [
+            'group_name' => 'Aurora Group',
+            'raw_l1' => 'AMIRUL',
+            'raw_l2' => 'En Azman',
+            'raw_l3' => 'Tiada',
+        ]);
+        $ummi = $this->affiliate('UMMI ATIKAH BINTI DZULKIFLY', [
+            'group_name' => 'Aurora Group',
+            'raw_l1' => 'AMIRUL',
+            'raw_l2' => 'En Azman',
+            'raw_l3' => 'Tiada',
+        ]);
+
+        $results = [
+            $this->resultFor($ummi),
+            $this->resultFor($amirul),
+        ];
+
+        app(AffiliateHierarchyImportService::class)->resolve($results);
+
+        $this->assertSame($amirul->id, $ummi->fresh()->upline_id);
+        $this->assertSame($azman->id, $ummi->fresh('upline')->upline->upline_id);
+        $this->assertNotNull($ummi->fresh()->upline_id);
+        $this->assertSame('Linked', $results[0]['upline_match']);
+    }
+
+    public function test_nabila_self_marker_is_registered_and_shafira_resolves_to_nabila(): void
+    {
+        $azman = $this->affiliate('AZMAN BIN MUHAMAD @ MUHAMAD NOR', [
+            'group_name' => 'Aurora Group',
+        ]);
+        $nabila = $this->affiliate('NURUL NABILA KAMARUDDIN', [
+            'group_name' => 'Aurora Group',
+            'raw_l1' => 'NABILA',
+            'raw_l2' => 'En Azman',
+            'raw_l3' => 'Tiada',
+        ]);
+        $shafira = $this->affiliate('NUR SHAFIRA ADIRA BINTI MOHD AZRI LISMEDOL', [
+            'group_name' => 'Aurora Group',
+            'raw_l1' => 'NABILA',
+            'raw_l2' => 'En Azman',
+            'raw_l3' => 'Tiada',
+        ]);
+
+        $results = [
+            $this->resultFor($shafira),
+            $this->resultFor($nabila),
+        ];
+
+        app(AffiliateHierarchyImportService::class)->resolve($results);
+
+        $this->assertSame($azman->id, $nabila->fresh()->upline_id);
+        $this->assertContains('nabila', $results[1]['registered_aliases']);
+        $this->assertSame($nabila->id, $shafira->fresh()->upline_id);
+        $this->assertSame($azman->id, $shafira->fresh('upline')->upline->upline_id);
+    }
+
+    public function test_ambiguous_registered_alias_is_not_guessed(): void
+    {
+        $this->affiliate('MOHAMAD AMIRUL JAMALUDIN', [
+            'group_name' => 'Aurora Group',
+            'raw_l1' => 'AMIRUL',
+            'raw_l2' => 'Tiada',
+        ]);
+        $this->affiliate('AMIRUL BIN OTHMAN', [
+            'group_name' => 'Aurora Group',
+            'raw_l1' => 'AMIRUL',
+            'raw_l2' => 'Tiada',
+        ]);
+        $downline = $this->affiliate('UMMI ATIKAH BINTI DZULKIFLY', [
+            'group_name' => 'Aurora Group',
+            'raw_l1' => 'AMIRUL',
+            'raw_l2' => 'Tiada',
+        ]);
+
+        $results = [$this->resultFor($downline)];
+
+        app(AffiliateHierarchyImportService::class)->resolve($results);
+
+        $this->assertNull($downline->fresh()->upline_id);
+        $this->assertSame('Needs Mapping', $results[0]['upline_match']);
+        $this->assertStringContainsString('Ambiguous upline alias', $results[0]['error']);
+    }
+
+    public function test_existing_self_marker_alias_in_group_is_available_during_partial_reimport(): void
+    {
+        $azman = $this->affiliate('AZMAN BIN MUHAMAD @ MUHAMAD NOR', [
+            'group_name' => 'Aurora Group',
+        ]);
+        $amirul = $this->affiliate('MOHAMAD AMIRUL JAMALUDIN', [
+            'group_name' => 'Aurora Group',
+            'raw_l1' => 'AMIRUL',
+            'raw_l2' => 'En Azman',
+            'raw_l3' => 'Tiada',
+            'upline_id' => $azman->id,
+        ]);
+        $ummi = $this->affiliate('UMMI ATIKAH BINTI DZULKIFLY', [
+            'group_name' => 'Aurora Group',
+            'raw_l1' => 'AMIRUL',
+            'raw_l2' => 'En Azman',
+            'raw_l3' => 'Tiada',
+        ]);
+
+        $results = [$this->resultFor($ummi)];
+
+        app(AffiliateHierarchyImportService::class)->resolve($results);
+
+        $this->assertSame($amirul->id, $ummi->fresh()->upline_id);
+        $this->assertSame($azman->id, $ummi->fresh('upline')->upline->upline_id);
+    }
+
     private function affiliate(string $name, array $attributes = []): Affiliate
     {
         return Affiliate::query()->create(array_merge([
