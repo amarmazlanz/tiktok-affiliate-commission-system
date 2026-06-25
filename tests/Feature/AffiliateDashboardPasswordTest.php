@@ -13,7 +13,7 @@ class AffiliateDashboardPasswordTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_affiliate_dashboard_has_scrollable_downline_and_recent_order_sections(): void
+    public function test_affiliate_dashboard_has_expandable_team_hierarchy_and_recent_orders(): void
     {
         $user = $this->affiliateUser();
         $affiliate = $this->affiliate($user, 'Ali Seller');
@@ -73,12 +73,101 @@ class AffiliateDashboardPasswordTest extends TestCase
         $response
             ->assertOk()
             ->assertSee('Profile Overview')
-            ->assertSee('Change Password')
-            ->assertSee('max-h-[460px]', false)
+            ->assertSee('Account Settings')
+            ->assertDontSee('class="btn-primary">Change Password', false)
+            ->assertSee('My Team Hierarchy')
+            ->assertSee('max-h-[620px]', false)
             ->assertSee('sticky top-0', false)
             ->assertSee('downline_shop')
-            ->assertSee('+1 more')
+            ->assertSee('+2 more')
+            ->assertSee('data-team-expand-all', false)
+            ->assertSee('data-team-collapse-all', false)
+            ->assertSee('data-team-search', false)
+            ->assertSee('data-period-select', false)
+            ->assertSee("fetch(requestUrl", false)
             ->assertSee('LONG-ORDER-ID-0000001');
+    }
+
+    public function test_affiliate_only_sees_their_own_full_descendant_branch(): void
+    {
+        $izzuddinUser = User::query()->create([
+            'name' => 'IZZUDDIN',
+            'email' => 'izzuddin@example.com',
+            'affiliate_code' => 'TIT-0001',
+            'password' => bcrypt('password'),
+            'role' => 'affiliate',
+        ]);
+        $izzuddin = $this->affiliate($izzuddinUser, 'IZZUDDIN');
+        $azimUser = User::query()->create([
+            'name' => 'AZIM',
+            'email' => 'azim@example.com',
+            'affiliate_code' => 'TIT-0002',
+            'password' => bcrypt('password'),
+            'role' => 'affiliate',
+        ]);
+        $azim = $this->affiliate($azimUser, 'AZIM', ['upline_id' => $izzuddin->id]);
+        $norhafieza = $this->affiliate(null, 'NORHAFIEZA', [
+            'affiliate_code' => 'TIT-0003',
+            'upline_id' => $azim->id,
+        ]);
+        $firdaus = $this->affiliate(null, 'FIRDAUS', [
+            'affiliate_code' => 'TIT-0004',
+            'upline_id' => $norhafieza->id,
+        ]);
+        $unrelatedManager = $this->affiliate(null, 'UNRELATED MANAGER', [
+            'affiliate_code' => 'AUR-0001',
+            'group_name' => 'Aurora Group',
+        ]);
+        $this->affiliate(null, 'UNRELATED MEMBER', [
+            'affiliate_code' => 'AUR-0002',
+            'group_name' => 'Aurora Group',
+            'upline_id' => $unrelatedManager->id,
+        ]);
+
+        DB::table('tiktok_accounts')->insert([
+            'affiliate_id' => $firdaus->id,
+            'username' => 'firdaus_shop',
+            'username_normalized' => 'firdaus_shop',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::enableQueryLog();
+        $response = $this->actingAs($azimUser)->get(route('affiliate.dashboard'));
+        $queryCount = count(DB::getQueryLog());
+
+        $response
+            ->assertOk()
+            ->assertSee('AZIM')
+            ->assertSee('NORHAFIEZA')
+            ->assertSee('FIRDAUS')
+            ->assertSee('firdaus_shop')
+            ->assertSee('>L1<', false)
+            ->assertSee('>L2<', false)
+            ->assertDontSee('UNRELATED MANAGER')
+            ->assertDontSee('UNRELATED MEMBER')
+            ->assertViewHas('teamSummary', fn (array $summary): bool => $summary === [
+                'direct_count' => 1,
+                'total_count' => 2,
+                'level_2_count' => 1,
+                'level_3_plus_count' => 0,
+            ])
+            ->assertViewHas('teamTree', function (array $tree) use ($azim, $norhafieza, $firdaus, $izzuddin): bool {
+                $ids = collect([$tree]);
+                $flatten = function ($nodes) use (&$flatten) {
+                    return collect($nodes)->flatMap(fn (array $node) => collect([$node['affiliate']->id])
+                        ->merge($flatten($node['children'])));
+                };
+                $branchIds = $flatten($ids)->all();
+
+                return $tree['affiliate']->id === $azim->id
+                    && in_array($norhafieza->id, $branchIds, true)
+                    && in_array($firdaus->id, $branchIds, true)
+                    && ! in_array($izzuddin->id, $branchIds, true);
+            });
+
+        $this->assertLessThan(35, $queryCount);
     }
 
     public function test_affiliate_commission_breakdown_only_shows_received_entries(): void
@@ -146,7 +235,8 @@ class AffiliateDashboardPasswordTest extends TestCase
         $response = $this->actingAs($user)->get(route('affiliate.dashboard', [
             'commission_type' => 'l1_overriding',
             'source_affiliate' => $source->id,
-            'commission_period' => '2026-07',
+            'month' => 7,
+            'year' => 2026,
         ]));
 
         $response
@@ -181,8 +271,14 @@ class AffiliateDashboardPasswordTest extends TestCase
                 'password' => 'new-password-123',
                 'password_confirmation' => 'new-password-123',
             ])
-            ->assertRedirect(route('affiliate.password.edit'))
-            ->assertSessionHas('success');
+            ->assertRedirect(route('affiliate.dashboard'))
+            ->assertSessionHas('success', 'Password changed successfully.');
+
+        $this->actingAs($user)
+            ->get(route('affiliate.dashboard'))
+            ->assertOk()
+            ->assertSee('Password changed successfully.')
+            ->assertSee('data-success-toast', false);
 
         Auth::logout();
 
@@ -190,6 +286,170 @@ class AffiliateDashboardPasswordTest extends TestCase
             'affiliate_code' => $user->affiliate_code,
             'password' => 'new-password-123',
         ]));
+    }
+
+    public function test_dashboard_period_filter_defaults_to_latest_period_and_updates_kpis(): void
+    {
+        $user = $this->affiliateUser();
+        $affiliate = $this->affiliate($user, 'Ali Seller');
+        $source = $this->affiliate(null, 'Abu Source', ['affiliate_code' => 'AFF-0002']);
+
+        $aprilRun = $this->commissionRun(4, 2026);
+        $juneRun = $this->commissionRun(6, 2026);
+        $decemberRun = $this->commissionRun(12, 2025);
+
+        $this->settledOrder($affiliate, 'APRIL-ORDER', 1000, '2026-04-15 10:00:00');
+        $this->settledOrder($affiliate, 'JUNE-ORDER', 2500, '2026-06-15 10:00:00');
+        $this->settledOrder($affiliate, 'DECEMBER-ORDER', 400, '2025-12-15 10:00:00');
+        $this->commissionEntry($aprilRun, $affiliate, $source, 'personal', 100);
+        $this->commissionEntry($aprilRun, $affiliate, $source, 'manager_bonus', 10);
+        $this->commissionEntry($aprilRun, $affiliate, $source, 'l1_overriding', 5, 1);
+        $this->commissionEntry($juneRun, $affiliate, $source, 'personal', 250);
+        $this->commissionEntry($juneRun, $affiliate, $source, 'manager_bonus', 25);
+        $this->commissionEntry($juneRun, $affiliate, $source, 'l2_overriding', 7.50, 2);
+        $this->commissionEntry($decemberRun, $affiliate, $source, 'personal', 40);
+
+        $this->actingAs($user)
+            ->get(route('affiliate.dashboard'))
+            ->assertOk()
+            ->assertSee('June 2026')
+            ->assertSee('RM 2,500.00')
+            ->assertSee('RM 250.00')
+            ->assertSee('RM 25.00')
+            ->assertSee('RM 7.50')
+            ->assertSee('Latest 3 orders across all periods')
+            ->assertViewHas('personalSales', fn ($value): bool => (float) $value === 2500.0)
+            ->assertViewHas('commissionSummary', fn (array $summary): bool =>
+                $summary['personal'] === 250.0
+                && $summary['manager_bonus'] === 25.0
+                && $summary['l2_overriding'] === 7.5
+                && $summary['total'] === 282.5);
+
+        $this->actingAs($user)
+            ->get(route('affiliate.dashboard', ['month' => 4, 'year' => 2026]))
+            ->assertOk()
+            ->assertSee('April 2026')
+            ->assertSee('RM 1,000.00')
+            ->assertSee('RM 100.00')
+            ->assertSee('RM 10.00')
+            ->assertSee('RM 5.00')
+            ->assertViewHas('personalSales', fn ($value): bool => (float) $value === 1000.0)
+            ->assertViewHas('commissionSummary', fn (array $summary): bool =>
+                $summary['personal'] === 100.0
+                && $summary['manager_bonus'] === 10.0
+                && $summary['l1_overriding'] === 5.0
+                && $summary['total'] === 115.0);
+
+        $this->actingAs($user)
+            ->get(route('affiliate.dashboard', ['month' => 1, 'year' => 2026]))
+            ->assertOk()
+            ->assertSee('January 2026')
+            ->assertSee('RM 0.00')
+            ->assertViewHas('personalSales', fn ($value): bool => (float) $value === 0.0)
+            ->assertViewHas('commissionSummary', fn (array $summary): bool => $summary['total'] === 0.0);
+
+        $this->actingAs($user)
+            ->get(route('affiliate.dashboard', ['month' => 'all', 'year' => 2026]))
+            ->assertOk()
+            ->assertSee('Year 2026')
+            ->assertViewHas('personalSales', fn ($value): bool => (float) $value === 3500.0)
+            ->assertViewHas('commissionSummary', fn (array $summary): bool => $summary['total'] === 397.5);
+
+        $this->actingAs($user)
+            ->get(route('affiliate.dashboard', ['month' => 'all', 'year' => 'all']))
+            ->assertOk()
+            ->assertSee('Lifetime Performance')
+            ->assertViewHas('personalSales', fn ($value): bool => (float) $value === 3900.0)
+            ->assertViewHas('commissionSummary', fn (array $summary): bool => $summary['total'] === 437.5);
+
+        $this->actingAs($user)
+            ->get(route('affiliate.dashboard', ['month' => 4, 'year' => 'all']))
+            ->assertOk()
+            ->assertSee('Lifetime Performance')
+            ->assertViewHas('periodFilters', fn (array $filters): bool =>
+                $filters['month'] === 'all' && $filters['year'] === 'all');
+    }
+
+    public function test_dashboard_period_ajax_returns_summary_and_breakdown_partials(): void
+    {
+        $user = $this->affiliateUser();
+        $affiliate = $this->affiliate($user, 'Ali Seller');
+        $source = $this->affiliate(null, 'Abu Source', ['affiliate_code' => 'AFF-0002']);
+        $run = $this->commissionRun(4, 2026);
+
+        $this->settledOrder($affiliate, 'APRIL-AJAX-ORDER', 1200, '2026-04-20 10:00:00');
+        $this->commissionEntry($run, $affiliate, $source, 'personal', 120);
+
+        $response = $this->actingAs($user)->getJson(route('affiliate.dashboard', [
+            'ajax' => 1,
+            'month' => 4,
+            'year' => 2026,
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('periodLabel', 'April 2026')
+            ->assertJsonPath('month', 4)
+            ->assertJsonPath('year', 2026)
+            ->assertJsonFragment(['sourceAffiliate' => null]);
+
+        $this->assertStringContainsString('RM 1,200.00', $response->json('html'));
+        $this->assertStringContainsString('RM 120.00', $response->json('html'));
+        $this->assertStringContainsString('Commission Breakdown', $response->json('breakdownHtml'));
+        $this->assertStringContainsString('Abu Source', $response->json('breakdownHtml'));
+        $this->assertStringNotContainsString('Profile Overview', $response->json('html'));
+    }
+
+    private function commissionRun(int $month, int $year): int
+    {
+        return DB::table('commission_runs')->insertGetId([
+            'month' => $month,
+            'year' => $year,
+            'status' => 'final',
+            'total_sales' => 0,
+            'total_commission' => 0,
+            'calculated_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function settledOrder(Affiliate $affiliate, string $orderId, float $base, string $createdAt): void
+    {
+        DB::table('tiktok_orders')->insert([
+            'order_id' => $orderId,
+            'affiliate_id' => $affiliate->id,
+            'creator_username' => 'ali_shop',
+            'creator_username_normalized' => 'ali_shop',
+            'order_status' => 'Settled',
+            'estimated_commission_base' => $base,
+            'time_created' => $createdAt,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function commissionEntry(
+        int $runId,
+        Affiliate $receiver,
+        Affiliate $source,
+        string $type,
+        float $amount,
+        ?int $level = null,
+    ): void {
+        DB::table('commission_entries')->insert([
+            'commission_run_id' => $runId,
+            'receiver_affiliate_id' => $receiver->id,
+            'source_affiliate_id' => $source->id,
+            'tiktok_order_id' => null,
+            'commission_type' => $type,
+            'level' => $level,
+            'rate' => 0.10,
+            'base_amount' => 1000,
+            'commission_amount' => $amount,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function affiliateUser(): User

@@ -44,7 +44,7 @@ class PasswordController extends Controller
         $request->session()->regenerate();
 
         return redirect()
-            ->route('affiliate.password.edit')
-            ->with('success', 'Password changed successfully. You may now continue to your dashboard.');
+            ->route('affiliate.dashboard')
+            ->with('success', 'Password changed successfully.');
     }
 }

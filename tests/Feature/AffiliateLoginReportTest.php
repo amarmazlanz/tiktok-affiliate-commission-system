@@ -126,7 +126,7 @@ class AffiliateLoginReportTest extends TestCase
             'current_password' => 'TempPass!123',
             'password' => 'NewSecure!456',
             'password_confirmation' => 'NewSecure!456',
-        ])->assertRedirect(route('affiliate.password.edit'));
+        ])->assertRedirect(route('affiliate.dashboard'));
 
         $this->assertFalse($affiliate->user->fresh()->must_change_password);
         $this->assertNotNull($affiliate->user->fresh()->password_changed_at);

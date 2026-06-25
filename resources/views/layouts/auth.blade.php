@@ -118,6 +118,9 @@
                             <p class="text-xs text-slate-500">{{ auth()->user()->email }}</p>
                         </div>
                         @if (! $isAdmin)
+                            <a href="{{ route('affiliate.password.edit') }}" class="btn-secondary">
+                                Account Settings
+                            </a>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <button type="submit" class="btn-secondary">Logout</button>
@@ -133,6 +136,9 @@
                             <span>{{ $item['label'] }}</span>
                         </a>
                     @endforeach
+                    @if (! $isAdmin)
+                        <a href="{{ route('affiliate.password.edit') }}" class="btn-secondary shrink-0 py-2">Account Settings</a>
+                    @endif
                     <form method="POST" action="{{ route('logout') }}" class="shrink-0">
                         @csrf
                         <button type="submit" class="btn-secondary py-2">Logout</button>

@@ -12,6 +12,13 @@
 
     <main class="min-h-screen bg-slate-100">
         <section class="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
+            @if (session('success'))
+                <div data-success-toast class="fixed right-4 top-24 z-[70] flex max-w-sm items-start gap-3 rounded-lg border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-800 shadow-xl transition duration-200 sm:right-6">
+                    <span class="flex-1">{{ session('success') }}</span>
+                    <button type="button" data-dismiss-toast class="rounded p-1 text-emerald-600 hover:bg-emerald-50" aria-label="Dismiss notification">&times;</button>
+                </div>
+            @endif
+
             @if (session('error'))
                 <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                     {{ session('error') }}
@@ -31,19 +38,16 @@
             @else
                 <div class="app-card overflow-hidden">
                     <div class="border-b border-slate-200 bg-white px-6 py-5">
-                        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                            <div>
-                                <p class="text-sm font-bold text-emerald-700">Profile Overview</p>
-                                <h2 class="mt-1 max-w-4xl break-words text-2xl font-black leading-tight text-slate-950">{{ $affiliate->name }}</h2>
-                                <div class="mt-3 flex flex-wrap gap-2">
-                                    <span class="badge badge-gray">{{ $affiliate->affiliate_code }}</span>
-                                    <span class="badge badge-blue">{{ $affiliate->group_name ?: 'No Group' }}</span>
-                                    <span class="badge {{ $profileSummary['position'] === 'Manager' ? 'badge-green' : 'badge-gray' }}">{{ $profileSummary['position'] }}</span>
-                                    <span class="badge {{ $statusBadge($affiliate->status) }}">{{ ucfirst($affiliate->status) }}</span>
-                                    <span class="badge {{ $typeBadge }}">{{ $typeLabel }}</span>
-                                </div>
+                        <div>
+                            <p class="text-sm font-bold text-emerald-700">Profile Overview</p>
+                            <h2 class="mt-1 max-w-4xl break-words text-2xl font-black leading-tight text-slate-950">{{ $affiliate->name }}</h2>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <span class="badge badge-gray">{{ $affiliate->affiliate_code }}</span>
+                                <span class="badge badge-blue">{{ $affiliate->group_name ?: 'No Group' }}</span>
+                                <span class="badge {{ $profileSummary['position'] === 'Manager' ? 'badge-green' : 'badge-gray' }}">{{ $profileSummary['position'] }}</span>
+                                <span class="badge {{ $statusBadge($affiliate->status) }}">{{ ucfirst($affiliate->status) }}</span>
+                                <span class="badge {{ $typeBadge }}">{{ $typeLabel }}</span>
                             </div>
-                            <a href="{{ route('affiliate.password.edit') }}" class="btn-primary">Change Password</a>
                         </div>
                     </div>
 
@@ -67,41 +71,22 @@
                     </div>
                 </div>
 
-                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <div class="stat-card">
-                        <p class="stat-label">Total Sales</p>
-                        <p class="stat-value stat-value-money">{{ $money($personalSales) }}</p>
+                <div class="relative" data-period-region>
+                    <div class="hidden rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" data-period-error>
+                        Unable to load commission summary. Please try again.
                     </div>
-                    <div class="stat-card">
-                        <p class="stat-label">Personal Commission</p>
-                        <p class="stat-value stat-value-money">{{ $money($commissionSummary['personal']) }}</p>
+                    <div class="pointer-events-none absolute inset-0 z-20 hidden items-start justify-center rounded-xl bg-white/60 pt-20 backdrop-blur-[1px]" data-period-loading>
+                        <div class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-lg">
+                            <span class="h-4 w-4 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent"></span>
+                            Loading...
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <p class="stat-label">Manager Bonus</p>
-                        <p class="stat-value stat-value-money">{{ $money($commissionSummary['manager_bonus']) }}</p>
-                    </div>
-                    <div class="stat-card">
-                        <p class="stat-label">Total Commission</p>
-                        <p class="stat-value stat-value-money">{{ $money($commissionSummary['total']) }}</p>
+                    <div data-commission-summary-container>
+                        @include('affiliate.partials.commission-summary')
                     </div>
                 </div>
 
-                <div class="grid gap-4 md:grid-cols-3">
-                    <div class="app-card p-5">
-                        <p class="stat-label">L1 Earnings</p>
-                        <p class="mt-2 text-xl font-black text-slate-950">{{ $money($commissionSummary['l1_overriding'] + $commissionSummary['l1_split_seller'] + $commissionSummary['l1_split_upline']) }}</p>
-                    </div>
-                    <div class="app-card p-5">
-                        <p class="stat-label">L2 Earnings</p>
-                        <p class="mt-2 text-xl font-black text-slate-950">{{ $money($commissionSummary['l2_overriding']) }}</p>
-                    </div>
-                    <div class="app-card p-5">
-                        <p class="stat-label">L3 Earnings</p>
-                        <p class="mt-2 text-xl font-black text-slate-950">{{ $money($commissionSummary['l3_overriding']) }}</p>
-                    </div>
-                </div>
-
-                <div class="grid gap-6 lg:grid-cols-2">
+                <div class="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
                     <div class="app-card overflow-hidden">
                         <div class="border-b border-slate-200 px-6 py-5">
                             <h2 class="text-lg font-semibold text-slate-950">TikTok Accounts</h2>
@@ -133,171 +118,50 @@
                     </div>
 
                     <div class="app-card overflow-hidden">
-                        <div class="border-b border-slate-200 px-6 py-5">
-                            <h2 class="text-lg font-semibold text-slate-950">Direct Downline</h2>
-                            <p class="mt-1 text-sm text-slate-500">{{ number_format($profileSummary['direct_downline_count']) }} direct affiliates</p>
+                        <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
+                            <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                                <div>
+                                    <h2 class="text-lg font-semibold text-slate-950">My Team Hierarchy</h2>
+                                    <p class="mt-1 text-sm text-slate-500">Your own downline branch only.</p>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" class="btn-secondary px-3 py-2 text-xs" data-team-expand-all>Expand All</button>
+                                    <button type="button" class="btn-secondary px-3 py-2 text-xs" data-team-collapse-all>Collapse All</button>
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <label for="team-search" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Search team member</label>
+                                <input id="team-search" type="search" placeholder="Name, affiliate code or TikTok username" class="form-field" data-team-search>
+                                <p class="mt-2 hidden text-sm font-semibold text-amber-700" data-team-no-match>No matching team member found.</p>
+                            </div>
                         </div>
-                        <div class="max-h-[460px] overflow-y-auto overflow-x-auto">
-                            <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
-                                <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
-                                    <tr>
-                                        <th class="text-left">Name</th>
-                                        <th class="text-left">Affiliate Code</th>
-                                        <th class="text-left">Type</th>
-                                        <th class="text-left">TikTok Accounts</th>
-                                        <th class="text-left">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100 bg-white">
-                                    @forelse ($directDownlines as $downline)
-                                        <tr class="hover:bg-slate-50">
-                                            <td class="whitespace-normal break-words font-medium leading-snug text-slate-950">{{ $downline->name }}</td>
-                                            <td class="whitespace-normal break-words font-mono leading-snug text-slate-700">{{ $downline->affiliate_code ?: '-' }}</td>
-                                            <td>
-                                                <span class="inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold {{ $downline->affiliate_type === 'external' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700' }}">
-                                                    {{ $downline->affiliate_type === 'external' ? 'Affiliate Luar' : 'Inhouse' }}
-                                                </span>
-                                            </td>
-                                            <td class="max-w-xs">
-                                                @php
-                                                    $accounts = $downline->tiktokAccounts->take(3);
-                                                    $moreCount = max(0, $downline->tiktok_accounts_count - 3);
-                                                @endphp
-                                                @if ($accounts->isEmpty())
-                                                    <span class="text-slate-500">-</span>
-                                                @else
-                                                    <div class="flex flex-wrap gap-1.5">
-                                                        @foreach ($accounts as $account)
-                                                            <span class="inline-flex max-w-full rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                                                                <span class="break-all">{{ $account->username }}</span>
-                                                            </span>
-                                                        @endforeach
-                                                        @if ($moreCount > 0)
-                                                            <span class="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">+{{ $moreCount }} more</span>
-                                                        @endif
-                                                    </div>
-                                                @endif
-                                            </td>
-                                            <td><span class="badge {{ $statusBadge($downline->status) }}">{{ ucfirst($downline->status) }}</span></td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="4" class="px-4 py-8 text-center text-slate-500">Belum ada direct downline.</td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
+
+                        <div class="grid grid-cols-2 gap-3 border-b border-slate-200 bg-slate-50 p-4 sm:grid-cols-4">
+                            <div><p class="stat-label">Direct</p><p class="mt-1 text-xl font-black text-slate-950">{{ number_format($teamSummary['direct_count']) }}</p></div>
+                            <div><p class="stat-label">Total Team</p><p class="mt-1 text-xl font-black text-slate-950">{{ number_format($teamSummary['total_count']) }}</p></div>
+                            <div><p class="stat-label">Level 2</p><p class="mt-1 text-xl font-black text-slate-950">{{ number_format($teamSummary['level_2_count']) }}</p></div>
+                            <div><p class="stat-label">Level 3+</p><p class="mt-1 text-xl font-black text-slate-950">{{ number_format($teamSummary['level_3_plus_count']) }}</p></div>
+                        </div>
+
+                        <div class="max-h-[620px] overflow-y-auto overflow-x-hidden bg-slate-50 p-3 sm:p-5" data-team-tree>
+                            @include('affiliate.partials.team-node', [
+                                'node' => $teamTree,
+                                'parentId' => '',
+                                'ancestorIds' => '',
+                            ])
                         </div>
                     </div>
                 </div>
 
-                <div class="app-card overflow-hidden">
-                    <div class="border-b border-slate-200 px-6 py-5">
-                        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                            <div>
-                                <h2 class="text-lg font-semibold text-slate-950">Commission Breakdown</h2>
-                                <p class="mt-1 text-sm text-slate-500">
-                                    Showing {{ number_format($commissionEntries->firstItem() ?? 0) }}-{{ number_format($commissionEntries->lastItem() ?? 0) }} of {{ number_format($commissionEntries->total()) }} received entries
-                                </p>
-                            </div>
-
-                            <form method="GET" action="{{ route('affiliate.dashboard') }}" class="grid w-full gap-3 sm:grid-cols-2 lg:w-auto lg:grid-cols-[180px_220px_160px_auto]" data-commission-filter-form>
-                                <div>
-                                    <label for="commission_type" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Commission Type</label>
-                                    <select id="commission_type" name="commission_type" class="form-field" data-auto-submit-select>
-                                        <option value="">All Types</option>
-                                        @foreach ($entryTypeLabels as $type => $label)
-                                            <option value="{{ $type }}" @selected(($commissionFilters['commission_type'] ?? '') === $type)>{{ $label }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label for="source_affiliate" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Source Affiliate</label>
-                                    <select id="source_affiliate" name="source_affiliate" class="form-field" data-auto-submit-select>
-                                        <option value="">All Sources</option>
-                                        @foreach ($commissionSourceOptions as $source)
-                                            <option value="{{ $source->id }}" @selected((string) ($commissionFilters['source_affiliate'] ?? '') === (string) $source->id)>
-                                                {{ $source->name }}{{ $source->affiliate_code ? ' ('.$source->affiliate_code.')' : '' }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label for="commission_period" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Period</label>
-                                    <select id="commission_period" name="commission_period" class="form-field" data-auto-submit-select>
-                                        <option value="">All Periods</option>
-                                        @foreach ($commissionPeriodOptions as $periodOption)
-                                            @php
-                                                $periodValue = sprintf('%04d-%02d', $periodOption->year, $periodOption->month);
-                                                $periodLabel = \Carbon\Carbon::create((int) $periodOption->year, (int) $periodOption->month, 1)->format('F Y');
-                                            @endphp
-                                            <option value="{{ $periodValue }}" @selected(($commissionFilters['commission_period'] ?? '') === $periodValue)>{{ $periodLabel }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <div class="flex self-end">
-                                    <a href="{{ route('affiliate.dashboard') }}" class="btn-secondary">Reset</a>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <div class="max-h-[520px] overflow-y-auto overflow-x-auto">
-                        <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
-                            <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
-                                <tr>
-                                    <th class="text-left">Source Affiliate</th>
-                                    <th class="text-left">Commission Type</th>
-                                    <th class="text-left">Order ID</th>
-                                    <th class="text-right">Eligible/Base Amount</th>
-                                    <th class="text-right">Rate</th>
-                                    <th class="text-right">Commission Earned</th>
-                                    <th class="text-left">Date / Period</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 bg-white">
-                                @forelse ($commissionEntries as $entry)
-                                    <tr class="hover:bg-slate-50">
-                                        <td class="whitespace-normal break-words font-medium leading-snug text-slate-950">
-                                            {{ $entry->sourceAffiliate?->name ?? '-' }}
-                                            @if ($entry->sourceAffiliate?->affiliate_code)
-                                                <span class="mt-1 block font-mono text-xs text-slate-500">{{ $entry->sourceAffiliate->affiliate_code }}</span>
-                                            @endif
-                                        </td>
-                                        <td><span class="badge badge-blue">{{ $entryTypeLabels[$entry->commission_type] ?? str($entry->commission_type)->headline() }}</span></td>
-                                        <td class="whitespace-nowrap font-mono text-slate-700">{{ $entry->tiktokOrder?->order_id ?? '-' }}</td>
-                                        <td class="money text-slate-700">{{ $money($entry->base_amount) }}</td>
-                                        <td class="money text-slate-700">{{ number_format((float) $entry->rate * 100, 2) }}%</td>
-                                        <td class="money font-bold text-slate-950">{{ $money($entry->commission_amount) }}</td>
-                                        <td class="whitespace-nowrap text-slate-700">
-                                            @if ($entry->commissionRun)
-                                                {{ \Carbon\Carbon::create((int) $entry->commissionRun->year, (int) $entry->commissionRun->month, 1)->format('M Y') }}
-                                            @else
-                                                {{ $entry->created_at?->format('d/m/Y') ?? '-' }}
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="7" class="px-4 py-8 text-center text-slate-500">No commission entries for the selected filters.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="border-t border-slate-100 bg-slate-50 px-6 py-4">
-                        {{ $commissionEntries->links() }}
-                    </div>
+                <div data-commission-breakdown-container>
+                    @include('affiliate.partials.commission-breakdown')
                 </div>
 
                 <div class="app-card overflow-hidden">
                     <div class="border-b border-slate-200 px-6 py-5">
                         <h2 class="text-lg font-semibold text-slate-950">Recent Orders</h2>
-                        <p class="mt-1 text-sm text-slate-500">Latest {{ $recentOrders->count() }} orders</p>
+                        <p class="mt-1 text-sm text-slate-500">Latest {{ $recentOrders->count() }} orders across all periods</p>
                     </div>
                     <div class="max-h-[460px] overflow-y-auto overflow-x-auto">
                         <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
@@ -333,22 +197,211 @@
     </main>
 
     <script>
-        document.querySelectorAll('[data-auto-submit-select]').forEach((select) => {
-            select.addEventListener('change', () => {
-                const form = select.form;
+        (() => {
+            const toast = document.querySelector('[data-success-toast]');
+            if (! toast) return;
 
-                if (! form || form.dataset.submitting === '1') {
+            const dismiss = () => {
+                toast.classList.add('opacity-0', 'translate-y-[-0.5rem]');
+                window.setTimeout(() => toast.remove(), 200);
+            };
+
+            document.querySelector('[data-dismiss-toast]')?.addEventListener('click', dismiss);
+            window.setTimeout(dismiss, 4500);
+        })();
+
+        (() => {
+            const tree = document.querySelector('[data-team-tree]');
+            if (! tree) return;
+
+            const nodes = Array.from(tree.querySelectorAll('[data-team-node]'));
+            const searchInput = document.querySelector('[data-team-search]');
+            const noMatch = document.querySelector('[data-team-no-match]');
+
+            const setExpanded = (nodeId, expanded) => {
+                const children = tree.querySelector(`[data-team-children="${nodeId}"]`);
+                const toggle = tree.querySelector(`[data-team-toggle="${nodeId}"]`);
+                if (! children || ! toggle) return;
+
+                children.classList.toggle('hidden', ! expanded);
+                toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                const chevron = toggle.querySelector('[data-team-chevron]');
+                chevron?.classList.toggle('-rotate-45', ! expanded);
+                chevron?.classList.toggle('rotate-45', expanded);
+                chevron?.classList.toggle('-translate-y-0.5', expanded);
+            };
+
+            const expandParentChain = (node) => {
+                (node.dataset.ancestorIds || '')
+                    .split(',')
+                    .filter(Boolean)
+                    .forEach((id) => setExpanded(id, true));
+            };
+
+            tree.querySelectorAll('[data-team-toggle]').forEach((toggle) => {
+                toggle.addEventListener('click', () => {
+                    const children = tree.querySelector(`[data-team-children="${toggle.dataset.teamToggle}"]`);
+                    if (children) setExpanded(toggle.dataset.teamToggle, children.classList.contains('hidden'));
+                });
+            });
+
+            document.querySelector('[data-team-expand-all]')?.addEventListener('click', () => {
+                tree.querySelectorAll('[data-team-children]').forEach((children) => {
+                    setExpanded(children.dataset.teamChildren, true);
+                });
+            });
+
+            document.querySelector('[data-team-collapse-all]')?.addEventListener('click', () => {
+                tree.querySelectorAll('[data-team-children]').forEach((children) => {
+                    setExpanded(children.dataset.teamChildren, false);
+                });
+            });
+
+            searchInput?.addEventListener('input', () => {
+                const term = searchInput.value.trim().toLowerCase();
+                const visibleIds = new Set();
+                let matches = 0;
+
+                nodes.forEach((node) => {
+                    node.querySelector(':scope > [data-team-node-card]')?.classList.remove('ring-2', 'ring-amber-300', 'bg-amber-50');
+
+                    if (term === '' || (node.dataset.search || '').includes(term)) {
+                        matches++;
+                        visibleIds.add(node.dataset.nodeId);
+                        (node.dataset.ancestorIds || '').split(',').filter(Boolean).forEach((id) => visibleIds.add(id));
+
+                        if (term !== '') {
+                            node.querySelector(':scope > [data-team-node-card]')?.classList.add('ring-2', 'ring-amber-300', 'bg-amber-50');
+                            expandParentChain(node);
+                        }
+                    }
+                });
+
+                nodes.forEach((node) => node.classList.toggle('hidden', ! visibleIds.has(node.dataset.nodeId)));
+                noMatch?.classList.toggle('hidden', matches > 0);
+
+                if (term === '') {
+                    nodes.forEach((node) => node.classList.remove('hidden'));
+                    tree.querySelectorAll('[data-team-children]').forEach((children) => {
+                        const owner = tree.querySelector(`[data-node-id="${children.dataset.teamChildren}"]`);
+                        setExpanded(children.dataset.teamChildren, owner?.dataset.depth === '0');
+                    });
+                }
+            });
+        })();
+
+        (() => {
+            let activeRequest = null;
+
+            const setLoading = (loading) => {
+                const loadingPanel = document.querySelector('[data-period-loading]');
+                const summary = document.querySelector('[data-commission-summary-container]');
+                const breakdown = document.querySelector('[data-commission-breakdown-container]');
+
+                loadingPanel?.classList.toggle('hidden', ! loading);
+                loadingPanel?.classList.toggle('flex', loading);
+                summary?.classList.toggle('opacity-60', loading);
+                breakdown?.classList.toggle('opacity-60', loading);
+                document.querySelectorAll('[data-period-select]').forEach((field) => {
+                    field.disabled = loading;
+                });
+            };
+
+            const showError = (show) => {
+                document.querySelector('[data-period-error]')?.classList.toggle('hidden', ! show);
+            };
+
+            const loadPeriod = async (url, updateHistory = true) => {
+                activeRequest?.abort();
+                const requestController = new AbortController();
+                activeRequest = requestController;
+                const requestUrl = new URL(url, window.location.origin);
+                requestUrl.searchParams.set('ajax', '1');
+
+                setLoading(true);
+                showError(false);
+
+                try {
+                    const response = await fetch(requestUrl, {
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        signal: requestController.signal,
+                    });
+
+                    if (! response.ok) {
+                        throw new Error('Unable to load commission summary.');
+                    }
+
+                    const data = await response.json();
+                    document.querySelector('[data-commission-summary-container]').innerHTML = data.html;
+                    document.querySelector('[data-commission-breakdown-container]').innerHTML = data.breakdownHtml;
+
+                    const browserUrl = new URL(requestUrl);
+                    browserUrl.searchParams.delete('ajax');
+                    browserUrl.searchParams.delete('commission_page');
+                    browserUrl.searchParams.set('month', data.month);
+                    browserUrl.searchParams.set('year', data.year);
+
+                    if (data.sourceAffiliate === null) {
+                        browserUrl.searchParams.delete('source_affiliate');
+                    }
+
+                    if (updateHistory) {
+                        window.history.replaceState({}, '', browserUrl);
+                    }
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        showError(true);
+                    }
+                } finally {
+                    if (activeRequest === requestController) {
+                        setLoading(false);
+                    }
+                }
+            };
+
+            document.addEventListener('change', (event) => {
+                const periodSelect = event.target.closest('[data-period-select]');
+
+                if (periodSelect) {
+                    const form = periodSelect.form;
+                    const month = form?.querySelector('[name="month"]');
+                    const year = form?.querySelector('[name="year"]');
+
+                    if (! form || ! month || ! year) {
+                        return;
+                    }
+
+                    if (year.value === 'all') {
+                        month.value = 'all';
+                    }
+
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('month', month.value);
+                    url.searchParams.set('year', year.value);
+                    url.searchParams.delete('commission_page');
+                    loadPeriod(url);
+
                     return;
                 }
 
-                form.dataset.submitting = '1';
-                form.querySelectorAll('[data-auto-submit-select]').forEach((field) => {
-                    if (field !== select) {
-                        field.disabled = true;
+                const autoSubmitSelect = event.target.closest('[data-auto-submit-select]');
+
+                if (autoSubmitSelect) {
+                    const form = autoSubmitSelect.form;
+
+                    if (! form || form.dataset.submitting === '1') {
+                        return;
                     }
-                });
-                form.submit();
+
+                    form.dataset.submitting = '1';
+                    form.submit();
+                }
             });
-        });
+
+            window.addEventListener('popstate', () => loadPeriod(window.location.href, false));
+        })();
     </script>
 @endsection
