@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Affiliate;
+use App\Services\AffiliateReferralService;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Affiliate::created(function (Affiliate $affiliate): void {
+            app(AffiliateReferralService::class)->ensureFor($affiliate);
+        });
     }
 }

@@ -45,7 +45,7 @@
                 </div>
             @endif
 
-            <div class="grid gap-4 md:grid-cols-4">
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                 <div class="stat-card">
                     <p class="stat-label">Period</p>
                     <p class="stat-value">{{ $months[$commission->month] }} {{ $commission->year }}</p>
@@ -53,6 +53,10 @@
                 <div class="stat-card">
                     <p class="stat-label">Total Sales</p>
                     <p class="stat-value stat-value-money">{{ $money($commission->total_sales) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Total Overriding</p>
+                    <p class="stat-value text-teal-700">{{ $money($totalOverriding) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Total Commission</p>
@@ -151,14 +155,15 @@
                     <div class="max-h-[430px] overflow-y-auto">
                         <table class="w-full table-fixed divide-y divide-slate-200 text-[13px]">
                             <colgroup>
-                                <col class="w-[25%]">
-                                <col class="w-[11%]">
+                                <col class="w-[20%]">
                                 <col class="w-[10%]">
+                                <col class="w-[9%]">
+                                <col class="w-[10%]">
+                                <col class="w-[10%]">
+                                <col class="w-[9%]">
+                                <col class="w-[9%]">
                                 <col class="w-[11%]">
                                 <col class="w-[12%]">
-                                <col class="w-[10%]">
-                                <col class="w-[10%]">
-                                <col class="w-[11%]">
                             </colgroup>
                             <thead class="sticky top-0 z-10 bg-slate-100 shadow-sm">
                                 <tr>
@@ -169,6 +174,7 @@
                                     <th class="px-3 py-3 text-right font-bold text-slate-700"><a href="{{ $summarySortUrl('l1_earnings') }}">Level 1 Earnings {{ $summarySortIcon('l1_earnings') }}</a></th>
                                     <th class="px-3 py-3 text-right font-bold text-slate-700"><a href="{{ $summarySortUrl('l2_earnings') }}">Level 2 Earnings {{ $summarySortIcon('l2_earnings') }}</a></th>
                                     <th class="px-3 py-3 text-right font-bold text-slate-700"><a href="{{ $summarySortUrl('l3_earnings') }}">Level 3 Earnings {{ $summarySortIcon('l3_earnings') }}</a></th>
+                                    <th class="px-3 py-3 text-right font-bold text-teal-700"><a href="{{ $summarySortUrl('total_overriding') }}">Total Overriding {{ $summarySortIcon('total_overriding') }}</a></th>
                                     <th class="px-3 py-3 text-right font-bold text-slate-700"><a href="{{ $summarySortUrl('total') }}">Total Commission {{ $summarySortIcon('total') }}</a></th>
                                 </tr>
                             </thead>
@@ -187,11 +193,12 @@
                                         <td class="whitespace-nowrap px-3 py-3 text-right text-slate-700">{{ $money($summary->l1_earnings) }}</td>
                                         <td class="whitespace-nowrap px-3 py-3 text-right text-slate-700">{{ $money($summary->l2_earnings) }}</td>
                                         <td class="whitespace-nowrap px-3 py-3 text-right text-slate-700">{{ $money($summary->l3_earnings) }}</td>
+                                        <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-teal-700">{{ $money($summary->total_overriding) }}</td>
                                         <td class="whitespace-nowrap px-3 py-3 text-right font-bold text-slate-950">{{ $money($summary->total) }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="8" class="px-5 py-10 text-center text-slate-500">
+                                        <td colspan="9" class="px-5 py-10 text-center text-slate-500">
                                             No affiliate found for the current search.
                                         </td>
                                     </tr>
@@ -216,6 +223,7 @@
                                 <div><dt class="text-xs font-bold uppercase text-slate-500">Level 1</dt><dd class="whitespace-nowrap text-slate-700">{{ $money($summary->l1_earnings) }}</dd></div>
                                 <div><dt class="text-xs font-bold uppercase text-slate-500">Level 2</dt><dd class="whitespace-nowrap text-slate-700">{{ $money($summary->l2_earnings) }}</dd></div>
                                 <div><dt class="text-xs font-bold uppercase text-slate-500">Level 3</dt><dd class="whitespace-nowrap text-slate-700">{{ $money($summary->l3_earnings) }}</dd></div>
+                                <div><dt class="text-xs font-bold uppercase text-slate-500">Total Overriding</dt><dd class="whitespace-nowrap font-semibold text-teal-700">{{ $money($summary->total_overriding) }}</dd></div>
                             </dl>
                         </article>
                     @empty

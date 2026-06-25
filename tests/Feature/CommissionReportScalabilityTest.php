@@ -13,6 +13,60 @@ class CommissionReportScalabilityTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_income_summary_calculates_and_sorts_total_overriding_without_double_counting(): void
+    {
+        $admin = User::query()->create([
+            'name' => 'Admin',
+            'email' => 'admin@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'admin',
+        ]);
+        $manager = $this->affiliate('Qualified Manager', 'Titan Group', 'inhouse');
+        $personalOnly = $this->affiliate('Personal Only Affiliate', 'Titan Group', 'inhouse');
+        $run = CommissionRun::query()->create([
+            'month' => 7,
+            'year' => 2026,
+            'status' => 'final',
+            'total_sales' => 76001.90,
+            'total_commission' => 10895.24,
+            'calculated_at' => now(),
+        ]);
+        $now = now();
+
+        DB::table('commission_entries')->insert([
+            $this->entry($run->id, $manager->id, $manager->id, null, 'personal', null, 0.10, 75001.90, 7500.19, $now),
+            $this->entry($run->id, $manager->id, $manager->id, null, 'manager_bonus', null, 0.01, 75001.90, 750.21, $now),
+            $this->entry($run->id, $manager->id, $personalOnly->id, null, 'l1_split_seller', 1, 0.007, 356154.29, 2493.08, $now),
+            $this->entry($run->id, $manager->id, $personalOnly->id, null, 'l2_overriding', 2, 0.003, 17253.33, 51.76, $now),
+            $this->entry($run->id, $personalOnly->id, $personalOnly->id, null, 'personal', null, 0.10, 1000, 100, $now),
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.commissions.show', [
+            'commission' => $run,
+            'summary_sort' => 'total_overriding',
+            'summary_dir' => 'desc',
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertSee('Total Overriding')
+            ->assertSee('RM 3,295.05')
+            ->assertSee('RM 10,795.24')
+            ->assertSee('summary_sort=total_overriding', false)
+            ->assertViewHas('totalOverriding', fn ($value): bool => abs((float) $value - 3295.05) < 0.001)
+            ->assertViewHas('summaries', function ($summaries) use ($manager, $personalOnly): bool {
+                $rows = collect($summaries->items())->keyBy('affiliate_id');
+                $managerRow = $rows->get($manager->id);
+                $personalOnlyRow = $rows->get($personalOnly->id);
+
+                return (int) $summaries->items()[0]->affiliate_id === $manager->id
+                    && abs((float) $managerRow->total_overriding - 3295.05) < 0.001
+                    && abs((float) $managerRow->total - 10795.24) < 0.001
+                    && abs((float) $personalOnlyRow->total_overriding) < 0.001
+                    && abs((float) $personalOnlyRow->total - 100.0) < 0.001;
+            });
+    }
+
     public function test_commission_report_paginates_large_entry_dataset_without_loading_every_entry(): void
     {
         $admin = User::query()->create([
@@ -296,7 +350,7 @@ class CommissionReportScalabilityTest extends TestCase
         int $runId,
         int $receiverId,
         int $sourceId,
-        int $orderId,
+        ?int $orderId,
         string $type,
         ?int $level,
         float $rate,

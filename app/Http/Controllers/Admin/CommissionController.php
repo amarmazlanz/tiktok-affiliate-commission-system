@@ -96,6 +96,7 @@ class CommissionController extends Controller
             'l1_earnings',
             'l2_earnings',
             'l3_earnings',
+            'total_overriding',
             'total',
         ], true) ? (string) $request->query('summary_sort') : 'affiliate';
         $summaryDirection = $request->query('summary_dir') === 'desc' ? 'desc' : 'asc';
@@ -112,6 +113,9 @@ class CommissionController extends Controller
         $filteredSummarySalesTotal = (float) DB::query()
             ->fromSub(clone $summaryQuery, 'filtered_summaries')
             ->sum('total_sales');
+        $totalOverriding = (float) DB::query()
+            ->fromSub($this->summaryQuery($commission->id), 'commission_summaries')
+            ->sum('total_overriding');
 
         $summaryOrderColumn = $summarySort === 'affiliate' ? 'affiliate_name' : $summarySort;
         $summaries = $summaryQuery
@@ -139,6 +143,7 @@ class CommissionController extends Controller
             'commission' => $commission,
             'summaries' => $summaries,
             'filteredSummarySalesTotal' => $filteredSummarySalesTotal,
+            'totalOverriding' => $totalOverriding,
             'commissionEntries' => $entryData['commissionEntries'],
             'summaryAffiliateOptions' => $summaryAffiliateOptions,
             'receiverOptions' => $entryData['receiverOptions'],
@@ -252,6 +257,11 @@ class CommissionController extends Controller
 
     private function summaryQuery(int $commissionRunId)
     {
+        $l1Condition = "commission_entries.commission_type IN ('l1_overriding', 'l1_split_seller', 'l1_split_upline') OR (commission_entries.commission_type = 'overriding' AND commission_entries.level = 1)";
+        $l2Condition = "commission_entries.commission_type = 'l2_overriding' OR (commission_entries.commission_type = 'overriding' AND commission_entries.level = 2)";
+        $l3Condition = "commission_entries.commission_type = 'l3_overriding' OR (commission_entries.commission_type = 'overriding' AND commission_entries.level = 3)";
+        $overridingCondition = "commission_entries.commission_type = 'manager_bonus' OR {$l1Condition} OR {$l2Condition} OR {$l3Condition}";
+
         $salesSubquery = DB::table('commission_entries')
             ->select('source_affiliate_id', DB::raw('SUM(base_amount) as total_sales'))
             ->where('commission_run_id', $commissionRunId)
@@ -271,10 +281,11 @@ class CommissionController extends Controller
                 DB::raw('COALESCE(sales.total_sales, 0) as total_sales'),
                 DB::raw("SUM(CASE WHEN commission_entries.commission_type = 'personal' THEN commission_entries.commission_amount ELSE 0 END) as personal"),
                 DB::raw("SUM(CASE WHEN commission_entries.commission_type = 'manager_bonus' THEN commission_entries.commission_amount ELSE 0 END) as manager_bonus"),
-                DB::raw("SUM(CASE WHEN commission_entries.commission_type IN ('l1_overriding', 'l1_split_seller', 'l1_split_upline') OR (commission_entries.commission_type = 'overriding' AND commission_entries.level = 1) THEN commission_entries.commission_amount ELSE 0 END) as l1_earnings"),
-                DB::raw("SUM(CASE WHEN commission_entries.commission_type = 'l2_overriding' OR (commission_entries.commission_type = 'overriding' AND commission_entries.level = 2) THEN commission_entries.commission_amount ELSE 0 END) as l2_earnings"),
-                DB::raw("SUM(CASE WHEN commission_entries.commission_type = 'l3_overriding' OR (commission_entries.commission_type = 'overriding' AND commission_entries.level = 3) THEN commission_entries.commission_amount ELSE 0 END) as l3_earnings"),
-                DB::raw('SUM(commission_entries.commission_amount) as total'),
+                DB::raw("SUM(CASE WHEN {$l1Condition} THEN commission_entries.commission_amount ELSE 0 END) as l1_earnings"),
+                DB::raw("SUM(CASE WHEN {$l2Condition} THEN commission_entries.commission_amount ELSE 0 END) as l2_earnings"),
+                DB::raw("SUM(CASE WHEN {$l3Condition} THEN commission_entries.commission_amount ELSE 0 END) as l3_earnings"),
+                DB::raw("SUM(CASE WHEN {$overridingCondition} THEN commission_entries.commission_amount ELSE 0 END) as total_overriding"),
+                DB::raw("SUM(CASE WHEN commission_entries.commission_type = 'personal' OR {$overridingCondition} THEN commission_entries.commission_amount ELSE 0 END) as total"),
             ]);
     }
 

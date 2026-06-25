@@ -1,16 +1,15 @@
 @extends('layouts.auth')
 
-@section('title', 'Change Password')
+@section('title', 'Account Settings')
 
 @section('content')
     <main class="min-h-screen bg-slate-100">
         <section class="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-            <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="mb-6">
                 <div>
                     <p class="text-sm font-medium text-emerald-700">Account Settings</p>
-                    <h1 class="text-2xl font-black text-slate-950">Change Password</h1>
+                    <h1 class="text-2xl font-black text-slate-950">Login & Security</h1>
                 </div>
-                <a href="{{ route('affiliate.dashboard') }}" class="btn-secondary">Back to Dashboard</a>
             </div>
 
             @if (session('success'))
@@ -24,7 +23,15 @@
                 </div>
             @endif
 
+            <div class="mb-6 grid gap-4 sm:grid-cols-3">
+                <div class="app-card p-5"><p class="stat-label">Login ID</p><p class="mt-2 break-words font-black text-slate-950">{{ $loginId ?: '-' }}</p></div>
+                <div class="app-card p-5"><p class="stat-label">Login Access</p><p class="mt-2"><span class="badge badge-green">{{ $loginAccessStatus }}</span></p></div>
+                <div class="app-card p-5"><p class="stat-label">Affiliate</p><p class="mt-2 break-words font-black text-slate-950">{{ $affiliate?->name ?? auth()->user()->name }}</p></div>
+            </div>
+
             <div class="app-card p-6 sm:p-7">
+                <h2 class="text-lg font-black text-slate-950">Change Password</h2>
+                <p class="mt-1 text-sm text-slate-500">Update the password used to access your affiliate portal.</p>
                 <form method="POST" action="{{ route('affiliate.password.update') }}" class="space-y-5">
                     @csrf
 

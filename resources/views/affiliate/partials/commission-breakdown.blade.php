@@ -12,7 +12,7 @@
                 </p>
             </div>
 
-            <form method="GET" action="{{ route('affiliate.dashboard') }}" class="grid w-full gap-3 sm:grid-cols-2 lg:w-auto lg:grid-cols-[180px_220px_auto]" data-commission-filter-form>
+            <form method="GET" action="{{ $periodRoute }}" class="grid w-full gap-3 sm:grid-cols-2 lg:w-auto lg:grid-cols-[180px_220px_auto]" data-commission-filter-form>
                 <input type="hidden" name="month" value="{{ $periodFilters['month'] }}">
                 <input type="hidden" name="year" value="{{ $periodFilters['year'] }}">
 
@@ -39,7 +39,7 @@
                 </div>
 
                 <div class="flex self-end">
-                    <a href="{{ route('affiliate.dashboard', ['month' => $periodFilters['month'], 'year' => $periodFilters['year']]) }}" class="btn-secondary">Reset</a>
+                    <a href="{{ $periodRoute }}?{{ http_build_query(['month' => $periodFilters['month'], 'year' => $periodFilters['year']]) }}" class="btn-secondary">Reset</a>
                 </div>
             </form>
         </div>

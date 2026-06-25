@@ -134,6 +134,52 @@
                 </dl>
             </div>
 
+            @php
+                $referralEnabled = $affiliate->status === 'active' && $affiliate->referral?->is_active;
+                $referralUrl = $affiliate->referralUrl();
+            @endphp
+            <div class="app-card p-6 sm:p-7">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                        <p class="text-sm font-bold text-emerald-700">Affiliate Referral</p>
+                        <h2 class="mt-1 text-lg font-black text-slate-950">Referral Link</h2>
+                        <p class="mt-2 text-sm text-slate-500">Disabling this link only prevents future registrations. Existing hierarchy and commission records are unchanged.</p>
+                    </div>
+                    <span class="badge {{ $referralEnabled ? 'badge-green' : 'badge-gray' }}">
+                        {{ $referralEnabled ? 'Active' : 'Disabled' }}
+                    </span>
+                </div>
+
+                <div class="mt-6 grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)_auto] lg:items-end">
+                    <div>
+                        <label for="admin-referral-code" class="stat-label">Referral Code</label>
+                        <input id="admin-referral-code" type="text" readonly value="{{ $affiliate->referral?->referral_code }}" class="form-field bg-slate-50 font-mono font-black">
+                    </div>
+                    <div>
+                        <label for="admin-referral-link" class="stat-label">Referral Link</label>
+                        <input id="admin-referral-link" type="text" readonly value="{{ $referralUrl }}" class="form-field bg-slate-50">
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" class="btn-secondary" data-copy-referral="{{ $referralUrl }}">Copy Link</button>
+                        <form method="POST" action="{{ route('admin.affiliates.referral.update', $affiliate) }}">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="is_active" value="{{ $affiliate->referral?->is_active ? 0 : 1 }}">
+                            <button type="submit" class="{{ $affiliate->referral?->is_active ? 'btn-danger' : 'btn-primary' }}">
+                                {{ $affiliate->referral?->is_active ? 'Disable Link' : 'Enable Link' }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                @if ($affiliate->status !== 'active')
+                    <p class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                        The affiliate is inactive, so this referral cannot be used even if the referral status is enabled.
+                    </p>
+                @endif
+                <p class="mt-3 hidden text-sm font-semibold text-emerald-700" data-referral-copy-status>Referral link copied.</p>
+            </div>
+
             <div class="app-card overflow-hidden">
                 <div class="border-b border-slate-200 px-6 py-5">
                     <h2 class="text-lg font-semibold text-slate-950">Direct Downline</h2>
@@ -322,4 +368,27 @@
             });
         </script>
     @endif
+
+    <script>
+        document.querySelectorAll('[data-copy-referral]').forEach((button) => {
+            button.addEventListener('click', async () => {
+                const value = button.dataset.copyReferral;
+
+                try {
+                    await navigator.clipboard.writeText(value);
+                } catch (error) {
+                    const fallback = document.createElement('textarea');
+                    fallback.value = value;
+                    fallback.style.position = 'fixed';
+                    fallback.style.opacity = '0';
+                    document.body.appendChild(fallback);
+                    fallback.select();
+                    document.execCommand('copy');
+                    fallback.remove();
+                }
+
+                document.querySelector('[data-referral-copy-status]')?.classList.remove('hidden');
+            });
+        });
+    </script>
 @endsection

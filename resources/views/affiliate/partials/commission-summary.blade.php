@@ -10,7 +10,7 @@
                 <h2 class="mt-1 text-xl font-black text-slate-950" data-period-title>{{ $periodLabel }}</h2>
             </div>
 
-            <form method="GET" action="{{ route('affiliate.dashboard') }}" class="grid gap-3 sm:grid-cols-2" data-period-filter-form>
+            <form method="GET" action="{{ $periodRoute }}" class="grid gap-3 sm:grid-cols-2" data-period-filter-form>
                 @if (($commissionFilters['commission_type'] ?? '') !== '')
                     <input type="hidden" name="commission_type" value="{{ $commissionFilters['commission_type'] }}">
                 @endif
@@ -50,10 +50,17 @@
             <p class="stat-label">Personal Commission</p>
             <p class="stat-value stat-value-money">{{ $money($commissionSummary['personal']) }}</p>
         </div>
-        <div class="stat-card">
-            <p class="stat-label">Manager Bonus</p>
-            <p class="stat-value stat-value-money">{{ $money($commissionSummary['manager_bonus']) }}</p>
-        </div>
+        @if ($showManagerBonus ?? false)
+            <div class="stat-card">
+                <p class="stat-label">Manager Bonus</p>
+                <p class="stat-value stat-value-money">{{ $money($commissionSummary['manager_bonus']) }}</p>
+            </div>
+        @else
+            <div class="stat-card">
+                <p class="stat-label">Total Overriding</p>
+                <p class="stat-value stat-value-money">{{ $money($commissionSummary['total_overriding']) }}</p>
+            </div>
+        @endif
         <div class="stat-card">
             <p class="stat-label">Total Commission</p>
             <p class="stat-value stat-value-money">{{ $money($commissionSummary['total']) }}</p>

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Affiliate extends Model
 {
@@ -76,5 +77,15 @@ class Affiliate extends Model
     public function sourcedCommissionEntries(): HasMany
     {
         return $this->hasMany(CommissionEntry::class, 'source_affiliate_id');
+    }
+
+    public function referral(): HasOne
+    {
+        return $this->hasOne(AffiliateReferral::class);
+    }
+
+    public function referralUrl(): ?string
+    {
+        return $this->referral?->url();
     }
 }

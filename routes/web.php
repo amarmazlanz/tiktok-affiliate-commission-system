@@ -11,7 +11,12 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\OrderImportController;
 use App\Http\Controllers\Admin\TiktokAccountController;
 use App\Http\Controllers\Affiliate\DashboardController as AffiliateDashboardController;
+use App\Http\Controllers\Affiliate\CommissionController as AffiliateCommissionController;
+use App\Http\Controllers\Affiliate\InviteController as AffiliateInviteController;
 use App\Http\Controllers\Affiliate\PasswordController as AffiliatePasswordController;
+use App\Http\Controllers\Affiliate\TeamController as AffiliateTeamController;
+use App\Http\Controllers\Affiliate\TiktokAccountController as AffiliateTiktokAccountController;
+use App\Http\Controllers\PublicAffiliateRegistrationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +29,10 @@ Route::get('/', function () {
         ? redirect()->route('admin.dashboard')
         : redirect()->route('affiliate.dashboard');
 });
+
+Route::get('/register/ref/{referralCode}', PublicAffiliateRegistrationController::class)
+    ->where('referralCode', '[A-Za-z0-9-]+')
+    ->name('public.affiliate-registration.show');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', function () {
@@ -80,6 +89,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('affiliates/import', [AffiliateImportController::class, 'create'])->name('affiliates.import.create');
     Route::post('affiliates/import', [AffiliateImportController::class, 'store'])->name('affiliates.import.store');
     Route::post('affiliates/{affiliate}/reset-password', [AffiliateController::class, 'resetPassword'])->name('affiliates.reset-password');
+    Route::patch('affiliates/{affiliate}/referral', [AffiliateController::class, 'updateReferral'])->name('affiliates.referral.update');
 
     Route::resource('affiliates', AffiliateController::class);
     Route::post('affiliates/{affiliate}/tiktok-accounts', [TiktokAccountController::class, 'store'])
@@ -105,5 +115,10 @@ Route::middleware(['auth', 'role:affiliate'])->prefix('affiliate')->name('affili
     Route::middleware('password.changed')->group(function () {
         Route::get('/', fn () => redirect()->route('affiliate.dashboard'));
         Route::get('/dashboard', AffiliateDashboardController::class)->name('dashboard');
+        Route::get('/commission', AffiliateCommissionController::class)->name('commission');
+        Route::get('/team', AffiliateTeamController::class)->name('team');
+        Route::get('/tiktok-accounts', AffiliateTiktokAccountController::class)->name('tiktok-accounts');
+        Route::get('/invite', AffiliateInviteController::class)->name('invite');
+        Route::get('/settings', [AffiliatePasswordController::class, 'edit'])->name('settings');
     });
 });

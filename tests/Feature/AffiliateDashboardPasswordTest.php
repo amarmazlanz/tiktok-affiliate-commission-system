@@ -13,7 +13,7 @@ class AffiliateDashboardPasswordTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_affiliate_dashboard_has_expandable_team_hierarchy_and_recent_orders(): void
+    public function test_affiliate_portal_separates_dashboard_team_commission_and_tiktok_pages(): void
     {
         $user = $this->affiliateUser();
         $affiliate = $this->affiliate($user, 'Ali Seller');
@@ -23,6 +23,14 @@ class AffiliateDashboardPasswordTest extends TestCase
         ]);
 
         DB::table('tiktok_accounts')->insert([
+            [
+                'affiliate_id' => $affiliate->id,
+                'username' => 'ali_shop',
+                'username_normalized' => 'ali_shop',
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
             [
                 'affiliate_id' => $downline->id,
                 'username' => 'downline_shop',
@@ -74,18 +82,37 @@ class AffiliateDashboardPasswordTest extends TestCase
             ->assertOk()
             ->assertSee('Profile Overview')
             ->assertSee('Account Settings')
-            ->assertDontSee('class="btn-primary">Change Password', false)
-            ->assertSee('My Team Hierarchy')
-            ->assertSee('max-h-[620px]', false)
-            ->assertSee('sticky top-0', false)
-            ->assertSee('downline_shop')
-            ->assertSee('+2 more')
-            ->assertSee('data-team-expand-all', false)
-            ->assertSee('data-team-collapse-all', false)
-            ->assertSee('data-team-search', false)
+            ->assertSee('View My Commission')
+            ->assertSee('View My Team')
             ->assertSee('data-period-select', false)
             ->assertSee("fetch(requestUrl", false)
-            ->assertSee('LONG-ORDER-ID-0000001');
+            ->assertDontSee('Commission Breakdown')
+            ->assertDontSee('My Team Hierarchy')
+            ->assertDontSee('Recent Orders')
+            ->assertDontSee('LONG-ORDER-ID-0000001')
+            ->assertDontSee('downline_shop');
+
+        $this->actingAs($user)->get(route('affiliate.team'))
+            ->assertOk()
+            ->assertSee('Very Long Downline Name That Should Wrap Properly')
+            ->assertSee('downline_shop')
+            ->assertSee('data-team-expand-all', false);
+
+        $this->actingAs($user)->get(route('affiliate.tiktok-accounts'))
+            ->assertOk()
+            ->assertSee('ali_shop')
+            ->assertDontSee('downline_shop');
+
+        $this->actingAs($user)->get(route('affiliate.invite'))
+            ->assertOk()
+            ->assertSee('Share this link with a new applicant.')
+            ->assertSee('Online registration and approval are not active yet.');
+
+        $this->actingAs($user)->get(route('affiliate.settings'))
+            ->assertOk()
+            ->assertSeeText('Login & Security')
+            ->assertSee($user->affiliate_code)
+            ->assertSee('Change Password');
     }
 
     public function test_affiliate_only_sees_their_own_full_descendant_branch(): void
@@ -134,7 +161,7 @@ class AffiliateDashboardPasswordTest extends TestCase
         ]);
 
         DB::enableQueryLog();
-        $response = $this->actingAs($azimUser)->get(route('affiliate.dashboard'));
+        $response = $this->actingAs($azimUser)->get(route('affiliate.team'));
         $queryCount = count(DB::getQueryLog());
 
         $response
@@ -232,7 +259,7 @@ class AffiliateDashboardPasswordTest extends TestCase
             ],
         ]);
 
-        $response = $this->actingAs($user)->get(route('affiliate.dashboard', [
+        $response = $this->actingAs($user)->get(route('affiliate.commission', [
             'commission_type' => 'l1_overriding',
             'source_affiliate' => $source->id,
             'month' => 7,
@@ -241,6 +268,7 @@ class AffiliateDashboardPasswordTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertSee('My Commission')
             ->assertSee('Commission Breakdown')
             ->assertSee('data-auto-submit-select', false)
             ->assertDontSee('>Filter<', false)
@@ -288,6 +316,29 @@ class AffiliateDashboardPasswordTest extends TestCase
         ]));
     }
 
+    public function test_admin_cannot_open_affiliate_portal_pages(): void
+    {
+        $admin = User::query()->create([
+            'name' => 'Admin',
+            'email' => 'admin@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'admin',
+        ]);
+
+        foreach ([
+            'affiliate.dashboard',
+            'affiliate.commission',
+            'affiliate.team',
+            'affiliate.tiktok-accounts',
+            'affiliate.invite',
+            'affiliate.settings',
+        ] as $routeName) {
+            $this->actingAs($admin)
+                ->get(route($routeName))
+                ->assertRedirect(route('admin.dashboard'));
+        }
+    }
+
     public function test_dashboard_period_filter_defaults_to_latest_period_and_updates_kpis(): void
     {
         $user = $this->affiliateUser();
@@ -315,9 +366,9 @@ class AffiliateDashboardPasswordTest extends TestCase
             ->assertSee('June 2026')
             ->assertSee('RM 2,500.00')
             ->assertSee('RM 250.00')
-            ->assertSee('RM 25.00')
             ->assertSee('RM 7.50')
-            ->assertSee('Latest 3 orders across all periods')
+            ->assertDontSee('Recent Orders')
+            ->assertDontSee('Commission Breakdown')
             ->assertViewHas('personalSales', fn ($value): bool => (float) $value === 2500.0)
             ->assertViewHas('commissionSummary', fn (array $summary): bool =>
                 $summary['personal'] === 250.0
@@ -331,7 +382,6 @@ class AffiliateDashboardPasswordTest extends TestCase
             ->assertSee('April 2026')
             ->assertSee('RM 1,000.00')
             ->assertSee('RM 100.00')
-            ->assertSee('RM 10.00')
             ->assertSee('RM 5.00')
             ->assertViewHas('personalSales', fn ($value): bool => (float) $value === 1000.0)
             ->assertViewHas('commissionSummary', fn (array $summary): bool =>
@@ -370,7 +420,7 @@ class AffiliateDashboardPasswordTest extends TestCase
                 $filters['month'] === 'all' && $filters['year'] === 'all');
     }
 
-    public function test_dashboard_period_ajax_returns_summary_and_breakdown_partials(): void
+    public function test_dashboard_period_ajax_returns_summary_only_and_commission_ajax_returns_breakdown(): void
     {
         $user = $this->affiliateUser();
         $affiliate = $this->affiliate($user, 'Ali Seller');
@@ -391,13 +441,24 @@ class AffiliateDashboardPasswordTest extends TestCase
             ->assertJsonPath('periodLabel', 'April 2026')
             ->assertJsonPath('month', 4)
             ->assertJsonPath('year', 2026)
-            ->assertJsonFragment(['sourceAffiliate' => null]);
+            ->assertJsonMissingPath('breakdownHtml');
 
         $this->assertStringContainsString('RM 1,200.00', $response->json('html'));
         $this->assertStringContainsString('RM 120.00', $response->json('html'));
-        $this->assertStringContainsString('Commission Breakdown', $response->json('breakdownHtml'));
-        $this->assertStringContainsString('Abu Source', $response->json('breakdownHtml'));
         $this->assertStringNotContainsString('Profile Overview', $response->json('html'));
+
+        $commissionResponse = $this->actingAs($user)->getJson(route('affiliate.commission', [
+            'ajax' => 1,
+            'month' => 4,
+            'year' => 2026,
+        ]));
+
+        $commissionResponse
+            ->assertOk()
+            ->assertJsonPath('periodLabel', 'April 2026')
+            ->assertJsonFragment(['sourceAffiliate' => null]);
+        $this->assertStringContainsString('Commission Breakdown', $commissionResponse->json('breakdownHtml'));
+        $this->assertStringContainsString('Abu Source', $commissionResponse->json('breakdownHtml'));
     }
 
     private function commissionRun(int $month, int $year): int

@@ -46,6 +46,11 @@
                 'upload' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>',
                 'report' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2h8l4 4v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h2Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>',
                 'home' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
+                'wallet' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h15a2 2 0 0 1 2 2v10H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12"/><path d="M16 11h5v4h-5a2 2 0 0 1 0-4Z"/></svg>',
+                'team' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="9" r="2"/><path d="M3 20v-2a5 5 0 0 1 10 0v2"/><path d="M14 20v-1a4 4 0 0 1 7 0v1"/></svg>',
+                'invite' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 19c0-3-2-5-5-5s-5 2-5 5"/><circle cx="10" cy="7" r="4"/><path d="M19 8v6"/><path d="M16 11h6"/></svg>',
+                'tiktok' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 4v11a4 4 0 1 1-4-4"/><path d="M14 4c1 3 3 5 6 5"/></svg>',
+                'settings' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>',
             ];
             $menuItems = $isAdmin
                 ? [
@@ -55,12 +60,16 @@
                     ['label' => 'Commission Runs', 'route' => route('admin.commissions.index'), 'active' => request()->routeIs('admin.commissions.*'), 'icon' => 'report'],
                 ]
                 : [
-                    ['label' => 'Affiliate Dashboard', 'route' => route('affiliate.dashboard'), 'active' => request()->routeIs('affiliate.dashboard'), 'icon' => 'home'],
+                    ['label' => 'Dashboard', 'route' => route('affiliate.dashboard'), 'active' => request()->routeIs('affiliate.dashboard'), 'icon' => 'home'],
+                    ['label' => 'My Commission', 'route' => route('affiliate.commission'), 'active' => request()->routeIs('affiliate.commission'), 'icon' => 'wallet'],
+                    ['label' => 'My Team', 'route' => route('affiliate.team'), 'active' => request()->routeIs('affiliate.team'), 'icon' => 'team'],
+                    ['label' => 'Invite Affiliate', 'route' => route('affiliate.invite'), 'active' => request()->routeIs('affiliate.invite'), 'icon' => 'invite'],
+                    ['label' => 'TikTok Accounts', 'route' => route('affiliate.tiktok-accounts'), 'active' => request()->routeIs('affiliate.tiktok-accounts'), 'icon' => 'tiktok'],
+                    ['label' => 'Account Settings', 'route' => route('affiliate.settings'), 'active' => request()->routeIs('affiliate.settings', 'affiliate.password.*'), 'icon' => 'settings'],
                 ];
         @endphp
 
-        @if ($isAdmin)
-            <aside class="fixed inset-y-0 left-0 z-50 hidden w-72 border-r border-slate-200 bg-white lg:flex lg:flex-col">
+        <aside class="fixed inset-y-0 left-0 z-50 hidden w-72 border-r border-slate-200 bg-white lg:flex lg:flex-col">
                 <div class="flex h-20 items-center gap-3 border-b border-slate-200 px-6">
                     <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-700 text-lg font-black text-white shadow-sm">
                         TT
@@ -71,7 +80,7 @@
                     </div>
                 </div>
 
-                <nav class="flex-1 space-y-1 px-4 py-6">
+                <nav class="flex-1 space-y-1 overflow-y-auto px-4 py-6">
                     @foreach ($menuItems as $item)
                         <a href="{{ $item['route'] }}" class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition {{ $item['active'] ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">
                             <span class="flex h-9 w-9 items-center justify-center rounded-lg {{ $item['active'] ? 'bg-white text-emerald-700 shadow-sm' : 'bg-slate-100 text-slate-500 group-hover:text-slate-700' }}">
@@ -93,16 +102,12 @@
                         <button type="submit" class="btn-secondary w-full">Logout</button>
                     </form>
                 </div>
-            </aside>
-        @endif
+        </aside>
 
-        <div class="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur {{ $isAdmin ? 'lg:pl-72' : '' }}">
+        <div class="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur lg:pl-72">
             <div class="px-4 sm:px-6">
                 <div class="flex min-h-20 flex-col gap-4 py-4 lg:flex-row lg:items-center lg:justify-between">
                     <div class="flex items-center gap-3">
-                        @if (! $isAdmin)
-                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-700 text-sm font-black text-white">TT</div>
-                        @endif
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">TikTok Affiliate Commission System</p>
                             <div class="mt-1 flex flex-wrap items-center gap-2">
@@ -118,9 +123,6 @@
                             <p class="text-xs text-slate-500">{{ auth()->user()->email }}</p>
                         </div>
                         @if (! $isAdmin)
-                            <a href="{{ route('affiliate.password.edit') }}" class="btn-secondary">
-                                Account Settings
-                            </a>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <button type="submit" class="btn-secondary">Logout</button>
@@ -136,9 +138,6 @@
                             <span>{{ $item['label'] }}</span>
                         </a>
                     @endforeach
-                    @if (! $isAdmin)
-                        <a href="{{ route('affiliate.password.edit') }}" class="btn-secondary shrink-0 py-2">Account Settings</a>
-                    @endif
                     <form method="POST" action="{{ route('logout') }}" class="shrink-0">
                         @csrf
                         <button type="submit" class="btn-secondary py-2">Logout</button>
@@ -148,7 +147,7 @@
         </div>
     @endauth
 
-    <div class="@auth app-shell {{ auth()->user()->role === 'admin' ? 'lg:pl-72' : '' }} @endauth">
+    <div class="@auth app-shell lg:pl-72 @endauth">
         @yield('content')
     </div>
 </body>

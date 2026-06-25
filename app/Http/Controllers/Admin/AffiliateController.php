@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Affiliate;
 use App\Models\User;
+use App\Services\AffiliateReferralService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,16 +57,33 @@ class AffiliateController extends Controller
         ]);
     }
 
-    public function show(Affiliate $affiliate): View
+    public function show(Affiliate $affiliate, AffiliateReferralService $referrals): View
     {
+        $referrals->ensureFor($affiliate);
         $affiliate->load([
             'upline',
             'passwordResetBy',
+            'referral',
             'tiktokAccounts' => fn ($query) => $query->latest(),
             'directDownlines' => fn ($query) => $query->withCount('tiktokAccounts')->orderBy('name'),
         ])->loadCount('directDownlines');
 
         return view('admin.affiliates.show', compact('affiliate'));
+    }
+
+    public function updateReferral(Request $request, Affiliate $affiliate, AffiliateReferralService $referrals): RedirectResponse
+    {
+        $data = $request->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
+        $referral = $referrals->ensureFor($affiliate);
+        $referral->update(['is_active' => (bool) $data['is_active']]);
+
+        return redirect()
+            ->route('admin.affiliates.show', $affiliate)
+            ->with('success', $referral->is_active
+                ? 'Referral link has been enabled.'
+                : 'Referral link has been disabled.');
     }
 
     public function store(Request $request): RedirectResponse

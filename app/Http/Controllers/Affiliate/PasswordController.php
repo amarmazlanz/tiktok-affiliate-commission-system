@@ -11,9 +11,15 @@ use Illuminate\View\View;
 
 class PasswordController extends Controller
 {
-    public function edit(): View
+    public function edit(Request $request): View
     {
-        return view('affiliate.password');
+        $user = $request->user();
+
+        return view('affiliate.password', [
+            'affiliate' => $user->affiliate,
+            'loginId' => $user->affiliate_code ?: $user->email,
+            'loginAccessStatus' => $user->role === 'affiliate' ? 'Active' : 'Unavailable',
+        ]);
     }
 
     public function update(Request $request): RedirectResponse
