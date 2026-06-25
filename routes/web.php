@@ -30,9 +30,16 @@ Route::get('/', function () {
         : redirect()->route('affiliate.dashboard');
 });
 
-Route::get('/register/ref/{referralCode}', PublicAffiliateRegistrationController::class)
+Route::get('/register/ref/{referralCode}', [PublicAffiliateRegistrationController::class, 'show'])
     ->where('referralCode', '[A-Za-z0-9-]+')
     ->name('public.affiliate-registration.show');
+Route::post('/register/ref/{referralCode}', [PublicAffiliateRegistrationController::class, 'store'])
+    ->where('referralCode', '[A-Za-z0-9-]+')
+    ->middleware('throttle:5,1')
+    ->name('public.affiliate-registration.store');
+Route::get('/application/submitted/{applicationReference}', [PublicAffiliateRegistrationController::class, 'success'])
+    ->where('applicationReference', 'APP-[0-9]{4}-[0-9]{6}')
+    ->name('public.affiliate-registration.submitted');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', function () {

@@ -90,9 +90,11 @@ class AffiliateReferralFoundationTest extends TestCase
         $this->get(route('public.affiliate-registration.show', strtolower($referral->referral_code)))
             ->assertOk()
             ->assertSee('Affiliate Registration')
-            ->assertSee('You were invited by Public Referrer.')
-            ->assertSee('Online registration will be available soon.')
-            ->assertDontSee('Titan Group');
+            ->assertSee('Invited by')
+            ->assertSee('Public Referrer')
+            ->assertSee('Titan Group')
+            ->assertSee('Your application will be reviewed by the administrator before activation.')
+            ->assertDontSee('public-referrer@example.com');
 
         $referral->update(['is_active' => false]);
         $this->get(route('public.affiliate-registration.show', $referral->referral_code))
