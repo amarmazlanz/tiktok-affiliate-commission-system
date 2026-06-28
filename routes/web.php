@@ -102,6 +102,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::resource('affiliates', AffiliateController::class);
 
     Route::get('affiliate-registrations', [AffiliateRegistrationController::class, 'index'])->name('affiliate-registrations.index');
+    Route::post('affiliate-registrations/{application:application_reference}/approve', [AffiliateRegistrationController::class, 'approve'])->name('affiliate-registrations.approve');
+    Route::post('affiliate-registrations/{application:application_reference}/reject', [AffiliateRegistrationController::class, 'reject'])->name('affiliate-registrations.reject');
     Route::get('affiliate-registrations/{application:application_reference}', [AffiliateRegistrationController::class, 'show'])->name('affiliate-registrations.show');
 
     Route::post('affiliates/{affiliate}/tiktok-accounts', [TiktokAccountController::class, 'store'])
@@ -123,6 +125,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 Route::middleware(['auth', 'role:affiliate'])->prefix('affiliate')->name('affiliate.')->group(function () {
     Route::get('/password', [AffiliatePasswordController::class, 'edit'])->name('password.edit');
     Route::post('/password', [AffiliatePasswordController::class, 'update'])->name('password.update');
+    Route::patch('/profile', [AffiliatePasswordController::class, 'updateProfile'])->name('profile.update');
 
     Route::middleware('password.changed')->group(function () {
         Route::get('/', fn () => redirect()->route('affiliate.dashboard'));

@@ -35,6 +35,13 @@ class AffiliateApplication extends Model
         'submitted_at',
         'reviewed_at',
         'reviewed_by',
+        'approved_affiliate_id',
+        'approved_upline_id',
+        'approved_group_name',
+        'approved_affiliate_type',
+        'approved_position',
+        'upline_change_reason',
+        'approval_notes',
         'rejection_reason',
     ];
 
@@ -64,5 +71,15 @@ class AffiliateApplication extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function approvedAffiliate(): BelongsTo
+    {
+        return $this->belongsTo(Affiliate::class, 'approved_affiliate_id');
+    }
+
+    public function approvedUpline(): BelongsTo
+    {
+        return $this->belongsTo(Affiliate::class, 'approved_upline_id');
     }
 }

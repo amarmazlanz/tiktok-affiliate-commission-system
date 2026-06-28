@@ -304,6 +304,22 @@ class PublicAffiliateRegistrationTest extends TestCase
         $this->assertSame('601112345678', $application->normalized_phone);
     }
 
+    public function test_country_code_011_phone_is_normalized_for_duplicate_checks(): void
+    {
+        $referrer = $this->affiliate('Inviter', 'Titan Group', 'TIT-0001');
+
+        $this->submit($referrer, $this->validData([
+            'phone' => '+601112345678',
+            'email' => 'phone-country-011@example.com',
+            'tiktok_username' => '@phone_country_011',
+            'tiktok_username_confirmation' => '@phone_country_011',
+        ]));
+
+        $application = AffiliateApplication::query()->sole();
+
+        $this->assertSame('601112345678', $application->normalized_phone);
+    }
+
     public function test_invalid_malaysian_mobile_length_is_rejected(): void
     {
         $referrer = $this->affiliate('Inviter', 'Titan Group', 'TIT-0001');

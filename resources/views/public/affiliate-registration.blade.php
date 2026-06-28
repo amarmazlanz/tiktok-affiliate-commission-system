@@ -70,6 +70,7 @@
                                         @elseif ($name === 'phone')
                                             inputmode="tel"
                                             autocomplete="tel"
+                                            maxlength="14"
                                             data-phone-input
                                         @endif
                                         @required($required)

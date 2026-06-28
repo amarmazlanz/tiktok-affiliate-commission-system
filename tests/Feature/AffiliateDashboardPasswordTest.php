@@ -110,9 +110,89 @@ class AffiliateDashboardPasswordTest extends TestCase
 
         $this->actingAs($user)->get(route('affiliate.settings'))
             ->assertOk()
-            ->assertSeeText('Login & Security')
+            ->assertSeeText('Personal Information')
+            ->assertSee('Login &amp; Security', false)
             ->assertSee($user->affiliate_code)
+            ->assertSee('Please contact admin to update TikTok accounts.')
             ->assertSee('Change Password');
+    }
+
+    public function test_affiliate_can_update_own_personal_information(): void
+    {
+        $user = $this->affiliateUser();
+        $affiliate = $this->affiliate($user, 'Ali Seller', [
+            'phone' => '012-3456789',
+        ]);
+        DB::table('tiktok_accounts')->insert([
+            'affiliate_id' => $affiliate->id,
+            'username' => 'ali_shop',
+            'username_normalized' => 'ali_shop',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('affiliate.settings'))
+            ->assertOk()
+            ->assertSee('ali_shop')
+            ->assertSee('data-phone-input', false)
+            ->assertSee('Not available')
+            ->assertDontSee('name="group_name"', false)
+            ->assertDontSee('name="upline_id"', false)
+            ->assertDontSee('name="affiliate_type"', false);
+
+        $this->actingAs($user)
+            ->patch(route('affiliate.profile.update'), [
+                'name' => 'Ali Updated',
+                'email' => 'ali-updated@example.com',
+                'phone' => '01112345678',
+            ])
+            ->assertRedirect(route('affiliate.settings'))
+            ->assertSessionHas('success', 'Profile information updated successfully.');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'name' => 'Ali Updated',
+            'email' => 'ali-updated@example.com',
+        ]);
+        $this->assertDatabaseHas('affiliates', [
+            'id' => $affiliate->id,
+            'name' => 'Ali Updated',
+            'email' => 'ali-updated@example.com',
+            'phone' => '011-12345678',
+        ]);
+    }
+
+    public function test_affiliate_profile_update_validates_phone_and_duplicate_email(): void
+    {
+        $user = $this->affiliateUser();
+        $affiliate = $this->affiliate($user, 'Ali Seller');
+        User::query()->create([
+            'name' => 'Other User',
+            'email' => 'taken@example.com',
+            'affiliate_code' => 'AFF-9998',
+            'password' => bcrypt('password'),
+            'role' => 'affiliate',
+        ]);
+
+        $this->actingAs($user)
+            ->patch(route('affiliate.profile.update'), [
+                'name' => 'Ali Seller',
+                'email' => 'taken@example.com',
+                'phone' => '0123456789',
+            ])
+            ->assertSessionHasErrors('email');
+
+        $this->actingAs($user)
+            ->patch(route('affiliate.profile.update'), [
+                'name' => 'Ali Seller',
+                'email' => 'ali@example.com',
+                'phone' => '012345678',
+            ])
+            ->assertSessionHasErrors(['phone' => 'Please enter a valid Malaysian mobile number.']);
+
+        $this->assertSame(null, $affiliate->fresh()->phone);
     }
 
     public function test_affiliate_only_sees_their_own_full_descendant_branch(): void

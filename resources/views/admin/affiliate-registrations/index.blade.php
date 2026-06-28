@@ -5,10 +5,12 @@
 @section('content')
     @php
         $statusLabels = [
+            'needs_action' => 'Needs Action',
             'pending' => 'Pending',
             'duplicate_review' => 'Duplicate Review',
             'approved' => 'Approved',
             'rejected' => 'Rejected',
+            'all' => 'All Statuses',
         ];
         $statusBadges = [
             'pending' => 'badge-blue',
@@ -21,9 +23,11 @@
             ['label' => 'Duplicate Review', 'status' => 'duplicate_review', 'class' => 'text-amber-700'],
             ['label' => 'Approved', 'status' => 'approved', 'class' => 'text-emerald-700'],
             ['label' => 'Rejected', 'status' => 'rejected', 'class' => 'text-red-700'],
-            ['label' => 'Total Applications', 'status' => null, 'class' => 'text-slate-950'],
+            ['label' => 'Total Applications', 'status' => 'all', 'class' => 'text-slate-950'],
         ];
         $totalApplications = $summaryCounts->sum();
+        $needsActionTotal = (int) ($summaryCounts['pending'] ?? 0) + (int) ($summaryCounts['duplicate_review'] ?? 0);
+        $cardQuery = request()->except('page');
     @endphp
 
     <main class="min-h-screen bg-slate-100">
@@ -39,14 +43,77 @@
                 </a>
             </div>
 
+            @if (session('success'))
+                <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            @if (session('approved_login'))
+                @php
+                    $approvedLogin = session('approved_login');
+                @endphp
+                <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+                    <p class="text-lg font-black text-emerald-900">Application approved successfully.</p>
+                    <div class="mt-4 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <p class="text-xs font-bold uppercase text-emerald-700">Affiliate</p>
+                            <p class="mt-1 font-black text-slate-950">{{ $approvedLogin['affiliate_name'] }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold uppercase text-emerald-700">Affiliate Code</p>
+                            <p class="mt-1 font-mono font-black text-slate-950">{{ $approvedLogin['affiliate_code'] }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold uppercase text-emerald-700">Login ID</p>
+                            <p class="mt-1 font-mono font-black text-slate-950">{{ $approvedLogin['login_id'] }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold uppercase text-emerald-700">Temporary Password</p>
+                            <div class="mt-1 flex flex-wrap items-center gap-2">
+                                <code id="temporary-password" class="rounded bg-white px-3 py-2 font-mono font-black text-slate-950 ring-1 ring-emerald-200">{{ $approvedLogin['temporary_password'] }}</code>
+                                <button type="button" class="btn-secondary px-3 py-2 text-xs" onclick="navigator.clipboard?.writeText(document.getElementById('temporary-password').textContent)">
+                                    Copy Password
+                                </button>
+                            </div>
+                            <p class="mt-2 text-xs font-semibold text-emerald-800">Copy this password now. It will not be shown again.</p>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            <p class="mb-3 text-sm font-semibold text-slate-600">Click a card to filter applications.</p>
             <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                 @foreach ($summary as $card)
-                    <div class="stat-card min-h-0">
+                    @php
+                        $isActiveCard = ($statusFilter ?? 'needs_action') === $card['status'];
+                        $cardUrl = route('admin.affiliate-registrations.index') . '?' . http_build_query(array_merge($cardQuery, [
+                            'status' => $card['status'],
+                        ]));
+                        $cardClass = 'stat-card min-h-0 transition hover:-translate-y-0.5 hover:shadow-md';
+
+                        if ($isActiveCard) {
+                            $cardClass .= ' ring-2 ring-emerald-500 outline-none';
+                        }
+                    @endphp
+                    <a href="{{ $cardUrl }}" class="{{ $cardClass }}">
                         <p class="stat-label">{{ $card['label'] }}</p>
                         <p class="mt-3 text-3xl font-black {{ $card['class'] }}">
-                            {{ $card['status'] ? number_format((int) ($summaryCounts[$card['status']] ?? 0)) : number_format((int) $totalApplications) }}
+                            @if ($card['status'] === 'all')
+                                {{ number_format((int) $totalApplications) }}
+                            @elseif ($card['status'] === 'needs_action')
+                                {{ number_format((int) $needsActionTotal) }}
+                            @else
+                                {{ number_format((int) ($summaryCounts[$card['status']] ?? 0)) }}
+                            @endif
                         </p>
-                    </div>
+                    </a>
                 @endforeach
             </div>
 
@@ -59,10 +126,12 @@
                 <div>
                     <label for="status" class="block text-xs font-bold uppercase text-slate-500">Status</label>
                     <select id="status" name="status" class="form-field">
-                        <option value="">All Status</option>
-                        @foreach ($statusLabels as $value => $label)
-                            <option value="{{ $value }}" @selected(($filters['status'] ?? '') === $value)>{{ $label }}</option>
-                        @endforeach
+                        <option value="needs_action" @selected($statusFilter === 'needs_action')>Needs Action</option>
+                        <option value="pending" @selected($statusFilter === 'pending')>Pending</option>
+                        <option value="duplicate_review" @selected($statusFilter === 'duplicate_review')>Duplicate Review</option>
+                        <option value="approved" @selected($statusFilter === 'approved')>Approved</option>
+                        <option value="rejected" @selected($statusFilter === 'rejected')>Rejected</option>
+                        <option value="all" @selected($statusFilter === 'all')>All Statuses</option>
                     </select>
                 </div>
                 <div>
@@ -117,6 +186,7 @@
                     <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="sticky top-0 z-10">
                             <tr>
+                                <th class="sticky left-0 z-20 bg-slate-50 text-left">Action</th>
                                 <th class="text-left">Application Reference</th>
                                 <th class="text-left">Applicant Name</th>
                                 <th class="text-left">Masked IC</th>
@@ -127,12 +197,23 @@
                                 <th class="text-left">Group</th>
                                 <th class="text-left">Status</th>
                                 <th class="text-left">Submitted At</th>
-                                <th class="text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @forelse ($applications as $application)
                                 <tr>
+                                    <td class="sticky left-0 z-10 bg-white shadow-[1px_0_0_#e2e8f0]">
+                                        <div class="flex justify-start gap-2">
+                                            <a href="{{ route('admin.affiliate-registrations.show', $application->application_reference) }}" class="btn-secondary px-3 py-1.5 text-xs">
+                                                View
+                                            </a>
+                                            @if ($application->approvedAffiliate)
+                                                <a href="{{ route('admin.affiliates.show', $application->approvedAffiliate) }}" class="btn-secondary px-3 py-1.5 text-xs">
+                                                    Affiliate
+                                                </a>
+                                            @endif
+                                        </div>
+                                    </td>
                                     <td class="font-mono text-xs font-bold text-slate-700">{{ $application->application_reference }}</td>
                                     <td class="max-w-72 whitespace-normal break-words font-semibold leading-snug text-slate-950">{{ $application->full_name }}</td>
                                     <td class="font-mono text-slate-700">{{ $application->masked_nric }}</td>
@@ -156,11 +237,6 @@
                                         </span>
                                     </td>
                                     <td class="whitespace-nowrap text-slate-600">{{ $application->submitted_at?->format('d M Y, h:i A') ?? '-' }}</td>
-                                    <td class="text-right">
-                                        <a href="{{ route('admin.affiliate-registrations.show', $application->application_reference) }}" class="btn-secondary px-3 py-1.5 text-xs">
-                                            View
-                                        </a>
-                                    </td>
                                 </tr>
                             @empty
                                 <tr>
