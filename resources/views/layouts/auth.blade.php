@@ -7,11 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .app-shell main > header:first-child { display: none; }
-        .btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border-radius: 0.5rem; background: #047857; padding: 0.625rem 1rem; font-size: 0.875rem; font-weight: 700; color: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / .08); transition: background-color .15s ease, box-shadow .15s ease, transform .15s ease; }
-        .btn-primary:hover { background: #065f46; box-shadow: 0 6px 16px rgb(4 120 87 / .16); transform: translateY(-1px); }
+        .btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border-radius: 0.5rem; background: #e11d48; padding: 0.625rem 1rem; font-size: 0.875rem; font-weight: 700; color: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / .08); transition: background-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+        .btn-primary:hover { background: #be123c; box-shadow: 0 6px 16px rgb(225 29 72 / .16); transform: translateY(-1px); }
         .btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; background: #fff; padding: 0.625rem 1rem; font-size: 0.875rem; font-weight: 700; color: #334155; box-shadow: 0 1px 2px rgb(15 23 42 / .04); transition: background-color .15s ease, border-color .15s ease, color .15s ease; }
         .btn-secondary:hover { border-color: #94a3b8; background: #f8fafc; color: #0f172a; }
-        .btn-nav-active { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
+        .btn-nav-active { border-color: #fecdd3; background: #fff1f2; color: #be123c; }
         .btn-danger { display: inline-flex; align-items: center; justify-content: center; border-radius: 0.5rem; border: 1px solid #fecaca; background: #fff; padding: 0.45rem 0.8rem; font-size: 0.75rem; font-weight: 700; color: #b91c1c; transition: background-color .15s ease, border-color .15s ease; }
         .btn-danger:hover { border-color: #fca5a5; background: #fef2f2; }
         .app-card { border-radius: 0.75rem; background: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / .05); outline: 1px solid #e2e8f0; }
@@ -33,7 +33,7 @@
         .badge-red { background: #fef2f2; color: #b91c1c; }
         .money { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
         .form-field { margin-top: 0.5rem; display: block; width: 100%; border-radius: 0.5rem; border: 1px solid #cbd5e1; padding: 0.625rem 0.8rem; font-size: 0.875rem; box-shadow: 0 1px 2px rgb(15 23 42 / .05); outline: none; }
-        .form-field:focus { border-color: #10b981; box-shadow: 0 0 0 3px #d1fae5; }
+        .form-field:focus { border-color: #f43f5e; box-shadow: 0 0 0 3px #ffe4e6; }
     </style>
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-900 antialiased">
@@ -75,20 +75,20 @@
         @endphp
 
         <aside class="fixed inset-y-0 left-0 z-50 hidden w-72 border-r border-slate-200 bg-white lg:flex lg:flex-col">
-                <div class="flex h-20 items-center gap-3 border-b border-slate-200 px-6">
-                    <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-700 text-lg font-black text-white shadow-sm">
-                        TT
+                <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+                    <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <img src="{{ asset('images/Role_Vision_Sdn_bhd.jpg') }}" alt="Role Vision Sdn Bhd Logo" class="h-full w-full scale-125 object-cover">
                     </div>
                     <div>
-                        <p class="text-sm font-black leading-5 text-slate-950">TikTok Affiliate</p>
-                        <p class="text-xs font-semibold text-slate-500">Commission System</p>
+                        <p class="text-sm font-bold leading-tight text-slate-950">TikTok Affiliate</p>
+                        <p class="text-xs text-slate-500">Commission System</p>
                     </div>
                 </div>
 
                 <nav class="flex-1 space-y-1 overflow-y-auto px-4 py-6">
                     @foreach ($menuItems as $item)
-                        <a href="{{ $item['route'] }}" class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition {{ $item['active'] ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">
-                            <span class="flex h-9 w-9 items-center justify-center rounded-lg {{ $item['active'] ? 'bg-white text-emerald-700 shadow-sm' : 'bg-slate-100 text-slate-500 group-hover:text-slate-700' }}">
+                        <a href="{{ $item['route'] }}" class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition {{ $item['active'] ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">
+                            <span class="flex h-9 w-9 items-center justify-center rounded-lg {{ $item['active'] ? 'bg-white text-rose-700 shadow-sm' : 'bg-slate-100 text-slate-500 group-hover:text-slate-700' }}">
                                 {!! $icons[$item['icon']] !!}
                             </span>
                             <span>{{ $item['label'] }}</span>
@@ -114,7 +114,7 @@
                 <div class="flex min-h-20 flex-col gap-4 py-4 lg:flex-row lg:items-center lg:justify-between">
                     <div class="flex items-center gap-3">
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">TikTok Affiliate Commission System</p>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">TikTok Affiliate Commission System</p>
                             <div class="mt-1 flex flex-wrap items-center gap-2">
                                 <h1 class="text-xl font-black text-slate-950">@yield('title', 'Dashboard')</h1>
                                 <span class="badge badge-gray">{{ ucfirst(auth()->user()->role) }}</span>
@@ -138,7 +138,7 @@
 
                 <div class="flex gap-2 overflow-x-auto border-t border-slate-100 py-3 lg:hidden">
                     @foreach ($menuItems as $item)
-                        <a href="{{ $item['route'] }}" class="inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold {{ $item['active'] ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-white text-slate-600 ring-1 ring-slate-200' }}">
+                        <a href="{{ $item['route'] }}" class="inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold {{ $item['active'] ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200' : 'bg-white text-slate-600 ring-1 ring-slate-200' }}">
                             {!! $icons[$item['icon']] !!}
                             <span>{{ $item['label'] }}</span>
                         </a>
