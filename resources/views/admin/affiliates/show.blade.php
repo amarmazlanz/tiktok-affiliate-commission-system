@@ -53,14 +53,12 @@
                         <a href="{{ route('admin.affiliates.edit', $affiliate) }}" class="btn-secondary">
                             Edit Affiliate
                         </a>
-                        @if ($affiliate->affiliate_type !== 'external' && $affiliate->user_id)
-                            <form method="POST" action="{{ route('admin.affiliates.reset-password', $affiliate) }}" onsubmit="return confirm('This will replace the affiliate\\'s current password with a temporary password. Continue?')">
-                                @csrf
-                                <button type="submit" class="btn-primary">
-                                    Reset Password
-                                </button>
-                            </form>
-                        @endif
+                        <form method="POST" action="{{ route('admin.affiliates.reset-password', $affiliate) }}" onsubmit="return confirm('{{ $affiliate->user_id ? 'This will replace the affiliate\'s current password with a temporary password. Continue?' : 'This will generate a login and temporary password for this affiliate. Continue?' }}')">
+                            @csrf
+                            <button type="submit" class="btn-primary">
+                                {{ $affiliate->user_id ? 'Reset Password' : 'Generate Login' }}
+                            </button>
+                        </form>
                     </div>
                 </div>
 
@@ -80,14 +78,14 @@
                     <div>
                         <dt class="font-medium text-slate-500">Login ID</dt>
                         <dd class="mt-1 text-slate-950">
-                            {{ $affiliate->affiliate_type === 'external' || ! $affiliate->user ? 'No login access' : ($affiliate->affiliate_code ?: $affiliate->user->email) }}
+                            {{ ! $affiliate->user ? 'No login access' : ($affiliate->affiliate_code ?: $affiliate->user->email) }}
                         </dd>
                     </div>
                     <div>
                         <dt class="font-medium text-slate-500">Login Access</dt>
                         <dd class="mt-1">
-                            <span class="badge {{ $affiliate->affiliate_type !== 'external' && $affiliate->user ? 'badge-green' : 'badge-gray' }}">
-                                {{ $affiliate->affiliate_type !== 'external' && $affiliate->user ? 'Active' : 'No login access' }}
+                            <span class="badge {{ $affiliate->user ? 'badge-green' : 'badge-gray' }}">
+                                {{ $affiliate->user ? 'Active' : 'No login access' }}
                             </span>
                         </dd>
                     </div>
@@ -122,7 +120,7 @@
                     <div>
                         <dt class="font-medium text-slate-500">Must Change Password</dt>
                         <dd class="mt-1">
-                            @if ($affiliate->affiliate_type === 'external' || ! $affiliate->user)
+                            @if (! $affiliate->user)
                                 <span class="badge badge-gray">Not applicable</span>
                             @else
                                 <span class="badge {{ $affiliate->user->must_change_password ? 'badge-amber' : 'badge-green' }}">

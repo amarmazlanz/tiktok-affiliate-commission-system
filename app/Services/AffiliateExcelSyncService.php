@@ -304,15 +304,11 @@ class AffiliateExcelSyncService
         ]);
         $affiliate->save();
 
-        if ($profile['affiliate_type'] === 'external' && $affiliate->user) {
-            $user = $affiliate->user;
-            $affiliate->forceFill(['user_id' => null, 'email' => null])->save();
-            $user->delete();
-            $affiliate->setRelation('user', null);
-            $changed = true;
-        } elseif ($profile['affiliate_type'] === 'inhouse' && ! $affiliate->user) {
+        if (! $affiliate->user) {
             $temporaryPassword = $this->temporaryPassword();
-            $email = strtolower($affiliate->affiliate_code).'@inhouse.local';
+            $email = $profile['affiliate_type'] === 'inhouse'
+                ? strtolower($affiliate->affiliate_code).'@inhouse.local'
+                : $this->uniqueRealEmailOrNull($affiliate->email);
             $user = User::create([
                 'name' => $affiliate->name,
                 'email' => $email,
@@ -321,11 +317,11 @@ class AffiliateExcelSyncService
                 'must_change_password' => true,
                 'role' => 'affiliate',
             ]);
-            $affiliate->forceFill(['user_id' => $user->id, 'email' => $email])->save();
+            $affiliate->forceFill(['user_id' => $user->id, 'email' => $email ?? $affiliate->email])->save();
             $affiliate->setRelation('user', $user);
             $changed = true;
         } else {
-            $affiliate->user?->update([
+            $affiliate->user->update([
                 'name' => $affiliate->name,
                 'affiliate_code' => $affiliate->affiliate_code,
                 'role' => 'affiliate',
@@ -653,5 +649,14 @@ class AffiliateExcelSyncService
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    private function uniqueRealEmailOrNull(?string $email): ?string
+    {
+        if (! $email) {
+            return null;
+        }
+
+        return User::query()->where('email', $email)->exists() ? null : $email;
     }
 }

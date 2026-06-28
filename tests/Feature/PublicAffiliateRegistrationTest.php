@@ -214,6 +214,7 @@ class PublicAffiliateRegistrationTest extends TestCase
             ->assertSee('data-phone-input', false)
             ->assertSee('inputmode="tel"', false)
             ->assertSee('autocomplete="tel"', false)
+            ->assertSee('maxlength="12"', false)
             ->assertSee('formatNric', false)
             ->assertSee('formatMalaysianPhone', false);
     }
@@ -327,6 +328,53 @@ class PublicAffiliateRegistrationTest extends TestCase
         $response = $this->from(route('public.affiliate-registration.show', $referrer->referral->referral_code))
             ->post(route('public.affiliate-registration.store', $referrer->referral->referral_code), $this->validData([
                 'phone' => '012345678',
+            ]));
+
+        $response
+            ->assertRedirect(route('public.affiliate-registration.show', $referrer->referral->referral_code))
+            ->assertSessionHasErrors(['phone' => 'Please enter a valid Malaysian mobile number.']);
+        $this->assertSame(0, AffiliateApplication::count());
+    }
+
+    public function test_dash_formatted_011_phone_with_eight_trailing_digits_is_normalized_for_duplicate_checks(): void
+    {
+        $referrer = $this->affiliate('Inviter', 'Titan Group', 'TIT-0001');
+
+        $this->submit($referrer, $this->validData([
+            'phone' => '011-12345678',
+            'email' => 'phone-011-dash@example.com',
+            'tiktok_username' => '@phone_011_dash',
+            'tiktok_username_confirmation' => '@phone_011_dash',
+        ]));
+
+        $application = AffiliateApplication::query()->sole();
+
+        $this->assertSame('601112345678', $application->normalized_phone);
+    }
+
+    public function test_eleven_digit_phone_with_non_011_prefix_is_accepted(): void
+    {
+        $referrer = $this->affiliate('Inviter', 'Titan Group', 'TIT-0001');
+
+        $this->submit($referrer, $this->validData([
+            'phone' => '010-12345678',
+            'email' => 'phone-010-eleven@example.com',
+            'tiktok_username' => '@phone_010_eleven',
+            'tiktok_username_confirmation' => '@phone_010_eleven',
+        ]));
+
+        $application = AffiliateApplication::query()->sole();
+
+        $this->assertSame('601012345678', $application->normalized_phone);
+    }
+
+    public function test_phone_with_more_than_eleven_local_digits_is_rejected(): void
+    {
+        $referrer = $this->affiliate('Inviter', 'Titan Group', 'TIT-0001');
+
+        $response = $this->from(route('public.affiliate-registration.show', $referrer->referral->referral_code))
+            ->post(route('public.affiliate-registration.store', $referrer->referral->referral_code), $this->validData([
+                'phone' => '011123456789',
             ]));
 
         $response

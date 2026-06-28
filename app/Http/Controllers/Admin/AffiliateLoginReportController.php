@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Affiliate;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,21 +48,37 @@ class AffiliateLoginReportController extends Controller
     {
         $filters = $this->validatedFilters($request);
         $scope = $this->validatedScope($request);
+        $previewLimit = 20;
 
         if ($scope === 'selected' && empty($filters['selected'])) {
             return back()->with('error', 'Select at least one affiliate before generating temporary passwords.');
         }
 
-        $affiliates = $this->generationQuery($filters, $scope)->get();
+        $affectedQuery = $this->generationQuery($filters, $scope);
+        $totalAffected = (clone $affectedQuery)->count();
 
-        if ($affiliates->isEmpty()) {
-            return back()->with('error', 'No eligible Inhouse affiliate login accounts were found.');
+        if ($totalAffected === 0) {
+            return back()->with('error', 'No eligible affiliate login accounts were found.');
         }
+
+        $affectedCounts = [
+            'total' => $totalAffected,
+            'inhouse' => (clone $affectedQuery)->where('affiliate_type', 'inhouse')->count(),
+            'external' => (clone $affectedQuery)->where('affiliate_type', 'external')->count(),
+            'never_logged_in' => (clone $affectedQuery)->whereHas('user', fn (Builder $query) => $query->whereNull('last_login_at'))->count(),
+            'must_change_password' => (clone $affectedQuery)->whereHas('user', fn (Builder $query) => $query->where('must_change_password', true))->count(),
+            'existing_passwords_replaced' => (clone $affectedQuery)->whereNotNull('user_id')->count(),
+        ];
+
+        $affiliates = (clone $affectedQuery)
+            ->orderBy('group_name')
+            ->orderBy('name')
+            ->limit($previewLimit)
+            ->get();
 
         $confirmationToken = (string) Str::uuid();
         $request->session()->put('affiliate_password_generation_confirmation.'.$confirmationToken, [
             'admin_user_id' => $request->user()->id,
-            'affiliate_ids' => $affiliates->pluck('id')->all(),
             'filters' => $filters,
             'scope' => $scope,
             'expires_at' => now()->addMinutes(10)->timestamp,
@@ -69,8 +86,10 @@ class AffiliateLoginReportController extends Controller
 
         return view('admin.affiliates.password-generation-confirm', [
             'affiliates' => $affiliates,
+            'affectedCounts' => $affectedCounts,
             'confirmationToken' => $confirmationToken,
             'filters' => $filters,
+            'previewLimit' => $previewLimit,
             'scope' => $scope,
             'scopeLabel' => $this->scopeLabel($scope),
         ]);
@@ -94,43 +113,72 @@ class AffiliateLoginReportController extends Controller
             ]);
         }
 
-        $affiliateIds = array_map('intval', $confirmation['affiliate_ids'] ?? []);
-        $affiliates = Affiliate::query()
-            ->with('user:id,email,affiliate_code,must_change_password,last_login_at,password_changed_at')
-            ->whereKey($affiliateIds)
-            ->where('affiliate_type', 'inhouse')
-            ->whereNotNull('user_id')
-            ->orderBy('name')
-            ->get();
-
-        if ($affiliates->count() !== count($affiliateIds)) {
-            return redirect()
-                ->route('admin.affiliates.index')
-                ->with('error', 'One or more affiliate accounts changed after confirmation. No passwords were generated.');
-        }
-
         $credentials = [];
         $affectedUserIds = [];
+        $filters = $confirmation['filters'] ?? [];
+        $scope = $confirmation['scope'] ?? 'never_logged_in';
+        $affectedCount = (clone $this->generationQuery($filters, $scope))->count();
 
-        DB::transaction(function () use ($request, $affiliates, &$credentials, &$affectedUserIds): void {
-            foreach ($affiliates as $affiliate) {
-                $temporaryPassword = $this->temporaryPassword();
+        if ($affectedCount === 0) {
+            return redirect()
+                ->route('admin.affiliates.index')
+                ->with('error', 'No eligible affiliate login accounts were found.');
+        }
 
-                $affiliate->user->forceFill([
-                    'password' => Hash::make($temporaryPassword),
-                    'role' => 'affiliate',
-                    'must_change_password' => true,
-                ])->save();
+        $this->generationQuery($filters, $scope)
+            ->orderBy('id')
+            ->chunkById(100, function ($affiliates) use ($request, &$credentials, &$affectedUserIds): void {
+                DB::transaction(function () use ($request, $affiliates, &$credentials, &$affectedUserIds): void {
+                    $existingEmails = User::query()
+                        ->whereIn('email', $affiliates
+                            ->pluck('email')
+                            ->filter()
+                            ->values())
+                        ->pluck('email')
+                        ->flip();
 
-                $affiliate->forceFill([
-                    'password_reset_at' => now(),
-                    'password_reset_by' => $request->user()->id,
-                ])->save();
+                    foreach ($affiliates as $affiliate) {
+                        $temporaryPassword = $this->temporaryPassword();
 
-                $credentials[$affiliate->id] = $temporaryPassword;
-                $affectedUserIds[] = $affiliate->user_id;
-            }
-        });
+                        if (! $affiliate->user) {
+                            $affiliateCode = $affiliate->affiliate_code ?: $this->generateAffiliateCode($affiliate->group_name ?: 'AFF');
+                            $email = $affiliate->email && ! $existingEmails->has($affiliate->email)
+                                ? $affiliate->email
+                                : null;
+
+                            $user = User::query()->create([
+                                'name' => $affiliate->name,
+                                'email' => $email,
+                                'affiliate_code' => $affiliateCode,
+                                'password' => Hash::make($temporaryPassword),
+                                'must_change_password' => true,
+                                'role' => 'affiliate',
+                            ]);
+
+                            if ($email) {
+                                $existingEmails->put($email, true);
+                            }
+
+                            $affiliate->forceFill(['user_id' => $user->id, 'affiliate_code' => $affiliateCode])->save();
+                            $affiliate->setRelation('user', $user);
+                        } else {
+                            $affiliate->user->forceFill([
+                                'password' => Hash::make($temporaryPassword),
+                                'role' => 'affiliate',
+                                'must_change_password' => true,
+                            ])->save();
+                        }
+
+                        $affiliate->forceFill([
+                            'password_reset_at' => now(),
+                            'password_reset_by' => $request->user()->id,
+                        ])->save();
+
+                        $credentials[$affiliate->id] = $temporaryPassword;
+                        $affectedUserIds[] = $affiliate->user_id;
+                    }
+                });
+            });
 
         Log::notice('Affiliate temporary passwords generated by admin.', [
             'admin_user_id' => $request->user()->id,
@@ -143,14 +191,12 @@ class AffiliateLoginReportController extends Controller
         $batch = (string) Str::uuid();
         $request->session()->put('affiliate_login_report.'.$batch, $credentials);
 
-        $filters = $confirmation['filters'] ?? [];
-        $scope = $confirmation['scope'] ?? 'never_logged_in';
         $query = array_filter([
             'group' => $filters['group'] ?? null,
             'type' => $filters['type'] ?? null,
             'status' => $filters['status'] ?? null,
             'search' => $filters['search'] ?? null,
-            'selected' => $scope === 'selected' ? $affiliateIds : null,
+            'selected' => $scope === 'selected' ? ($filters['selected'] ?? null) : null,
             'credential_batch' => $batch,
         ]);
 
@@ -159,9 +205,7 @@ class AffiliateLoginReportController extends Controller
 
     private function generationQuery(array $filters, string $scope): Builder
     {
-        $query = $this->reportQuery($filters)
-            ->where('affiliate_type', 'inhouse')
-            ->whereNotNull('user_id');
+        $query = $this->accountStatusQuery($filters);
 
         return match ($scope) {
             'never_logged_in' => $query->whereHas('user', fn (Builder $query) => $query->whereNull('last_login_at')),
@@ -169,6 +213,37 @@ class AffiliateLoginReportController extends Controller
             'selected' => $query->whereKey($filters['selected'] ?? []),
             'filtered' => $query,
         };
+    }
+
+    private function accountStatusQuery(array $filters): Builder
+    {
+        return Affiliate::query()
+            ->select([
+                'id',
+                'user_id',
+                'affiliate_code',
+                'group_name',
+                'affiliate_type',
+                'name',
+                'email',
+                'status',
+            ])
+            ->with('user:id,email,affiliate_code,must_change_password,last_login_at,password_changed_at')
+            ->when(! empty($filters['group']), fn (Builder $query) => $query->where('group_name', $filters['group']))
+            ->when(! empty($filters['type']), fn (Builder $query) => $query->where('affiliate_type', $filters['type']))
+            ->when(! empty($filters['status']), fn (Builder $query) => $query->where('status', $filters['status']))
+            ->when(! empty($filters['search']), function (Builder $query) use ($filters): void {
+                $search = $filters['search'];
+                $normalizedUsername = strtolower(ltrim($search, '@'));
+
+                $query->where(function (Builder $query) use ($search, $normalizedUsername): void {
+                    $query->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('affiliate_code', 'like', '%'.$search.'%')
+                        ->orWhereHas('tiktokAccounts', fn (Builder $query) => $query
+                            ->where('username', 'like', '%'.$search.'%')
+                            ->orWhere('username_normalized', 'like', '%'.$normalizedUsername.'%'));
+                });
+            });
     }
 
     private function reportQuery(array $filters): Builder
@@ -227,7 +302,7 @@ class AffiliateLoginReportController extends Controller
             'never_logged_in' => 'Never Logged In',
             'must_change_password' => 'Must Change Password',
             'selected' => 'Selected Affiliates',
-            'filtered' => 'All Filtered Inhouse Affiliates',
+            'filtered' => 'All Filtered Affiliates',
         };
     }
 
@@ -264,5 +339,38 @@ class AffiliateLoginReportController extends Controller
         }
 
         return implode('', $characters);
+    }
+
+    private function generateAffiliateCode(string $groupName): string
+    {
+        $prefix = $this->groupPrefix($groupName);
+        $latest = Affiliate::query()
+            ->where('affiliate_code', 'like', $prefix.'-%')
+            ->pluck('affiliate_code')
+            ->map(fn ($code): int => (int) Str::after((string) $code, $prefix.'-'))
+            ->max() ?? 0;
+
+        do {
+            $latest++;
+            $code = sprintf('%s-%04d', $prefix, $latest);
+        } while (
+            Affiliate::query()->where('affiliate_code', $code)->exists()
+            || User::query()->where('affiliate_code', $code)->exists()
+        );
+
+        return $code;
+    }
+
+    private function groupPrefix(string $groupName): string
+    {
+        $normalized = strtolower($groupName);
+
+        return match (true) {
+            str_contains($normalized, 'titan') => 'TIT',
+            str_contains($normalized, 'aurora') => 'AUR',
+            str_contains($normalized, 'swg') => 'SWG',
+            str_contains($normalized, 'kaizen') => 'KAI',
+            default => strtoupper(substr(preg_replace('/[^a-z0-9]/i', '', $groupName) ?: 'AFF', 0, 3)),
+        };
     }
 }

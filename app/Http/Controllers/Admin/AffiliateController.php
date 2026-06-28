@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -189,20 +190,33 @@ class AffiliateController extends Controller
 
     public function resetPassword(Request $request, Affiliate $affiliate): RedirectResponse
     {
-        if ($affiliate->affiliate_type === 'external' || ! $affiliate->user) {
-            return redirect()
-                ->route('admin.affiliates.show', $affiliate)
-                ->with('error', 'Affiliate ini tidak mempunyai akaun login.');
-        }
-
         $temporaryPassword = $this->temporaryPassword();
 
         DB::transaction(function () use ($request, $affiliate, $temporaryPassword): void {
-            $affiliate->user->update([
-                'password' => Hash::make($temporaryPassword),
-                'role' => 'affiliate',
-                'must_change_password' => true,
-            ]);
+            if (! $affiliate->user) {
+                $affiliateCode = $affiliate->affiliate_code ?: $this->generateAffiliateCode($affiliate->group_name ?: 'AFF');
+                $email = $affiliate->email && ! User::query()->where('email', $affiliate->email)->exists()
+                    ? $affiliate->email
+                    : null;
+
+                $user = User::query()->create([
+                    'name' => $affiliate->name,
+                    'email' => $email,
+                    'affiliate_code' => $affiliateCode,
+                    'password' => Hash::make($temporaryPassword),
+                    'must_change_password' => true,
+                    'role' => 'affiliate',
+                ]);
+
+                $affiliate->forceFill(['user_id' => $user->id, 'affiliate_code' => $affiliateCode])->save();
+                $affiliate->setRelation('user', $user);
+            } else {
+                $affiliate->user->update([
+                    'password' => Hash::make($temporaryPassword),
+                    'role' => 'affiliate',
+                    'must_change_password' => true,
+                ]);
+            }
 
             $affiliate->update([
                 'password_reset_at' => now(),
@@ -225,6 +239,39 @@ class AffiliateController extends Controller
                     ?: ($affiliate->user?->email ?? $affiliate->email),
                 'temporary_password' => $temporaryPassword,
             ]);
+    }
+
+    private function generateAffiliateCode(string $groupName): string
+    {
+        $prefix = $this->groupPrefix($groupName);
+        $latest = Affiliate::query()
+            ->where('affiliate_code', 'like', $prefix.'-%')
+            ->pluck('affiliate_code')
+            ->map(fn ($code): int => (int) Str::after((string) $code, $prefix.'-'))
+            ->max() ?? 0;
+
+        do {
+            $latest++;
+            $code = sprintf('%s-%04d', $prefix, $latest);
+        } while (
+            Affiliate::query()->where('affiliate_code', $code)->exists()
+            || User::query()->where('affiliate_code', $code)->exists()
+        );
+
+        return $code;
+    }
+
+    private function groupPrefix(string $groupName): string
+    {
+        $normalized = strtolower($groupName);
+
+        return match (true) {
+            str_contains($normalized, 'titan') => 'TIT',
+            str_contains($normalized, 'aurora') => 'AUR',
+            str_contains($normalized, 'swg') => 'SWG',
+            str_contains($normalized, 'kaizen') => 'KAI',
+            default => strtoupper(substr(preg_replace('/[^a-z0-9]/i', '', $groupName) ?: 'AFF', 0, 3)),
+        };
     }
 
     private function temporaryPassword(): string

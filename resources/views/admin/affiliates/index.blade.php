@@ -108,10 +108,10 @@
                 <div>
                     <p class="text-sm font-bold text-slate-950">Affiliate Login Report</p>
                     <p class="mt-1 max-w-3xl text-sm text-slate-600">
-                        Generate secure temporary passwords for Inhouse login accounts. Passwords are shown once in the printable report and are never stored as plain text.
+                        Generate secure temporary passwords for affiliate login accounts (Inhouse and Affiliate Luar). Passwords are shown once in the printable report and are never stored as plain text.
                     </p>
                     <p class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
-                        This action will replace the current passwords of the affected Inhouse affiliates. Their existing passwords will stop working immediately.
+                        This action will replace the current passwords of the affected affiliates, or create a login if one does not exist yet. Their existing passwords will stop working immediately.
                     </p>
                 </div>
 
@@ -122,7 +122,7 @@
                             <option value="never_logged_in" selected>Never Logged In</option>
                             <option value="must_change_password">Must Change Password</option>
                             <option value="selected">Selected Affiliates</option>
-                            <option value="filtered">All Filtered Inhouse Affiliates</option>
+                            <option value="filtered">All Filtered Affiliates</option>
                         </select>
                     </div>
                     <button type="button" id="print-selected-affiliates" class="btn-secondary">
@@ -202,11 +202,11 @@
                                         @endif
                                     </td>
                                     <td class="text-slate-700">
-                                        @if ($affiliate->affiliate_type === 'external' || ! $affiliate->user)
+                                        @if (! $affiliate->user)
                                             <span class="badge badge-gray">No login access</span>
                                         @else
                                             <div class="font-mono text-xs text-slate-950">{{ $affiliate->affiliate_code ?: '-' }}</div>
-                                            <div class="mt-1 text-xs text-slate-500">{{ str_ends_with((string) $affiliate->user->email, '.local') ? 'Affiliate code login' : $affiliate->user->email }}</div>
+                                            <div class="mt-1 text-xs text-slate-500">{{ ! $affiliate->user->email || str_ends_with((string) $affiliate->user->email, '.local') ? 'Affiliate code login' : $affiliate->user->email }}</div>
                                         @endif
                                     </td>
                                     <td class="text-slate-700">{{ $affiliate->upline?->name ?: '-' }}</td>
@@ -229,14 +229,12 @@
                                             <a href="{{ route('admin.affiliates.edit', $affiliate) }}" class="btn-secondary px-3 py-1.5 text-xs">
                                                 Edit
                                             </a>
-                                            @if ($affiliate->affiliate_type !== 'external' && $affiliate->user_id)
-                                                <form method="POST" action="{{ route('admin.affiliates.reset-password', $affiliate) }}" onsubmit="return confirm('Reset password untuk affiliate ini? Password lama tidak boleh dilihat semula dan akan digantikan.')">
-                                                    @csrf
-                                                    <button type="submit" class="btn-secondary px-3 py-1.5 text-xs">
-                                                        Reset Password
-                                                    </button>
-                                                </form>
-                                            @endif
+                                            <form method="POST" action="{{ route('admin.affiliates.reset-password', $affiliate) }}" onsubmit="return confirm('{{ $affiliate->user_id ? 'Reset password untuk affiliate ini? Password lama tidak boleh dilihat semula dan akan digantikan.' : 'Generate login dan password sementara untuk affiliate ini?' }}')">
+                                                @csrf
+                                                <button type="submit" class="btn-secondary px-3 py-1.5 text-xs">
+                                                    {{ $affiliate->user_id ? 'Reset Password' : 'Generate Login' }}
+                                                </button>
+                                            </form>
                                             <form method="POST" action="{{ route('admin.affiliates.destroy', $affiliate) }}" onsubmit="return confirm('Deactivate affiliate ini?')">
                                                 @csrf
                                                 @method('DELETE')

@@ -160,6 +160,27 @@ class AffiliateLoginReportTest extends TestCase
             ->assertViewHas('affiliates', fn ($affiliates) => $affiliates->pluck('id')->all() === [$neverLoggedIn->id]);
     }
 
+    public function test_password_generation_confirmation_uses_summary_and_limited_preview(): void
+    {
+        $admin = $this->admin();
+
+        for ($index = 1; $index <= 25; $index++) {
+            $this->affiliate('Preview Affiliate '.$index, sprintf('PRE-%04d', $index), 'Titan Group');
+        }
+
+        $response = $this->actingAs($admin)->post(route('admin.affiliates.login-report.generate'), [
+            'generation_scope' => 'never_logged_in',
+            'group' => 'Titan Group',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertSee('Total Affected Accounts')
+            ->assertSee('Showing first 20 of 25 affected accounts.')
+            ->assertViewHas('affectedCounts', fn (array $counts) => $counts['total'] === 25)
+            ->assertViewHas('affiliates', fn ($affiliates) => $affiliates->count() === 20);
+    }
+
     public function test_selected_scope_explicitly_allows_resetting_a_previously_used_account(): void
     {
         $admin = $this->admin();
@@ -246,7 +267,7 @@ class AffiliateLoginReportTest extends TestCase
             ->assertDontSee('Password reset successful');
     }
 
-    public function test_external_affiliate_has_no_reset_button_and_cannot_be_reset(): void
+    public function test_external_affiliate_with_existing_login_has_reset_button_and_can_be_reset(): void
     {
         $admin = $this->admin();
         $legacyUser = User::factory()->create([
@@ -266,13 +287,70 @@ class AffiliateLoginReportTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.affiliates.show', $external))
             ->assertOk()
-            ->assertSee('No login access')
-            ->assertDontSee('action="'.route('admin.affiliates.reset-password', $external).'"', false);
+            ->assertDontSee('No login access')
+            ->assertSee('action="'.route('admin.affiliates.reset-password', $external).'"', false);
 
-        $this->post(route('admin.affiliates.reset-password', $external))
+        $this->actingAs($admin)
+            ->post(route('admin.affiliates.reset-password', $external))
             ->assertRedirect(route('admin.affiliates.show', $external));
 
-        $this->assertSame($originalHash, $legacyUser->fresh()->password);
+        $this->assertNotSame($originalHash, $legacyUser->fresh()->password);
+    }
+
+    public function test_external_affiliate_without_login_gets_one_generated_on_demand(): void
+    {
+        $admin = $this->admin();
+        $external = Affiliate::create([
+            'affiliate_code' => 'EXT-0002',
+            'group_name' => 'Aurora Group',
+            'affiliate_type' => 'external',
+            'name' => 'New External Affiliate',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.affiliates.show', $external))
+            ->assertOk()
+            ->assertSee('No login access')
+            ->assertSee('Generate Login');
+
+        $this->actingAs($admin)
+            ->post(route('admin.affiliates.reset-password', $external))
+            ->assertRedirect(route('admin.affiliates.show', $external));
+
+        $external->refresh();
+        $this->assertNotNull($external->user_id);
+        $this->assertSame('EXT-0002', $external->user->affiliate_code);
+        $this->assertTrue($external->user->must_change_password);
+        $this->assertNull($external->user->email);
+    }
+
+    public function test_bulk_selected_scope_generates_login_for_external_affiliate_without_account(): void
+    {
+        $admin = $this->admin();
+        $external = Affiliate::create([
+            'affiliate_code' => 'EXT-0003',
+            'group_name' => 'Aurora Group',
+            'affiliate_type' => 'external',
+            'name' => 'Bulk External Affiliate',
+            'status' => 'active',
+        ]);
+
+        $confirmation = $this->actingAs($admin)->post(route('admin.affiliates.login-report.generate'), [
+            'generation_scope' => 'selected',
+            'selected' => [$external->id],
+        ]);
+
+        $confirmation->assertOk()->assertSee('Bulk External Affiliate');
+
+        $this->post(route('admin.affiliates.login-report.generate.confirm'), [
+            'confirmation_token' => $confirmation->viewData('confirmationToken'),
+        ])->assertRedirect();
+
+        $external->refresh();
+        $this->assertNotNull($external->user_id);
+        $this->assertSame('EXT-0003', $external->user->affiliate_code);
+        $this->assertTrue($external->user->must_change_password);
     }
 
     private function admin(): User

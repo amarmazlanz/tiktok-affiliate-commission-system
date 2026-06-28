@@ -111,10 +111,19 @@ class AffiliateDashboardPasswordTest extends TestCase
         $this->actingAs($user)->get(route('affiliate.settings'))
             ->assertOk()
             ->assertSeeText('Personal Information')
-            ->assertSee('Login &amp; Security', false)
+            ->assertSee('Change Password')
             ->assertSee($user->affiliate_code)
             ->assertSee('Please contact admin to update TikTok accounts.')
-            ->assertSee('Change Password');
+            ->assertSee('Save New Password');
+
+        $this->actingAs($user)->get(route('affiliate.help'))
+            ->assertOk()
+            ->assertSee('Help')
+            ->assertSee('Panduan ringkas untuk menggunakan TikTok Affiliate Commission System.')
+            ->assertSee('Cara Login')
+            ->assertSee('Cara Tukar Password')
+            ->assertSee('Hubungi Admin')
+            ->assertDontSee('Panduan</span>', false);
     }
 
     public function test_affiliate_can_update_own_personal_information(): void

@@ -70,7 +70,7 @@
                                         @elseif ($name === 'phone')
                                             inputmode="tel"
                                             autocomplete="tel"
-                                            maxlength="14"
+                                            maxlength="12"
                                             data-phone-input
                                         @endif
                                         @required($required)
@@ -135,11 +135,6 @@
 
                 if (digits.startsWith('60')) {
                     digits = `0${digits.slice(2)}`;
-                }
-
-                if (digits.startsWith('0')) {
-                    const maxLength = digits.startsWith('011') ? 11 : 10;
-                    return digits.slice(0, maxLength);
                 }
 
                 return digits.slice(0, 11);

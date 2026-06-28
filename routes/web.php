@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\CommissionRateSettingController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\OrderImportController;
 use App\Http\Controllers\Admin\TiktokAccountController;
+use App\Http\Controllers\Admin\TiktokAccountRequestController;
 use App\Http\Controllers\Affiliate\DashboardController as AffiliateDashboardController;
 use App\Http\Controllers\Affiliate\CommissionController as AffiliateCommissionController;
 use App\Http\Controllers\Affiliate\InviteController as AffiliateInviteController;
@@ -111,6 +112,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::delete('affiliates/{affiliate}/tiktok-accounts/{tiktokAccount}', [TiktokAccountController::class, 'destroy'])
         ->name('affiliates.tiktok-accounts.destroy');
 
+    Route::get('tiktok-account-requests', [TiktokAccountRequestController::class, 'index'])->name('tiktok-account-requests.index');
+    Route::post('tiktok-account-requests/{tiktokAccountRequest}/approve', [TiktokAccountRequestController::class, 'approve'])->name('tiktok-account-requests.approve');
+    Route::post('tiktok-account-requests/{tiktokAccountRequest}/reject', [TiktokAccountRequestController::class, 'reject'])->name('tiktok-account-requests.reject');
+
     Route::get('orders/upload', [OrderImportController::class, 'create'])->name('orders.upload');
     Route::post('orders/upload', [OrderImportController::class, 'store'])->name('orders.import');
 
@@ -132,8 +137,11 @@ Route::middleware(['auth', 'role:affiliate'])->prefix('affiliate')->name('affili
         Route::get('/dashboard', AffiliateDashboardController::class)->name('dashboard');
         Route::get('/commission', AffiliateCommissionController::class)->name('commission');
         Route::get('/team', AffiliateTeamController::class)->name('team');
-        Route::get('/tiktok-accounts', AffiliateTiktokAccountController::class)->name('tiktok-accounts');
+        Route::get('/tiktok-accounts', [AffiliateTiktokAccountController::class, 'index'])->name('tiktok-accounts');
+        Route::post('/tiktok-accounts', [AffiliateTiktokAccountController::class, 'store'])->name('tiktok-accounts.store');
+        Route::patch('/tiktok-accounts/{account}/status', [AffiliateTiktokAccountController::class, 'updateStatus'])->name('tiktok-accounts.status');
         Route::get('/invite', AffiliateInviteController::class)->name('invite');
         Route::get('/settings', [AffiliatePasswordController::class, 'edit'])->name('settings');
+        Route::view('/help', 'affiliate.help')->name('help');
     });
 });

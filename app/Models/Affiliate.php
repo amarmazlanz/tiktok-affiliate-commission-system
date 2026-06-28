@@ -64,6 +64,11 @@ class Affiliate extends Model
         return $this->hasMany(TiktokAccount::class);
     }
 
+    public function tiktokAccountRequests(): HasMany
+    {
+        return $this->hasMany(AffiliateTiktokAccountRequest::class);
+    }
+
     public function tiktokOrders(): HasMany
     {
         return $this->hasMany(TiktokOrder::class);

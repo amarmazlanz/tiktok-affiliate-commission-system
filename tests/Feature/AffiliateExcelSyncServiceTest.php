@@ -88,7 +88,7 @@ class AffiliateExcelSyncServiceTest extends TestCase
         $this->assertSame('Aurora Group', $affiliate->group_name);
     }
 
-    public function test_unique_name_and_group_allow_type_change_without_creating_duplicate(): void
+    public function test_type_change_to_external_keeps_existing_login_access(): void
     {
         $user = User::factory()->create([
             'affiliate_code' => 'TIT-0088',
@@ -113,8 +113,23 @@ class AffiliateExcelSyncServiceTest extends TestCase
         $this->assertSame(1, Affiliate::count());
         $this->assertSame('TIT-0088', $affiliate->affiliate_code);
         $this->assertSame('external', $affiliate->affiliate_type);
-        $this->assertNull($affiliate->user_id);
-        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+        $this->assertSame($user->id, $affiliate->user_id);
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+    }
+
+    public function test_new_external_affiliate_gets_login_access_without_fake_email(): void
+    {
+        $this->sync([
+            $this->row('AFFILIATE LUAR USER', 'Titan Group', 'external', ''),
+        ]);
+
+        $affiliate = Affiliate::query()->sole();
+
+        $this->assertSame('external', $affiliate->affiliate_type);
+        $this->assertNotNull($affiliate->user_id);
+        $this->assertNotNull($affiliate->affiliate_code);
+        $this->assertNull($affiliate->user->email);
+        $this->assertTrue($affiliate->user->must_change_password);
     }
 
     public function test_updated_l1_replaces_previous_or_null_upline_without_database_reset(): void

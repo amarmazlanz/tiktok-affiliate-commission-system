@@ -52,7 +52,7 @@
 
                         <div>
                             <label for="phone" class="block text-sm font-bold text-slate-700">Phone Number</label>
-                            <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="14" required value="{{ old('phone', $affiliate?->phone) }}" class="form-field" data-phone-input>
+                            <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="12" required value="{{ old('phone', $affiliate?->phone) }}" class="form-field" data-phone-input>
                             @error('phone')<p class="mt-2 text-sm font-medium text-red-600">{{ $message }}</p>@enderror
                         </div>
 
@@ -134,11 +134,6 @@
 
             if (digits.startsWith('60')) {
                 digits = `0${digits.slice(2)}`;
-            }
-
-            if (digits.startsWith('0')) {
-                const maxLength = digits.startsWith('011') ? 11 : 10;
-                return digits.slice(0, maxLength);
             }
 
             return digits.slice(0, 11);

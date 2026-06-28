@@ -38,11 +38,7 @@ class AffiliateApplicationService
             ? '0'.substr($normalized, 2)
             : $normalized;
 
-        if (preg_match('/^011\d{8}$/', $local)) {
-            return true;
-        }
-
-        return (bool) preg_match('/^01[0-9]\d{7}$/', $local);
+        return (bool) preg_match('/^01[0-9][0-9]{7,8}$/', $local);
     }
 
     public function normalizeEmail(string $value): string
