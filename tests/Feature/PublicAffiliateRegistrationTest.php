@@ -201,6 +201,142 @@ class PublicAffiliateRegistrationTest extends TestCase
         $this->assertSame(0, AffiliateApplication::count());
     }
 
+    public function test_registration_form_includes_nric_and_phone_auto_formatters(): void
+    {
+        $referrer = $this->affiliate('Inviting Manager', 'Titan Group', 'TIT-0001');
+
+        $this->get(route('public.affiliate-registration.show', $referrer->referral->referral_code))
+            ->assertOk()
+            ->assertSee('data-nric-input', false)
+            ->assertSee('inputmode="numeric"', false)
+            ->assertSee('autocomplete="off"', false)
+            ->assertSee('maxlength="14"', false)
+            ->assertSee('data-phone-input', false)
+            ->assertSee('inputmode="tel"', false)
+            ->assertSee('autocomplete="tel"', false)
+            ->assertSee('formatNric', false)
+            ->assertSee('formatMalaysianPhone', false);
+    }
+
+    public function test_nric_continuous_digits_are_normalized_and_secured(): void
+    {
+        $referrer = $this->affiliate('Inviter', 'Titan Group', 'TIT-0001');
+
+        $this->submit($referrer, $this->validData([
+            'nric' => '020311031153',
+            'email' => 'nric-digits@example.com',
+            'tiktok_username' => '@nric_digits',
+            'tiktok_username_confirmation' => '@nric_digits',
+        ]));
+
+        $application = AffiliateApplication::query()->sole();
+
+        $this->assertSame('020311031153', $application->nric_encrypted);
+        $this->assertSame('02****-**-1153', $application->masked_nric);
+        $this->assertSame(
+            app(AffiliateApplicationService::class)->nricHash('020311031153'),
+            $application->nric_hash,
+        );
+        $this->assertNotSame('020311031153', $application->getRawOriginal('nric_encrypted'));
+    }
+
+    public function test_formatted_nric_remains_valid_after_server_normalization(): void
+    {
+        $referrer = $this->affiliate('Inviter', 'Titan Group', 'TIT-0001');
+
+        $this->submit($referrer, $this->validData([
+            'nric' => '020311-03-1153',
+            'email' => 'formatted-nric@example.com',
+            'tiktok_username' => '@formatted_nric',
+            'tiktok_username_confirmation' => '@formatted_nric',
+        ]));
+
+        $application = AffiliateApplication::query()->sole();
+
+        $this->assertSame('020311031153', $application->nric_encrypted);
+        $this->assertSame('02****-**-1153', $application->masked_nric);
+    }
+
+    public function test_nric_with_fewer_than_12_digits_is_rejected(): void
+    {
+        $referrer = $this->affiliate('Inviter', 'Titan Group', 'TIT-0001');
+
+        $response = $this->from(route('public.affiliate-registration.show', $referrer->referral->referral_code))
+            ->post(route('public.affiliate-registration.store', $referrer->referral->referral_code), $this->validData([
+                'nric' => '020311-03-115',
+            ]));
+
+        $response
+            ->assertRedirect(route('public.affiliate-registration.show', $referrer->referral->referral_code))
+            ->assertSessionHasErrors(['nric' => 'Please enter a valid 12-digit Malaysian NRIC.']);
+        $this->assertSame(0, AffiliateApplication::count());
+    }
+
+    public function test_local_012_phone_is_normalized_for_duplicate_checks(): void
+    {
+        $referrer = $this->affiliate('Inviter', 'Titan Group', 'TIT-0001');
+
+        $this->submit($referrer, $this->validData([
+            'phone' => '0123456789',
+            'email' => 'phone-012@example.com',
+            'tiktok_username' => '@phone_012',
+            'tiktok_username_confirmation' => '@phone_012',
+        ]));
+
+        $application = AffiliateApplication::query()->sole();
+
+        $this->assertSame('60123456789', $application->normalized_phone);
+    }
+
+    public function test_local_011_phone_is_normalized_for_duplicate_checks(): void
+    {
+        $referrer = $this->affiliate('Inviter', 'Titan Group', 'TIT-0001');
+
+        $this->submit($referrer, $this->validData([
+            'phone' => '01112345678',
+            'email' => 'phone-011@example.com',
+            'tiktok_username' => '@phone_011',
+            'tiktok_username_confirmation' => '@phone_011',
+        ]));
+
+        $application = AffiliateApplication::query()->sole();
+
+        $this->assertSame('601112345678', $application->normalized_phone);
+    }
+
+    public function test_invalid_malaysian_mobile_length_is_rejected(): void
+    {
+        $referrer = $this->affiliate('Inviter', 'Titan Group', 'TIT-0001');
+
+        $response = $this->from(route('public.affiliate-registration.show', $referrer->referral->referral_code))
+            ->post(route('public.affiliate-registration.store', $referrer->referral->referral_code), $this->validData([
+                'phone' => '012345678',
+            ]));
+
+        $response
+            ->assertRedirect(route('public.affiliate-registration.show', $referrer->referral->referral_code))
+            ->assertSessionHasErrors(['phone' => 'Please enter a valid Malaysian mobile number.']);
+        $this->assertSame(0, AffiliateApplication::count());
+    }
+
+    public function test_phone_duplicate_check_uses_normalized_country_code_value(): void
+    {
+        $referrer = $this->affiliate('Inviter', 'Titan Group', 'TIT-0001');
+        $this->affiliate('Existing Affiliate', 'Titan Group', 'TIT-0002', null, '012-3456789');
+
+        $this->submit($referrer, $this->validData([
+            'phone' => '+60123456789',
+            'email' => 'country-code-phone@example.com',
+            'tiktok_username' => '@country_code_phone',
+            'tiktok_username_confirmation' => '@country_code_phone',
+        ]));
+
+        $application = AffiliateApplication::query()->sole();
+
+        $this->assertSame('60123456789', $application->normalized_phone);
+        $this->assertSame('duplicate_review', $application->status);
+        $this->assertStringContainsString('Phone number matches an existing record.', $application->duplicate_notes);
+    }
     private function submit(Affiliate $referrer, array $data): void
     {
         $this->post(route('public.affiliate-registration.store', $referrer->referral->referral_code), $data)

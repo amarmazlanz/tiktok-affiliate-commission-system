@@ -47,10 +47,8 @@ class PublicAffiliateRegistrationController extends Controller
                 }
             }],
             'phone' => ['required', 'string', 'max:30', function (string $attribute, mixed $value, \Closure $fail) use ($applications): void {
-                $phone = $applications->normalizePhone((string) $value);
-
-                if (! preg_match('/^60\d{8,11}$/', $phone)) {
-                    $fail('Please enter a valid Malaysian phone number.');
+                if (! $applications->isValidMalaysianMobile((string) $value)) {
+                    $fail('Please enter a valid Malaysian mobile number.');
                 }
             }],
             'email' => ['required', 'email:rfc', 'max:255'],

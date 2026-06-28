@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AffiliateController;
 use App\Http\Controllers\Admin\AffiliateHierarchyController;
 use App\Http\Controllers\Admin\AffiliateImportController;
 use App\Http\Controllers\Admin\AffiliateLoginReportController;
+use App\Http\Controllers\Admin\AffiliateRegistrationController;
 use App\Http\Controllers\Admin\CommissionController;
 use App\Http\Controllers\Admin\CommissionRateSettingController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -99,6 +100,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::patch('affiliates/{affiliate}/referral', [AffiliateController::class, 'updateReferral'])->name('affiliates.referral.update');
 
     Route::resource('affiliates', AffiliateController::class);
+
+    Route::get('affiliate-registrations', [AffiliateRegistrationController::class, 'index'])->name('affiliate-registrations.index');
+    Route::get('affiliate-registrations/{application:application_reference}', [AffiliateRegistrationController::class, 'show'])->name('affiliate-registrations.show');
+
     Route::post('affiliates/{affiliate}/tiktok-accounts', [TiktokAccountController::class, 'store'])
         ->name('affiliates.tiktok-accounts.store');
     Route::delete('affiliates/{affiliate}/tiktok-accounts/{tiktokAccount}', [TiktokAccountController::class, 'destroy'])

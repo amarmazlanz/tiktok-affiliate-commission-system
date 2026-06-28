@@ -62,6 +62,16 @@
                                         type="{{ $type }}"
                                         value="{{ $name === 'nric' ? '' : old($name) }}"
                                         placeholder="{{ $placeholder }}"
+                                        @if ($name === 'nric')
+                                            inputmode="numeric"
+                                            autocomplete="off"
+                                            maxlength="14"
+                                            data-nric-input
+                                        @elseif ($name === 'phone')
+                                            inputmode="tel"
+                                            autocomplete="tel"
+                                            data-phone-input
+                                        @endif
                                         @required($required)
                                         class="mt-2 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                                     >
@@ -105,6 +115,64 @@
 
     @if ($isValid)
         <script>
+            const formatNric = (value) => {
+                const digits = value.replace(/\D/g, '').slice(0, 12);
+
+                if (digits.length <= 6) {
+                    return digits;
+                }
+
+                if (digits.length <= 8) {
+                    return `${digits.slice(0, 6)}-${digits.slice(6)}`;
+                }
+
+                return `${digits.slice(0, 6)}-${digits.slice(6, 8)}-${digits.slice(8)}`;
+            };
+
+            const localPhoneDigits = (value) => {
+                let digits = value.replace(/\D/g, '');
+
+                if (digits.startsWith('60')) {
+                    digits = `0${digits.slice(2)}`;
+                }
+
+                if (digits.startsWith('0')) {
+                    const maxLength = digits.startsWith('011') ? 11 : 10;
+                    return digits.slice(0, maxLength);
+                }
+
+                return digits.slice(0, 11);
+            };
+
+            const formatMalaysianPhone = (value) => {
+                const digits = localPhoneDigits(value);
+
+                if (digits.length <= 3) {
+                    return digits;
+                }
+
+                return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+            };
+
+            const attachFormatter = (selector, formatter) => {
+                const input = document.querySelector(selector);
+
+                if (! input) {
+                    return;
+                }
+
+                const applyFormat = () => {
+                    input.value = formatter(input.value);
+                };
+
+                input.addEventListener('input', applyFormat);
+                input.addEventListener('blur', applyFormat);
+                applyFormat();
+            };
+
+            attachFormatter('[data-nric-input]', formatNric);
+            attachFormatter('[data-phone-input]', formatMalaysianPhone);
+
             document.querySelector('[data-registration-form]')?.addEventListener('submit', (event) => {
                 const form = event.currentTarget;
                 const button = form.querySelector('[data-submit-button]');
