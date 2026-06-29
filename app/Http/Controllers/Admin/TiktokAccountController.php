@@ -46,6 +46,41 @@ class TiktokAccountController extends Controller
             ->with('success', 'TikTok account telah dinyahaktifkan.');
     }
 
+    public function activate(Affiliate $affiliate, TiktokAccount $tiktokAccount): RedirectResponse
+    {
+        abort_unless($tiktokAccount->affiliate_id === $affiliate->id, 404);
+
+        $conflictExists = TiktokAccount::query()
+            ->where('username_normalized', $tiktokAccount->username_normalized)
+            ->where('status', 'active')
+            ->whereKeyNot($tiktokAccount->id)
+            ->exists();
+
+        if ($conflictExists) {
+            return back()->withErrors([
+                'username' => 'Username TikTok ini sudah aktif di bawah affiliate lain.',
+            ]);
+        }
+
+        $tiktokAccount->update(['status' => 'active']);
+
+        return redirect()
+            ->route('admin.affiliates.show', $affiliate)
+            ->with('success', 'TikTok account telah diaktifkan.');
+    }
+
+    public function forceDestroy(Affiliate $affiliate, TiktokAccount $tiktokAccount): RedirectResponse
+    {
+        abort_unless($tiktokAccount->affiliate_id === $affiliate->id, 404);
+        abort_unless($tiktokAccount->status === 'inactive', 403);
+
+        $tiktokAccount->delete();
+
+        return redirect()
+            ->route('admin.affiliates.show', $affiliate)
+            ->with('success', 'TikTok account telah dipadam secara kekal.');
+    }
+
     private function normalizeUsername(string $username): string
     {
         return str_replace('@', '', strtolower(trim($username)));

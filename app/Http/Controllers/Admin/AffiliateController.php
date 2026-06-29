@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Affiliate;
 use App\Models\User;
 use App\Services\AffiliateReferralService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -186,6 +187,35 @@ class AffiliateController extends Controller
         return redirect()
             ->route('admin.affiliates.index')
             ->with('success', 'Affiliate telah dinyahaktifkan.');
+    }
+
+    public function forceDestroy(Affiliate $affiliate): RedirectResponse
+    {
+        abort_unless($affiliate->status === 'inactive', 403);
+
+        if ($affiliate->directDownlines()->exists()) {
+            return redirect()
+                ->route('admin.affiliates.index')
+                ->with('error', 'Tidak boleh padam: affiliate ini masih mempunyai downline. Pindahkan atau nyahaktifkan downline dahulu.');
+        }
+
+        try {
+            DB::transaction(function () use ($affiliate): void {
+                if ($affiliate->user_id) {
+                    User::destroy($affiliate->user_id);
+                } else {
+                    $affiliate->delete();
+                }
+            });
+        } catch (QueryException) {
+            return redirect()
+                ->route('admin.affiliates.index')
+                ->with('error', 'Tidak boleh padam: affiliate ini mempunyai rekod order/komisen/rujukan yang berkaitan. Nyahaktifkan sahaja.');
+        }
+
+        return redirect()
+            ->route('admin.affiliates.index')
+            ->with('success', 'Affiliate telah dipadam secara kekal.');
     }
 
     public function resetPassword(Request $request, Affiliate $affiliate): RedirectResponse

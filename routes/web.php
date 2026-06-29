@@ -100,6 +100,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('affiliates/import', [AffiliateImportController::class, 'store'])->name('affiliates.import.store');
     Route::post('affiliates/{affiliate}/reset-password', [AffiliateController::class, 'resetPassword'])->name('affiliates.reset-password');
     Route::patch('affiliates/{affiliate}/referral', [AffiliateController::class, 'updateReferral'])->name('affiliates.referral.update');
+    Route::delete('affiliates/{affiliate}/force-delete', [AffiliateController::class, 'forceDestroy'])->name('affiliates.force-delete');
 
     Route::resource('affiliates', AffiliateController::class);
 
@@ -112,6 +113,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         ->name('affiliates.tiktok-accounts.store');
     Route::delete('affiliates/{affiliate}/tiktok-accounts/{tiktokAccount}', [TiktokAccountController::class, 'destroy'])
         ->name('affiliates.tiktok-accounts.destroy');
+    Route::patch('affiliates/{affiliate}/tiktok-accounts/{tiktokAccount}/activate', [TiktokAccountController::class, 'activate'])
+        ->name('affiliates.tiktok-accounts.activate');
+    Route::delete('affiliates/{affiliate}/tiktok-accounts/{tiktokAccount}/force-delete', [TiktokAccountController::class, 'forceDestroy'])
+        ->name('affiliates.tiktok-accounts.force-delete');
 
     Route::get('tiktok-account-requests', [TiktokAccountRequestController::class, 'index'])->name('tiktok-account-requests.index');
     Route::post('tiktok-account-requests/{tiktokAccountRequest}/approve', [TiktokAccountRequestController::class, 'approve'])->name('tiktok-account-requests.approve');
@@ -145,6 +150,7 @@ Route::middleware(['auth', 'role:affiliate'])->prefix('affiliate')->name('affili
         Route::get('/tiktok-accounts', [AffiliateTiktokAccountController::class, 'index'])->name('tiktok-accounts');
         Route::post('/tiktok-accounts', [AffiliateTiktokAccountController::class, 'store'])->name('tiktok-accounts.store');
         Route::patch('/tiktok-accounts/{account}/status', [AffiliateTiktokAccountController::class, 'updateStatus'])->name('tiktok-accounts.status');
+        Route::delete('/tiktok-accounts/{account}', [AffiliateTiktokAccountController::class, 'destroy'])->name('tiktok-accounts.destroy');
         Route::get('/invite', AffiliateInviteController::class)->name('invite');
         Route::get('/settings', [AffiliatePasswordController::class, 'edit'])->name('settings');
         Route::view('/help', 'affiliate.help')->name('help');

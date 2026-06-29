@@ -55,15 +55,27 @@
                                                         ? 'Are you sure you want to set this TikTok account as inactive? Orders using this username may no longer be matched to your active account for future processing.'
                                                         : 'Are you sure you want to reactivate this TikTok account?';
                                                 @endphp
-                                                <form method="POST" action="{{ route('affiliate.tiktok-accounts.status', $account) }}"
-                                                    onsubmit="return confirm(@js($confirmMessage));">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <input type="hidden" name="status" value="{{ $nextStatus }}">
-                                                    <button type="submit" class="{{ $nextStatus === 'inactive' ? 'btn-danger' : 'btn-secondary' }}">
-                                                        Set {{ ucfirst($nextStatus) }}
-                                                    </button>
-                                                </form>
+                                                <div class="flex gap-2">
+                                                    <form method="POST" action="{{ route('affiliate.tiktok-accounts.status', $account) }}"
+                                                        onsubmit="return confirm(@js($confirmMessage));">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <input type="hidden" name="status" value="{{ $nextStatus }}">
+                                                        <button type="submit" class="{{ $nextStatus === 'inactive' ? 'btn-danger' : 'btn-secondary' }}">
+                                                            Set {{ ucfirst($nextStatus) }}
+                                                        </button>
+                                                    </form>
+                                                    @if ($account->status === 'inactive')
+                                                        <form method="POST" action="{{ route('affiliate.tiktok-accounts.destroy', $account) }}"
+                                                            onsubmit="return confirm('Padam account ini secara KEKAL? Tindakan ini tidak boleh diundur.');">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn-danger">
+                                                                Delete
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                </div>
                                             </td>
                                         </tr>
                                     @empty

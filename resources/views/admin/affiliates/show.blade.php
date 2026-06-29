@@ -243,14 +243,31 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <div class="flex justify-end">
-                                                <form method="POST" action="{{ route('admin.affiliates.tiktok-accounts.destroy', [$affiliate, $account]) }}" onsubmit="return confirm('Deactivate TikTok account ini?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn-danger">
-                                                        Deactivate
-                                                    </button>
-                                                </form>
+                                            <div class="flex justify-end gap-2">
+                                                @if ($account->status === 'active')
+                                                    <form method="POST" action="{{ route('admin.affiliates.tiktok-accounts.destroy', [$affiliate, $account]) }}" onsubmit="return confirm('Deactivate TikTok account ini?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn-danger">
+                                                            Deactivate
+                                                        </button>
+                                                    </form>
+                                                @else
+                                                    <form method="POST" action="{{ route('admin.affiliates.tiktok-accounts.activate', [$affiliate, $account]) }}" onsubmit="return confirm('Aktifkan semula TikTok account ini?')">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <button type="submit" class="btn-secondary">
+                                                            Activate
+                                                        </button>
+                                                    </form>
+                                                    <form method="POST" action="{{ route('admin.affiliates.tiktok-accounts.force-delete', [$affiliate, $account]) }}" onsubmit="return confirm('Padam TikTok account ini secara KEKAL? Tindakan ini tidak boleh diundur.')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn-danger">
+                                                            Delete
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>

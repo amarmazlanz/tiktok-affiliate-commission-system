@@ -76,4 +76,18 @@ class TiktokAccountController extends Controller
             ->route('affiliate.tiktok-accounts')
             ->with('success', 'TikTok account status updated successfully.');
     }
+
+    public function destroy(Request $request, TiktokAccount $account): RedirectResponse
+    {
+        $affiliate = $request->user()->affiliate;
+        abort_unless($affiliate, 404);
+        abort_unless((int) $account->affiliate_id === (int) $affiliate->id, 403);
+        abort_unless($account->status === 'inactive', 403);
+
+        $account->delete();
+
+        return redirect()
+            ->route('affiliate.tiktok-accounts')
+            ->with('success', 'TikTok account telah dipadam.');
+    }
 }

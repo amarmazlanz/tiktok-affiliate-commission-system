@@ -235,13 +235,23 @@
                                                     {{ $affiliate->user_id ? 'Reset Password' : 'Generate Login' }}
                                                 </button>
                                             </form>
-                                            <form method="POST" action="{{ route('admin.affiliates.destroy', $affiliate) }}" onsubmit="return confirm('Deactivate affiliate ini?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn-danger">
-                                                    Deactivate
-                                                </button>
-                                            </form>
+                                            @if ($affiliate->status === 'active')
+                                                <form method="POST" action="{{ route('admin.affiliates.destroy', $affiliate) }}" onsubmit="return confirm('Deactivate affiliate ini?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn-danger">
+                                                        Deactivate
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <form method="POST" action="{{ route('admin.affiliates.force-delete', $affiliate) }}" onsubmit="return confirm('Padam affiliate ini secara KEKAL? Tindakan ini tidak boleh diundur.')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn-danger">
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
