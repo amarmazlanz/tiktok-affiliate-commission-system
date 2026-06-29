@@ -62,6 +62,7 @@
                     ['label' => 'TikTok Account Requests', 'route' => route('admin.tiktok-account-requests.index'), 'active' => request()->routeIs('admin.tiktok-account-requests.*'), 'icon' => 'tiktok'],
                     ['label' => 'CSV Upload', 'route' => route('admin.orders.upload'), 'active' => request()->routeIs('admin.orders.*'), 'icon' => 'upload'],
                     ['label' => 'Commission Runs', 'route' => route('admin.commissions.index'), 'active' => request()->routeIs('admin.commissions.*'), 'icon' => 'report'],
+                    ['label' => 'Admin Settings', 'route' => route('admin.settings.edit'), 'active' => request()->routeIs('admin.settings.*'), 'icon' => 'settings'],
                 ]
                 : [
                     ['label' => 'Dashboard', 'route' => route('affiliate.dashboard'), 'active' => request()->routeIs('affiliate.dashboard'), 'icon' => 'home'],

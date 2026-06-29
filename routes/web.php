@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Request;
+use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AffiliateController;
 use App\Http\Controllers\Admin\AffiliateHierarchyController;
 use App\Http\Controllers\Admin\AffiliateImportController;
@@ -125,6 +126,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     Route::resource('commission-rate-settings', CommissionRateSettingController::class)
         ->except(['show', 'destroy']);
+
+    Route::get('settings', [AdminSettingsController::class, 'edit'])->name('settings.edit');
+    Route::put('settings/password', [AdminSettingsController::class, 'updatePassword'])->name('settings.password.update');
+    Route::post('settings/admins', [AdminSettingsController::class, 'storeAdmin'])->name('settings.admins.store');
 });
 
 Route::middleware(['auth', 'role:affiliate'])->prefix('affiliate')->name('affiliate.')->group(function () {
