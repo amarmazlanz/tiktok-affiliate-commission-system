@@ -27,7 +27,8 @@ return new class extends Migration
             $table->string('tiktok_username');
             $table->string('normalized_tiktok_username')->index();
             $table->string('additional_tiktok_username')->nullable();
-            $table->string('normalized_additional_tiktok_username')->nullable()->index();
+            $table->string('normalized_additional_tiktok_username')->nullable();
+            $table->index('normalized_additional_tiktok_username', 'aff_apps_norm_add_tiktok_username_idx');
             $table->text('notes')->nullable();
             $table->string('status')->default('pending')->index();
             $table->string('duplicate_status')->default('clear')->index();
