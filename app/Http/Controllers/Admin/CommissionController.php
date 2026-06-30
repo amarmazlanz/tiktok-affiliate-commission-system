@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\CommissionEntry;
 use App\Models\CommissionRun;
 use App\Services\CommissionCalculatorService;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,9 +19,25 @@ class CommissionController extends Controller
 {
     public function index(): View
     {
+        try {
+            $runs = CommissionRun::query()->latest('year')->latest('month')->paginate(15);
+            $setupError = null;
+        } catch (\Throwable $exception) {
+            Log::error('Commission runs page failed to load.', [
+                'user_id' => request()->user()?->id,
+                'message' => $exception->getMessage(),
+            ]);
+
+            $runs = new LengthAwarePaginator([], 0, 15, 1, [
+                'path' => request()->url(),
+            ]);
+            $setupError = 'Commission Runs tidak dapat dibaca. Sila pastikan migration production sudah dijalankan dan cache sudah dibersihkan.';
+        }
+
         return view('admin.commissions.index', [
-            'runs' => CommissionRun::query()->latest('year')->latest('month')->paginate(15),
+            'runs' => $runs,
             'months' => $this->months(),
+            'setupError' => $setupError,
         ]);
     }
 
@@ -43,7 +61,21 @@ class CommissionController extends Controller
                 ->withErrors(['confirm_final_recalculate' => 'Report ini sudah Final. Sila confirm sebelum recalculate.']);
         }
 
-        $run = $calculator->calculate((int) $data['month'], (int) $data['year'], $data['report_status']);
+        try {
+            $run = $calculator->calculate((int) $data['month'], (int) $data['year'], $data['report_status']);
+        } catch (\Throwable $exception) {
+            Log::error('Commission calculation failed.', [
+                'month' => (int) $data['month'],
+                'year' => (int) $data['year'],
+                'report_status' => $data['report_status'],
+                'user_id' => $request->user()?->id,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return back()
+                ->withInput()
+                ->withErrors(['commission' => 'Commission calculation gagal dijalankan. Sila semak server log atau cuba semula selepas data/import disahkan.']);
+        }
 
         return redirect()
             ->route('admin.commissions.show', $run)
@@ -333,3 +365,5 @@ class CommissionController extends Controller
         ];
     }
 }
+
+

@@ -29,6 +29,12 @@
                 </div>
             @endif
 
+            @if (! empty($setupError))
+                <div class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    {{ $setupError }}
+                </div>
+            @endif
+
             <div class="app-card p-6 sm:p-7">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-950">Run Monthly Calculation</h2>
