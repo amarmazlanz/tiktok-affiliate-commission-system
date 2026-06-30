@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Affiliate;
 use App\Http\Controllers\Controller;
 use App\Services\AffiliateCommissionService;
 use App\Services\AffiliateTeamService;
+use App\Services\AffiliateTierService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -15,6 +16,7 @@ class DashboardController extends Controller
         Request $request,
         AffiliateCommissionService $commissions,
         AffiliateTeamService $teams,
+        AffiliateTierService $tiers,
     ): View|JsonResponse {
         $affiliate = $request->user()->affiliate;
 
@@ -43,10 +45,12 @@ class DashboardController extends Controller
         $loginEmail = $request->user()->email && ! str_ends_with($request->user()->email, '@inhouse.local')
             ? $request->user()->email
             : null;
+        $tierData = $tiers->forMonth($affiliate, (int) now()->month, (int) now()->year);
 
         return view('affiliate.dashboard', array_merge($periodData, $summaryData, [
             'affiliate' => $affiliate,
             'teamSummary' => $teamSummary,
+            'tierData' => $tierData,
             'profileSummary' => [
                 'position' => $teamSummary['direct_count'] > 0 ? 'Manager' : 'Affiliate',
                 'login_label' => $loginEmail ?: ($request->user()->affiliate_code ?: $affiliate->affiliate_code),

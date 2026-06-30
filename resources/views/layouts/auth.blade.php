@@ -31,6 +31,19 @@
         .badge-teal { background: #f0fdfa; color: #0f766e; }
         .badge-gray { background: #f1f5f9; color: #475569; }
         .badge-red { background: #fef2f2; color: #b91c1c; }
+        .tier-badge { display: inline-flex; align-items: center; gap: .35rem; border-radius: 9999px; padding: .35rem .85rem; font-size: .8rem; font-weight: 800; }
+        .tier-bronze { background: #fdf2e9; color: #9a5b13; border: 1px solid #f3cda3; }
+        .tier-silver { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+        .tier-gold { background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
+        .tier-platinum { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .tier-diamond { background: linear-gradient(135deg, #ede9fe, #dbeafe); color: #6d28d9; border: 1px solid #c4b5fd; }
+        .tier-progress-track { width: 100%; height: .6rem; border-radius: 9999px; background: #e2e8f0; overflow: hidden; }
+        .tier-progress-fill { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #10b981, #059669); transition: width .3s ease; }
+        .leaderboard-rank { display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border-radius: 9999px; font-weight: 800; font-size: .8rem; }
+        .leaderboard-rank-1 { background: #fffbeb; color: #b45309; }
+        .leaderboard-rank-2 { background: #f1f5f9; color: #475569; }
+        .leaderboard-rank-3 { background: #fdf2e9; color: #9a5b13; }
+        .leaderboard-rank-other { background: #f8fafc; color: #64748b; }
         .money { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
         .form-field { margin-top: 0.5rem; display: block; width: 100%; border-radius: 0.5rem; border: 1px solid #cbd5e1; padding: 0.625rem 0.8rem; font-size: 0.875rem; box-shadow: 0 1px 2px rgb(15 23 42 / .05); outline: none; }
         .form-field:focus { border-color: #f43f5e; box-shadow: 0 0 0 3px #ffe4e6; }

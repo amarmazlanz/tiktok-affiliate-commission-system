@@ -104,7 +104,7 @@ class DashboardController extends Controller
             })
             ->filter()
             ->sortByDesc(fn (array $row) => $row['total_sales'])
-            ->take(5)
+            ->take(10)
             ->values();
 
         $topAffiliateYears = CommissionRun::query()

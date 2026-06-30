@@ -121,7 +121,7 @@
                             <div>
                                 <h2 class="text-lg font-semibold text-slate-950">Top Affiliates</h2>
                                 <p class="mt-1 text-sm text-slate-600">
-                                    Showing top 5 affiliates by total sales for {{ $months[$selectedTopMonth] ?? $selectedTopMonth }} {{ $selectedTopYear }}.
+                                    Showing top 10 affiliates by total sales for {{ $months[$selectedTopMonth] ?? $selectedTopMonth }} {{ $selectedTopYear }}.
                                 </p>
                             </div>
 
@@ -150,21 +150,35 @@
                         <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
                             <thead>
                                 <tr>
+                                    <th class="text-center">#</th>
                                     <th class="text-left">Affiliate</th>
                                     <th class="text-right">Total Sales</th>
                                     <th class="text-right">Total Commission</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 bg-white">
-                                @forelse ($topAffiliates as $row)
+                                @forelse ($topAffiliates as $index => $row)
+                                    @php
+                                        $rank = $index + 1;
+                                        $rankClass = match (true) {
+                                            $rank === 1 => 'leaderboard-rank-1',
+                                            $rank === 2 => 'leaderboard-rank-2',
+                                            $rank === 3 => 'leaderboard-rank-3',
+                                            default => 'leaderboard-rank-other',
+                                        };
+                                        $rankIcon = match ($rank) { 1 => '🥇', 2 => '🥈', 3 => '🥉', default => $rank };
+                                    @endphp
                                     <tr>
+                                        <td class="text-center">
+                                            <span class="leaderboard-rank {{ $rankClass }}">{{ $rankIcon }}</span>
+                                        </td>
                                         <td class="font-medium text-slate-950">{{ $row['affiliate']->name }}</td>
                                         <td class="money text-slate-700">RM {{ number_format($row['total_sales'], 2) }}</td>
                                         <td class="money font-semibold text-emerald-700">RM {{ number_format($row['total_commission'], 2) }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="3" class="py-8 text-center text-slate-500">
+                                        <td colspan="4" class="py-8 text-center text-slate-500">
                                             No commission data available for the selected period.
                                         </td>
                                     </tr>

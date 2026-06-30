@@ -29,12 +29,29 @@
                         <p class="text-sm font-bold text-emerald-700">Profile Overview</p>
                         <h2 class="mt-1 max-w-4xl break-words text-2xl font-black leading-tight text-slate-950">{{ $affiliate->name }}</h2>
                         <div class="mt-3 flex flex-wrap gap-2">
+                            <span class="tier-badge {{ $tierData['current']['css'] }}">🏆 {{ $tierData['current']['label'] }}</span>
                             <span class="badge badge-gray">{{ $affiliate->affiliate_code }}</span>
                             <span class="badge badge-blue">{{ $affiliate->group_name ?: 'No Group' }}</span>
                             <span class="badge {{ $teamSummary['direct_count'] > 0 ? 'badge-green' : 'badge-gray' }}">{{ $profileSummary['position'] }}</span>
                             <span class="badge {{ $statusBadge($affiliate->status) }}">{{ ucfirst($affiliate->status) }}</span>
                             <span class="badge {{ $typeBadge }}">{{ $typeLabel }}</span>
                         </div>
+                    </div>
+                    <div class="px-6 pt-5">
+                        @if ($tierData['next'])
+                            <div class="flex items-center justify-between text-sm">
+                                <p class="font-bold text-slate-700">Progress to {{ $tierData['next']['label'] }}</p>
+                                <p class="font-bold text-emerald-700">RM {{ number_format($tierData['amount_to_next'], 2) }} lagi</p>
+                            </div>
+                            <div class="tier-progress-track mt-2">
+                                <div class="tier-progress-fill" style="width: {{ $tierData['progress_percent'] }}%"></div>
+                            </div>
+                            <p class="mt-1 text-xs text-slate-500">Sales bulan ini: RM {{ number_format($tierData['sales'], 2) }} / RM {{ number_format($tierData['next']['min_sales'], 2) }}</p>
+                        @else
+                            <div class="rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-800">
+                                🎉 Anda di tahap tertinggi: {{ $tierData['current']['label'] }}! Sales bulan ini: RM {{ number_format($tierData['sales'], 2) }}
+                            </div>
+                        @endif
                     </div>
                     <div class="grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-4">
                         <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
