@@ -52,9 +52,13 @@
                         <p class="stat-value">{{ number_format($totalParticipants) }}</p>
                     </div>
                     <div class="stat-card col-span-2 sm:col-span-1">
-                        <p class="stat-label">Jualan Tertinggi</p>
-                        <p class="stat-value stat-value-money">RM {{ number_format($topSales, 2) }}</p>
+                        <p class="stat-label">Ranking Anda</p>
+                        <p class="stat-value">{{ $ownRank ? '#' . number_format($ownRank) : '-' }}</p>
                     </div>
+                </div>
+
+                <div class="rounded-xl border border-blue-100 bg-blue-50 px-5 py-3 text-sm text-blue-800">
+                    Exact sales hanya dipaparkan untuk akaun anda sendiri. Jualan affiliate lain dirahsiakan untuk privasi.
                 </div>
 
                 {{-- Own rank callout (if not in top 10) --}}
@@ -123,8 +127,13 @@
                                             </div>
                                         </div>
                                         <div class="shrink-0 text-right">
-                                            <p class="text-sm font-black text-slate-950">RM {{ number_format($entry['total_sales'], 2) }}</p>
-                                            <p class="text-xs text-slate-500">jualan</p>
+                                            @if ($isOwn)
+                                                <p class="text-sm font-black text-emerald-700">RM {{ number_format($entry['total_sales'], 2) }}</p>
+                                                <p class="text-xs text-slate-500">jualan anda</p>
+                                            @else
+                                                <p class="text-sm font-black text-slate-500">Private</p>
+                                                <p class="text-xs text-slate-400">jualan dirahsiakan</p>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
