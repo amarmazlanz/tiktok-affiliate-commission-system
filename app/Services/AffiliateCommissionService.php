@@ -61,8 +61,6 @@ class AffiliateCommissionService
     {
         $month = $periodFilters['month'];
         $year = $periodFilters['year'];
-        $salesQuery = $affiliate->tiktokOrders()->where('order_status', 'Settled');
-        $this->applyOrderPeriod($salesQuery, $month, $year);
 
         $summaryQuery = DB::table('commission_entries')
             ->join('commission_runs', 'commission_runs.id', '=', 'commission_entries.commission_run_id')
@@ -80,14 +78,23 @@ class AffiliateCommissionService
             array_merge($this->emptySummary(), (array) $summaryQuery->first()),
         );
         $summary['total'] = array_sum(collect($summary)->except('total')->all());
-        $summary['total_overriding'] = $summary['l1_overriding']
+        $summary['total_overriding'] = $summary['manager_bonus']
+            + $summary['l1_overriding']
             + $summary['l1_split_seller']
             + $summary['l1_split_upline']
             + $summary['l2_overriding']
             + $summary['l3_overriding'];
 
+        // Use commission_entries base_amount (same source as commission run) so
+        // Total Sales matches what was actually processed, not raw order timestamps.
+        $personalSalesQuery = DB::table('commission_entries')
+            ->join('commission_runs', 'commission_runs.id', '=', 'commission_entries.commission_run_id')
+            ->where('commission_entries.source_affiliate_id', $affiliate->id)
+            ->where('commission_entries.commission_type', 'personal');
+        $this->applyCommissionPeriod($personalSalesQuery, $month, $year);
+
         return [
-            'personalSales' => $salesQuery->sum('estimated_commission_base'),
+            'personalSales' => (float) $personalSalesQuery->sum('commission_entries.base_amount'),
             'commissionSummary' => $summary,
         ];
     }
