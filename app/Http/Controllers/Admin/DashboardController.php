@@ -15,48 +15,35 @@ class DashboardController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        $month = now()->month;
-        $year = now()->year;
         $latestCommissionRun = CommissionRun::query()
             ->latest('year')
             ->latest('month')
             ->first();
-        $selectedTopMonth = (int) $request->query('top_month', $latestCommissionRun?->month ?? $month);
-        $selectedTopYear = (int) $request->query('top_year', $latestCommissionRun?->year ?? $year);
+
+        // Base summary on latest commission run period, not current calendar month.
+        // This ensures "Total Sales" and "Total Commission" always refer to the same period.
+        $dashMonth = $latestCommissionRun?->month ?? now()->month;
+        $dashYear  = $latestCommissionRun?->year ?? now()->year;
+
+        $selectedTopMonth = (int) $request->query('top_month', $dashMonth);
+        $selectedTopYear = (int) $request->query('top_year', $dashYear);
 
         if ($selectedTopMonth < 1 || $selectedTopMonth > 12) {
-            $selectedTopMonth = $latestCommissionRun?->month ?? $month;
+            $selectedTopMonth = $dashMonth;
         }
 
         if ($selectedTopYear < 2020 || $selectedTopYear > 2100) {
-            $selectedTopYear = $latestCommissionRun?->year ?? $year;
+            $selectedTopYear = $dashYear;
         }
 
-        $salesDateScope = function ($query) use ($month, $year): void {
-            $query
-                ->where(function ($query) use ($month, $year): void {
-                    $query
-                        ->whereMonth('time_commission_paid', $month)
-                        ->whereYear('time_commission_paid', $year);
-                })
-                ->orWhere(function ($query) use ($month, $year): void {
-                    $query
-                        ->whereNull('time_commission_paid')
-                        ->whereMonth('time_created', $month)
-                        ->whereYear('time_created', $year);
-                });
-        };
+        $totalSalesThisMonth = $latestCommissionRun
+            ? DB::table('commission_entries')
+                ->where('commission_run_id', $latestCommissionRun->id)
+                ->where('commission_type', 'personal')
+                ->sum('base_amount')
+            : 0;
 
-        $totalSalesThisMonth = TiktokOrder::query()
-            ->where('order_status', 'Settled')
-            ->where('estimated_commission_base', '>', 0)
-            ->where($salesDateScope)
-            ->sum('estimated_commission_base');
-
-        $currentCommissionRun = CommissionRun::query()
-            ->where('month', $month)
-            ->where('year', $year)
-            ->first();
+        $currentCommissionRun = $latestCommissionRun;
 
         $selectedTopRun = CommissionRun::query()
             ->where('month', $selectedTopMonth)
@@ -118,10 +105,16 @@ class DashboardController extends Controller
             ->sortDesc()
             ->values();
 
+        $months = $this->months();
+        $periodLabel = $latestCommissionRun
+            ? ($months[$latestCommissionRun->month].' '.$latestCommissionRun->year)
+            : 'No Runs Yet';
+
         return view('admin.dashboard', [
             'summary' => [
                 'total_sales_this_month' => (float) $totalSalesThisMonth,
                 'total_commission_this_month' => (float) ($currentCommissionRun?->total_commission ?? 0),
+                'period_label' => $periodLabel,
                 'total_affiliates' => Affiliate::count(),
                 'total_tiktok_accounts' => TiktokAccount::count(),
                 'total_orders_imported' => TiktokOrder::count(),
@@ -137,7 +130,7 @@ class DashboardController extends Controller
             'selectedTopYear' => $selectedTopYear,
             'selectedTopRun' => $selectedTopRun,
             'topAffiliateYears' => $topAffiliateYears,
-            'months' => $this->months(),
+            'months' => $months,
         ]);
     }
 

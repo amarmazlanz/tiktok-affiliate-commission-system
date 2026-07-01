@@ -33,11 +33,11 @@
 
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div class="stat-card">
-                    <p class="stat-label">Total Sales This Month</p>
+                    <p class="stat-label">Total Sales <span class="font-normal text-slate-400">({{ $summary['period_label'] }})</span></p>
                     <p class="stat-value stat-value-money">RM {{ number_format($summary['total_sales_this_month'], 2) }}</p>
                 </div>
                 <div class="stat-card">
-                    <p class="stat-label">Total Commission This Month</p>
+                    <p class="stat-label">Total Commission <span class="font-normal text-slate-400">({{ $summary['period_label'] }})</span></p>
                     <p class="stat-value stat-value-money">RM {{ number_format($summary['total_commission_this_month'], 2) }}</p>
                 </div>
                 <div class="stat-card">
