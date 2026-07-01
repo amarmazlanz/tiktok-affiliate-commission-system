@@ -111,9 +111,21 @@
                                     </td>
                                     <td class="text-slate-700">{{ $run->calculated_at?->format('d/m/Y H:i') ?: '-' }}</td>
                                     <td class="text-right">
-                                        <a href="{{ route('admin.commissions.show', $run) }}" class="btn-secondary px-3 py-1.5 text-xs">
-                                            View Report
-                                        </a>
+                                        <div class="inline-flex items-center gap-2">
+                                            <a href="{{ route('admin.commissions.show', $run) }}" class="btn-secondary px-3 py-1.5 text-xs">
+                                                View Report
+                                            </a>
+                                            <form method="POST" action="{{ route('admin.commissions.destroy', $run) }}"
+                                                  data-delete-form
+                                                  data-month="{{ $months[$run->month] }} {{ $run->year }}"
+                                                  data-status="{{ $run->status }}">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100">
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
@@ -129,4 +141,23 @@
             {{ $runs->links() }}
         </section>
     </main>
+
+    <script>
+        document.querySelectorAll('[data-delete-form]').forEach((form) => {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const month = form.dataset.month;
+                const status = form.dataset.status;
+                const isFinal = status === 'final' || status === 'completed';
+
+                const msg = isFinal
+                    ? `⚠️ AMARAN: Commission run "${month}" berstatus FINAL.\n\nSemua ${month} commission entries akan dipadam SEPENUHNYA.\n\nAdakah anda PASTI mahu memadam? Tindakan ini tidak boleh diundur.`
+                    : `Padam commission run "${month}" (${status})?\n\nSemua commission entries untuk bulan ini akan dipadam. Anda boleh run semula selepas ini.`;
+
+                if (window.confirm(msg)) {
+                    form.submit();
+                }
+            });
+        });
+    </script>
 @endsection

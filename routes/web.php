@@ -128,6 +128,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('commissions', [CommissionController::class, 'index'])->name('commissions.index');
     Route::post('commissions', [CommissionController::class, 'store'])->name('commissions.store');
+    Route::delete('commissions/{commission}', [CommissionController::class, 'destroy'])->name('commissions.destroy');
     Route::get('commissions/{commission}', [CommissionController::class, 'show'])->name('commissions.show');
 
     Route::resource('commission-rate-settings', CommissionRateSettingController::class)

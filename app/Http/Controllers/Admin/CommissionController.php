@@ -82,6 +82,28 @@ class CommissionController extends Controller
             ->with('success', 'Commission calculation berjaya dijalankan.');
     }
 
+    public function destroy(CommissionRun $commission): RedirectResponse
+    {
+        $label = $this->months()[$commission->month].' '.$commission->year;
+
+        DB::transaction(function () use ($commission): void {
+            CommissionEntry::where('commission_run_id', $commission->id)->delete();
+            $commission->delete();
+        });
+
+        Log::info('Commission run deleted.', [
+            'commission_run_id' => $commission->id,
+            'month' => $commission->month,
+            'year' => $commission->year,
+            'status' => $commission->status,
+            'user_id' => request()->user()?->id,
+        ]);
+
+        return redirect()
+            ->route('admin.commissions.index')
+            ->with('success', "Commission run {$label} ({$commission->status}) telah dipadam. Anda boleh run semula bila-bila masa.");
+    }
+
     public function show(Request $request, CommissionRun $commission): View|JsonResponse
     {
         $entryTypeLabels = $this->entryTypeLabels();
