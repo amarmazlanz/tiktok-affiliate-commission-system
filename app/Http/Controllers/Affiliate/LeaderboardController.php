@@ -55,15 +55,20 @@ class LeaderboardController extends Controller
                 ->get()
                 ->keyBy('id');
 
-            $tierThresholds = collect(config('affiliate_tiers'))->sortByDesc('min_sales')->values();
+            $tierThresholds = collect(config('affiliate_tiers.tiers', []))->sortByDesc('min_sales')->values();
             $getTier        = function (float $sales) use ($tierThresholds): array {
                 foreach ($tierThresholds as $tier) {
-                    if ($sales >= $tier['min_sales']) {
+                    if ($sales >= ($tier['min_sales'] ?? 0)) {
                         return $tier;
                     }
                 }
 
-                return $tierThresholds->last()->toArray();
+                return $tierThresholds->last()?->toArray() ?? [
+                    'key' => 'bronze',
+                    'label' => 'Bronze',
+                    'min_sales' => 0,
+                    'css' => 'tier-bronze',
+                ];
             };
 
             $allMapped = $allRanked->map(function ($row, int $idx) use ($affiliateModels, $getTier): array {
