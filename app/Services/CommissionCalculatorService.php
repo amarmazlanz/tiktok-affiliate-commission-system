@@ -24,6 +24,8 @@ class CommissionCalculatorService
             @set_time_limit(0);
         }
 
+        ini_set('memory_limit', '512M');
+
         $run = CommissionRun::query()->firstOrCreate([
             'month' => $month,
             'year' => $year,

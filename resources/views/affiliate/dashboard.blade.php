@@ -85,6 +85,24 @@
                     </div>
                 </div>
 
+                @if ($earnedBadges->isNotEmpty())
+                <div class="app-card p-5 sm:p-6">
+                    <p class="text-sm font-bold text-emerald-700">Pencapaian Anda</p>
+                    <h2 class="mt-1 text-lg font-black text-slate-950">Badge yang diperoleh</h2>
+                    <div class="mt-4 flex flex-wrap gap-3">
+                        @foreach ($earnedBadges as $badge)
+                            <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2" title="{{ $badge['desc'] }}">
+                                <span class="text-xl leading-none">{{ $badge['icon'] }}</span>
+                                <div>
+                                    <p class="text-xs font-black text-slate-900">{{ $badge['label'] }}</p>
+                                    <p class="text-xs text-slate-500">{{ $badge['earned_at']->format('d M Y') }}</p>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
                 <div class="app-card p-5 sm:p-6">
                     <div class="flex items-center justify-between">
                         <div>

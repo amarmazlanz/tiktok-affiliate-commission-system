@@ -17,6 +17,7 @@ use App\Http\Controllers\Affiliate\DashboardController as AffiliateDashboardCont
 use App\Http\Controllers\Affiliate\CommissionController as AffiliateCommissionController;
 use App\Http\Controllers\Affiliate\InviteController as AffiliateInviteController;
 use App\Http\Controllers\Affiliate\PasswordController as AffiliatePasswordController;
+use App\Http\Controllers\Affiliate\LeaderboardController as AffiliateLeaderboardController;
 use App\Http\Controllers\Affiliate\TeamController as AffiliateTeamController;
 use App\Http\Controllers\Affiliate\TiktokAccountController as AffiliateTiktokAccountController;
 use App\Http\Controllers\PublicAffiliateRegistrationController;
@@ -151,6 +152,7 @@ Route::middleware(['auth', 'role:affiliate'])->prefix('affiliate')->name('affili
         Route::post('/tiktok-accounts', [AffiliateTiktokAccountController::class, 'store'])->name('tiktok-accounts.store');
         Route::patch('/tiktok-accounts/{account}/status', [AffiliateTiktokAccountController::class, 'updateStatus'])->name('tiktok-accounts.status');
         Route::delete('/tiktok-accounts/{account}', [AffiliateTiktokAccountController::class, 'destroy'])->name('tiktok-accounts.destroy');
+        Route::get('/leaderboard', AffiliateLeaderboardController::class)->name('leaderboard');
         Route::get('/invite', AffiliateInviteController::class)->name('invite');
         Route::get('/settings', [AffiliatePasswordController::class, 'edit'])->name('settings');
         Route::view('/help', 'affiliate.help')->name('help');

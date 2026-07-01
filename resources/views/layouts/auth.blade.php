@@ -65,6 +65,7 @@
                 'invite' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 19c0-3-2-5-5-5s-5 2-5 5"/><circle cx="10" cy="7" r="4"/><path d="M19 8v6"/><path d="M16 11h6"/></svg>',
                 'tiktok' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 4v11a4 4 0 1 1-4-4"/><path d="M14 4c1 3 3 5 6 5"/></svg>',
                 'settings' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>',
+                'leaderboard' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2Z"/><path d="M14 3h-2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z"/><path d="M22 11h-2a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2Z"/></svg>',
                 'help' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-.9.7-1.7 1.2-1.7 2.7"/><path d="M12 17h.01"/></svg>',
             ];
             $menuItems = $isAdmin
@@ -81,6 +82,7 @@
                     ['label' => 'Dashboard', 'route' => route('affiliate.dashboard'), 'active' => request()->routeIs('affiliate.dashboard'), 'icon' => 'home'],
                     ['label' => 'My Commission', 'route' => route('affiliate.commission'), 'active' => request()->routeIs('affiliate.commission'), 'icon' => 'wallet'],
                     ['label' => 'My Team', 'route' => route('affiliate.team'), 'active' => request()->routeIs('affiliate.team'), 'icon' => 'team'],
+                    ['label' => 'Leaderboard', 'route' => route('affiliate.leaderboard'), 'active' => request()->routeIs('affiliate.leaderboard'), 'icon' => 'leaderboard'],
                     ['label' => 'Invite Affiliate', 'route' => route('affiliate.invite'), 'active' => request()->routeIs('affiliate.invite'), 'icon' => 'invite'],
                     ['label' => 'TikTok Accounts', 'route' => route('affiliate.tiktok-accounts'), 'active' => request()->routeIs('affiliate.tiktok-accounts'), 'icon' => 'tiktok'],
                     ['label' => 'Account Settings', 'route' => route('affiliate.settings'), 'active' => request()->routeIs('affiliate.settings', 'affiliate.password.*'), 'icon' => 'settings'],
