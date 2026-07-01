@@ -99,7 +99,7 @@ class DashboardController extends Controller
             ->distinct()
             ->orderByDesc('year')
             ->pluck('year')
-            ->push($year)
+            ->push($dashYear)
             ->push($selectedTopYear)
             ->unique()
             ->sortDesc()
