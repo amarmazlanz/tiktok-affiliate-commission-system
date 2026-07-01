@@ -62,7 +62,7 @@ class CommissionCalculatorService
                         foreach ($orders as $order) {
                             $sellerId = (int) $order->affiliate_id;
 
-                            if (! isset($affiliateData['uplineByAffiliate'][$sellerId])) {
+                            if (! array_key_exists($sellerId, $affiliateData['uplineByAffiliate'])) {
                                 continue;
                             }
 
