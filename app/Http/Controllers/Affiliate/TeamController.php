@@ -24,16 +24,38 @@ class TeamController extends Controller
             $sortFilters['direction'],
         );
 
+        $teamStats = null;
+        $directCount = $tree['direct_count'];
+
+        if ($directCount > 0) {
+            $perfCollection = collect($performance);
+            $top5 = collect($teams->performance($affiliate, $periodFilters['month'], $periodFilters['year']))
+                ->sortByDesc('total_sales')
+                ->take(5)
+                ->values()
+                ->all();
+
+            $teamStats = [
+                'total_team_sales'  => $perfCollection->sum('total_sales'),
+                'total_overriding'  => $perfCollection->sum('overriding_generated'),
+                'active_members'    => $perfCollection->filter(fn ($r) => $r['total_sales'] > 0)->count(),
+                'inactive_members'  => $perfCollection->filter(fn ($r) => $r['total_sales'] == 0)->count(),
+                'total_members'     => $perfCollection->count(),
+                'top5'              => $top5,
+            ];
+        }
+
         return view('affiliate.team', [
             'affiliate' => $affiliate,
             'teamTree' => $tree,
             'teamSummary' => [
-                'direct_count' => $tree['direct_count'],
+                'direct_count' => $directCount,
                 'total_count' => $tree['total_team_count'],
                 'level_2_count' => $tree['level_2_count'],
                 'level_3_plus_count' => $tree['level_3_plus_count'],
             ],
             'teamPerformance' => $performance,
+            'teamStats' => $teamStats,
             'periodFilters' => $periodFilters,
             'sortFilters' => $sortFilters,
             'months' => $this->months(),

@@ -18,6 +18,91 @@
                 <div class="stat-card"><p class="stat-label">Level 3+</p><p class="stat-value">{{ number_format($teamSummary['level_3_plus_count']) }}</p></div>
             </div>
 
+            @if ($teamStats !== null)
+            <div class="app-card overflow-hidden">
+                <div class="border-b border-slate-200 px-5 py-4 sm:px-6" style="background: linear-gradient(to right, #f0fdf4, #f8fafc)">
+                    <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">Manager View</p>
+                    <h2 class="mt-0.5 text-lg font-black text-slate-950">Team Command Centre</h2>
+                    <p class="mt-1 text-sm text-slate-500">
+                        Ringkasan prestasi seluruh team awak —
+                        @if ($periodFilters['year'] === 'all')
+                            semua masa.
+                        @else
+                            {{ $months[$periodFilters['month']] ?? 'All Months' }} {{ $periodFilters['year'] }}.
+                        @endif
+                        Tukar tempoh di bahagian <em>Team Performance</em> bawah.
+                    </p>
+                </div>
+
+                <div class="p-5 sm:p-6 space-y-6">
+                    {{-- 4 overview stat cards --}}
+                    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                        <div class="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                            <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">Total Sales Team</p>
+                            <p class="mt-2 text-xl font-black text-slate-950">RM {{ number_format($teamStats['total_team_sales'], 2) }}</p>
+                        </div>
+                        <div class="rounded-xl border border-violet-100 bg-violet-50 p-4">
+                            <p class="text-xs font-bold uppercase tracking-wide text-violet-700">Overriding Saya</p>
+                            <p class="mt-2 text-xl font-black text-slate-950">RM {{ number_format($teamStats['total_overriding'], 2) }}</p>
+                        </div>
+                        <div class="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                            <p class="text-xs font-bold uppercase tracking-wide text-blue-700">Ahli Aktif</p>
+                            <p class="mt-2 text-xl font-black text-slate-950">
+                                {{ $teamStats['active_members'] }}
+                                <span class="text-sm font-semibold text-slate-400">/ {{ $teamStats['total_members'] }}</span>
+                            </p>
+                        </div>
+                        <div class="rounded-xl border border-amber-100 bg-amber-50 p-4">
+                            <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Ahli Tiada Sales</p>
+                            <p class="mt-2 text-xl font-black text-slate-950">{{ $teamStats['inactive_members'] }}</p>
+                        </div>
+                    </div>
+
+                    {{-- Top 5 leaderboard --}}
+                    @php $topSale = $teamStats['top5'][0]['total_sales'] ?? 0; @endphp
+                    @if ($topSale > 0)
+                        <div>
+                            <h3 class="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Top 5 Performer Tempoh Ini</h3>
+                            <div class="space-y-2">
+                                @foreach ($teamStats['top5'] as $idx => $row)
+                                    @if ($row['total_sales'] > 0)
+                                        @php
+                                            $rank      = $idx + 1;
+                                            $rankClass = match ($rank) { 1 => 'leaderboard-rank-1', 2 => 'leaderboard-rank-2', 3 => 'leaderboard-rank-3', default => 'leaderboard-rank-other' };
+                                            $rankIcon  = match ($rank) { 1 => '🥇', 2 => '🥈', 3 => '🥉', default => $rank };
+                                            $barWidth  = $topSale > 0 ? min(100, round(($row['total_sales'] / $topSale) * 100)) : 0;
+                                        @endphp
+                                        <div class="flex items-center gap-3 rounded-lg border border-slate-100 bg-white p-3 shadow-sm">
+                                            <span class="leaderboard-rank {{ $rankClass }} shrink-0">{{ $rankIcon }}</span>
+                                            <div class="min-w-0 flex-1">
+                                                <div class="flex items-start justify-between gap-2">
+                                                    <div class="min-w-0">
+                                                        <p class="truncate text-sm font-bold text-slate-950">{{ $row['affiliate']->name }}</p>
+                                                        <p class="text-xs text-slate-400">{{ $row['affiliate']->affiliate_code ?: '' }} · {{ $row['level'] }}</p>
+                                                    </div>
+                                                    <div class="shrink-0 text-right">
+                                                        <p class="text-sm font-black text-emerald-700">RM {{ number_format($row['total_sales'], 2) }}</p>
+                                                        <p class="text-xs text-slate-400">Komisen: RM {{ number_format($row['personal_commission'], 2) }}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                                                    <div class="h-full rounded-full bg-emerald-500 transition-all" style="width: {{ $barWidth }}%"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                    @else
+                        <div class="rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                            Tiada rekod jualan team untuk tempoh ini. Tukar bulan/tahun di bawah untuk lihat data lain.
+                        </div>
+                    @endif
+                </div>
+            </div>
+            @endif
+
             <div class="app-card overflow-hidden">
                 <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
