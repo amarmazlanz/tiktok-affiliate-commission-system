@@ -547,7 +547,7 @@ class AffiliateDashboardPasswordTest extends TestCase
             ->assertJsonPath('periodLabel', 'April 2026')
             ->assertJsonFragment(['sourceAffiliate' => null]);
         $this->assertStringContainsString('Commission Breakdown', $commissionResponse->json('breakdownHtml'));
-        $this->assertStringContainsString('Abu Source', $commissionResponse->json('breakdownHtml'));
+        $this->assertStringContainsString('Ali Seller', $commissionResponse->json('breakdownHtml'));
     }
 
     private function commissionRun(int $month, int $year): int
@@ -590,12 +590,12 @@ class AffiliateDashboardPasswordTest extends TestCase
         DB::table('commission_entries')->insert([
             'commission_run_id' => $runId,
             'receiver_affiliate_id' => $receiver->id,
-            'source_affiliate_id' => $source->id,
+            'source_affiliate_id' => $type === 'personal' ? $receiver->id : $source->id,
             'tiktok_order_id' => null,
             'commission_type' => $type,
             'level' => $level,
             'rate' => 0.10,
-            'base_amount' => 1000,
+            'base_amount' => $type === 'personal' ? $amount / 0.10 : 1000,
             'commission_amount' => $amount,
             'created_at' => now(),
             'updated_at' => now(),
