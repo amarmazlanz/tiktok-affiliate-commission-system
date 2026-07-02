@@ -34,7 +34,15 @@
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div class="stat-card">
                     <p class="stat-label">Total Sales <span class="font-normal text-slate-400">({{ $summary['period_label'] }})</span></p>
-                    <p class="stat-value stat-value-money">RM {{ number_format($summary['total_sales_this_month'], 2) }}</p>
+                    <p class="stat-value stat-value-money">RM {{ number_format($summary['all_imported_sales'], 2) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Mapped Affiliate Sales <span class="font-normal text-slate-400">({{ $summary['period_label'] }})</span></p>
+                    <p class="stat-value stat-value-money">RM {{ number_format($summary['mapped_affiliate_sales'], 2) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">No Upline Sales <span class="font-normal text-slate-400">({{ $summary['period_label'] }})</span></p>
+                    <p class="stat-value text-amber-700">RM {{ number_format($summary['no_upline_sales'], 2) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Total Commission <span class="font-normal text-slate-400">({{ $summary['period_label'] }})</span></p>
@@ -51,6 +59,14 @@
                 <div class="stat-card">
                     <p class="stat-label">Total Orders Imported</p>
                     <p class="stat-value">{{ number_format($summary['total_orders_imported']) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">No Upline Order Count</p>
+                    <p class="stat-value text-amber-700">{{ number_format($summary['no_upline_order_count']) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">No Upline TikTok Accounts</p>
+                    <p class="stat-value text-amber-700">{{ number_format($summary['no_upline_username_count']) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Commission Rate Mode</p>

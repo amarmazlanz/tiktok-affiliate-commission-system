@@ -14,6 +14,7 @@ class TiktokOrder extends Model
     protected $fillable = [
         'order_id',
         'affiliate_id',
+        'sales_source',
         'creator_username',
         'creator_username_normalized',
         'order_status',

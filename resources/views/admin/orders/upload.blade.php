@@ -42,7 +42,7 @@
                     </div>
 
                     <div class="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                        Order hanya akan disimpan jika Creator Username match dengan TikTok account registered. Unmatched order akan di-skip dan tidak disimpan.
+                        Orders yang match dengan TikTok account registered akan linked kepada affiliate. Orders yang tidak match akan disimpan sebagai No Upline untuk monitoring sahaja dan tidak menjana overriding commission.
                     </div>
 
                     <button type="submit" class="btn-primary">

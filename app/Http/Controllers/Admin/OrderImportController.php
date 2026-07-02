@@ -45,6 +45,12 @@ class OrderImportController extends Controller
                     'inserted_orders' => 0,
                     'updated_orders' => 0,
                     'skipped_duplicates' => 0,
+                    'matched_orders' => 0,
+                    'no_upline_orders' => 0,
+                    'total_sales_imported' => 0,
+                    'mapped_affiliate_sales' => 0,
+                    'no_upline_sales' => 0,
+                    'no_upline_usernames' => [],
                     'skipped_unmatched_creators' => 0,
                     'skipped_invalid_rows' => 0,
                     'missing_columns' => $missingColumns,
@@ -62,6 +68,12 @@ class OrderImportController extends Controller
             'inserted_orders' => 0,
             'updated_orders' => 0,
             'skipped_duplicates' => 0,
+            'matched_orders' => 0,
+            'no_upline_orders' => 0,
+            'total_sales_imported' => 0,
+            'mapped_affiliate_sales' => 0,
+            'no_upline_sales' => 0,
+            'no_upline_usernames' => [],
             'skipped_unmatched_creators' => 0,
             'skipped_invalid_rows' => 0,
             'missing_columns' => [],
@@ -90,15 +102,25 @@ class OrderImportController extends Controller
             }
 
             $account = $accounts->get($creatorUsernameNormalized);
+            $isMatched = (bool) $account;
+            $salesAmount = (float) $estimatedCommissionBase;
 
-            if (! $account) {
+            $summary['total_sales_imported'] += $salesAmount;
+
+            if ($isMatched) {
+                $summary['matched_orders']++;
+                $summary['mapped_affiliate_sales'] += $salesAmount;
+            } else {
+                $summary['no_upline_orders']++;
+                $summary['no_upline_sales'] += $salesAmount;
                 $summary['skipped_unmatched_creators']++;
-                $this->recordSampleSkip($summary, 'Unmatched creator', $orderId, $creatorUsername);
-                continue;
+                $summary['no_upline_usernames'][$creatorUsernameNormalized] = $creatorUsername ?: $creatorUsernameNormalized;
+                $this->recordSampleSkip($summary, 'No Upline', $orderId, $creatorUsername);
             }
 
             $orderData = [
-                'affiliate_id' => $account->affiliate_id,
+                'affiliate_id' => $account?->affiliate_id,
+                'sales_source' => $isMatched ? 'mapped_affiliate' : 'no_upline',
                 'creator_username' => $creatorUsername,
                 'creator_username_normalized' => $creatorUsernameNormalized,
                 'order_status' => trim((string) Arr::get($row, 'Order Status', '')),
@@ -149,6 +171,7 @@ class OrderImportController extends Controller
             ['order_id'],
             [
                 'affiliate_id',
+                'sales_source',
                 'creator_username',
                 'creator_username_normalized',
                 'order_status',

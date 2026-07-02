@@ -36,12 +36,25 @@ class DashboardController extends Controller
             $selectedTopYear = $dashYear;
         }
 
-        $totalSalesThisMonth = $latestCommissionRun
+        $mappedAffiliateSales = $latestCommissionRun
             ? DB::table('commission_entries')
                 ->where('commission_run_id', $latestCommissionRun->id)
                 ->where('commission_type', 'personal')
                 ->sum('base_amount')
             : 0;
+
+        $periodOrdersQuery = $this->ordersForPeriodQuery($dashMonth, $dashYear);
+        $allImportedSales = (clone $periodOrdersQuery)->sum('estimated_commission_base');
+        $noUplineOrdersQuery = (clone $periodOrdersQuery)
+            ->where(function ($query): void {
+                $query->whereNull('affiliate_id')
+                    ->orWhere('sales_source', 'no_upline');
+            });
+        $noUplineSales = (clone $noUplineOrdersQuery)->sum('estimated_commission_base');
+        $noUplineOrderCount = (clone $noUplineOrdersQuery)->count();
+        $noUplineUsernameCount = (clone $noUplineOrdersQuery)
+            ->distinct()
+            ->count('creator_username_normalized');
 
         $currentCommissionRun = $latestCommissionRun;
 
@@ -112,7 +125,12 @@ class DashboardController extends Controller
 
         return view('admin.dashboard', [
             'summary' => [
-                'total_sales_this_month' => (float) $totalSalesThisMonth,
+                'total_sales_this_month' => (float) $mappedAffiliateSales,
+                'all_imported_sales' => (float) $allImportedSales,
+                'mapped_affiliate_sales' => (float) $mappedAffiliateSales,
+                'no_upline_sales' => (float) $noUplineSales,
+                'no_upline_order_count' => (int) $noUplineOrderCount,
+                'no_upline_username_count' => (int) $noUplineUsernameCount,
                 'total_commission_this_month' => (float) ($currentCommissionRun?->total_commission ?? 0),
                 'period_label' => $periodLabel,
                 'total_affiliates' => Affiliate::count(),
@@ -150,5 +168,24 @@ class DashboardController extends Controller
             11 => 'November',
             12 => 'December',
         ];
+    }
+
+    private function ordersForPeriodQuery(int $month, int $year)
+    {
+        $start = now()->setDate($year, $month, 1)->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+
+        return DB::table('tiktok_orders')
+            ->where('order_status', 'Settled')
+            ->where('estimated_commission_base', '>', 0)
+            ->where(function ($query) use ($start, $end): void {
+                $query
+                    ->whereBetween('time_commission_paid', [$start, $end])
+                    ->orWhere(function ($query) use ($start, $end): void {
+                        $query
+                            ->whereNull('time_commission_paid')
+                            ->whereBetween('time_created', [$start, $end]);
+                    });
+            });
     }
 }

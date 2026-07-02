@@ -34,7 +34,8 @@ return new class extends Migration
         Schema::create('tiktok_orders', function (Blueprint $table) {
             $table->id();
             $table->string('order_id')->unique();
-            $table->foreignId('affiliate_id')->constrained()->restrictOnDelete();
+            $table->foreignId('affiliate_id')->nullable()->constrained()->restrictOnDelete();
+            $table->string('sales_source')->default('mapped_affiliate')->index();
             $table->string('creator_username');
             $table->string('creator_username_normalized')->index();
             $table->string('order_status')->index();

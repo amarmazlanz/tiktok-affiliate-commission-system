@@ -45,14 +45,22 @@
                 </div>
             @endif
 
-            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div class="stat-card">
                     <p class="stat-label">Period</p>
                     <p class="stat-value">{{ $months[$commission->month] }} {{ $commission->year }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Total Sales</p>
+                    <p class="stat-value stat-value-money">{{ $money((float) $commission->total_sales + (float) $noUplineTotals['total_sales']) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Mapped Affiliate Sales</p>
                     <p class="stat-value stat-value-money">{{ $money($commission->total_sales) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">No Upline Sales</p>
+                    <p class="stat-value text-amber-700">{{ $money($noUplineTotals['total_sales']) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Total Overriding</p>
@@ -61,6 +69,14 @@
                 <div class="stat-card">
                     <p class="stat-label">Total Commission</p>
                     <p class="stat-value stat-value-money">{{ $money($commission->total_commission) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">No Upline Orders</p>
+                    <p class="stat-value text-amber-700">{{ number_format($noUplineTotals['order_count']) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">No Upline TikTok Accounts</p>
+                    <p class="stat-value text-amber-700">{{ number_format($noUplineTotals['username_count']) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Status</p>
@@ -236,6 +252,57 @@
                 <div class="border-t border-slate-100 bg-slate-50 px-6 py-3">
                     <p class="text-xs text-slate-500">Level 1 Earnings includes normal L1 overriding and qualified L1 split earnings.</p>
                     <div class="mt-3">{{ $summaries->links() }}</div>
+                </div>
+            </div>
+
+            <div class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
+                <div class="border-b border-slate-200 px-6 py-5">
+                    <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-slate-950">No Upline Sales Monitoring</h2>
+                            <p class="mt-1 max-w-3xl text-sm text-slate-500">
+                                No Upline sales are sales from TikTok usernames that are not currently linked to an internal affiliate/upline profile. These sales are shown for monitoring only and do not generate overriding commission.
+                            </p>
+                        </div>
+                        <span class="badge badge-amber">Monitoring Only</span>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="app-table min-w-full divide-y divide-slate-200 text-sm">
+                        <thead>
+                            <tr>
+                                <th class="text-left">TikTok Username</th>
+                                <th class="text-right">Order Count</th>
+                                <th class="text-right">Total Sales</th>
+                                <th class="text-right">TikTok Commission Paid</th>
+                                <th class="text-left">First Sale</th>
+                                <th class="text-left">Last Sale</th>
+                                <th class="text-left">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                            @forelse ($noUplineSalesRows as $row)
+                                <tr>
+                                    <td class="font-medium text-slate-950">{{ $row->creator_username ?: $row->creator_username_normalized }}</td>
+                                    <td class="money text-slate-700">{{ number_format((int) $row->order_count) }}</td>
+                                    <td class="money font-semibold text-slate-950">{{ $money($row->total_sales) }}</td>
+                                    <td class="money text-slate-700">{{ $money($row->total_tiktok_commission_paid) }}</td>
+                                    <td class="whitespace-nowrap text-slate-700">{{ $row->first_sale_date ? \Carbon\Carbon::parse($row->first_sale_date)->format('d/m/Y') : '-' }}</td>
+                                    <td class="whitespace-nowrap text-slate-700">{{ $row->last_sale_date ? \Carbon\Carbon::parse($row->last_sale_date)->format('d/m/Y') : '-' }}</td>
+                                    <td><span class="badge badge-amber">No Upline</span></td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="py-8 text-center text-slate-500">No No Upline sales found for this commission period.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="border-t border-slate-100 bg-slate-50 px-6 py-3">
+                    {{ $noUplineSalesRows->links() }}
                 </div>
             </div>
 

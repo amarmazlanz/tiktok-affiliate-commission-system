@@ -28,7 +28,7 @@
                 </div>
             @endif
 
-            <div class="grid gap-4 md:grid-cols-6">
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div class="stat-card">
                     <p class="stat-label">Processed</p>
                     <p class="stat-value">{{ number_format($summary['total_rows']) }}</p>
@@ -46,18 +46,42 @@
                     <p class="stat-value">{{ number_format($summary['skipped_duplicates']) }}</p>
                 </div>
                 <div class="stat-card">
-                    <p class="stat-label">Unmatched</p>
-                    <p class="stat-value">{{ number_format($summary['skipped_unmatched_creators']) }}</p>
+                    <p class="stat-label">Matched Orders</p>
+                    <p class="stat-value">{{ number_format($summary['matched_orders'] ?? 0) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">No Upline Orders</p>
+                    <p class="stat-value text-amber-700">{{ number_format($summary['no_upline_orders'] ?? $summary['skipped_unmatched_creators']) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Invalid</p>
                     <p class="stat-value">{{ number_format($summary['skipped_invalid_rows']) }}</p>
                 </div>
+                <div class="stat-card">
+                    <p class="stat-label">Total Sales Imported</p>
+                    <p class="stat-value stat-value-money">RM {{ number_format((float) ($summary['total_sales_imported'] ?? 0), 2) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Mapped Affiliate Sales</p>
+                    <p class="stat-value stat-value-money">RM {{ number_format((float) ($summary['mapped_affiliate_sales'] ?? 0), 2) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">No Upline Sales</p>
+                    <p class="stat-value text-amber-700">RM {{ number_format((float) ($summary['no_upline_sales'] ?? 0), 2) }}</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">No Upline TikTok Accounts</p>
+                    <p class="stat-value">{{ number_format(count($summary['no_upline_usernames'] ?? [])) }}</p>
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                No Upline sales are sales from TikTok usernames that are not currently linked to an internal affiliate/upline profile. These sales are shown for monitoring only and do not generate overriding commission.
             </div>
 
             <div class="app-card overflow-hidden">
                 <div class="border-b border-slate-200 px-6 py-5">
-                    <h2 class="text-lg font-semibold text-slate-950">Sample Skipped Rows</h2>
+                    <h2 class="text-lg font-semibold text-slate-950">Sample Skipped / No Upline Rows</h2>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="app-table min-w-full divide-y divide-slate-200 text-sm">

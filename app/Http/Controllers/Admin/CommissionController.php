@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CommissionEntry;
 use App\Models\CommissionRun;
+use App\Models\TiktokOrder;
 use App\Services\CommissionCalculatorService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -170,6 +171,26 @@ class CommissionController extends Controller
         $totalOverriding = (float) DB::query()
             ->fromSub($this->summaryQuery($commission->id), 'commission_summaries')
             ->sum('total_overriding');
+        $noUplineSales = $this->noUplineSalesQuery($commission->month, $commission->year);
+        $noUplineTotals = [
+            'total_sales' => (float) (clone $noUplineSales)->sum('estimated_commission_base'),
+            'order_count' => (int) (clone $noUplineSales)->count(),
+            'username_count' => (int) (clone $noUplineSales)->distinct()->count('creator_username_normalized'),
+        ];
+        $noUplineSalesRows = (clone $noUplineSales)
+            ->select([
+                'creator_username_normalized',
+                DB::raw('MAX(creator_username) as creator_username'),
+                DB::raw('COUNT(*) as order_count'),
+                DB::raw('SUM(estimated_commission_base) as total_sales'),
+                DB::raw('SUM(COALESCE(actual_commission_payment, 0)) as total_tiktok_commission_paid'),
+                DB::raw('MIN(COALESCE(time_commission_paid, time_created)) as first_sale_date'),
+                DB::raw('MAX(COALESCE(time_commission_paid, time_created)) as last_sale_date'),
+            ])
+            ->groupBy('creator_username_normalized')
+            ->orderByDesc('total_sales')
+            ->paginate(15, ['*'], 'no_upline_page')
+            ->withQueryString();
 
         $summaryOrderColumn = $summarySort === 'affiliate' ? 'affiliate_name' : $summarySort;
         $summaries = $summaryQuery
@@ -198,6 +219,8 @@ class CommissionController extends Controller
             'summaries' => $summaries,
             'filteredSummarySalesTotal' => $filteredSummarySalesTotal,
             'totalOverriding' => $totalOverriding,
+            'noUplineTotals' => $noUplineTotals,
+            'noUplineSalesRows' => $noUplineSalesRows,
             'commissionEntries' => $entryData['commissionEntries'],
             'summaryAffiliateOptions' => $summaryAffiliateOptions,
             'receiverOptions' => $entryData['receiverOptions'],
@@ -369,6 +392,29 @@ class CommissionController extends Controller
         ];
     }
 
+    private function noUplineSalesQuery(int $month, int $year)
+    {
+        $start = now()->setDate($year, $month, 1)->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+
+        return TiktokOrder::query()
+            ->where('order_status', 'Settled')
+            ->where('estimated_commission_base', '>', 0)
+            ->where(function ($query): void {
+                $query->whereNull('affiliate_id')
+                    ->orWhere('sales_source', 'no_upline');
+            })
+            ->where(function ($query) use ($start, $end): void {
+                $query
+                    ->whereBetween('time_commission_paid', [$start, $end])
+                    ->orWhere(function ($query) use ($start, $end): void {
+                        $query
+                            ->whereNull('time_commission_paid')
+                            ->whereBetween('time_created', [$start, $end]);
+                    });
+            });
+    }
+
     private function months(): array
     {
         return [
@@ -387,5 +433,4 @@ class CommissionController extends Controller
         ];
     }
 }
-
 
