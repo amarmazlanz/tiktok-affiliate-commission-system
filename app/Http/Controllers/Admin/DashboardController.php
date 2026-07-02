@@ -142,7 +142,12 @@ class DashboardController extends Controller
             'recentCommissionRuns' => CommissionRun::query()
                 ->latest()
                 ->take(5)
-                ->get(),
+                ->get()
+                ->map(function (CommissionRun $run): CommissionRun {
+                    $run->setAttribute('display_total_sales', (float) $this->ordersForPeriodQuery($run->month, $run->year)->sum('estimated_commission_base'));
+
+                    return $run;
+                }),
             'topAffiliates' => $topAffiliates,
             'selectedTopMonth' => $selectedTopMonth,
             'selectedTopYear' => $selectedTopYear,

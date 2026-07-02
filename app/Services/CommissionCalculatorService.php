@@ -48,9 +48,9 @@ class CommissionCalculatorService
                 $affiliateData = $this->affiliateData();
                 $monthlySalesByAffiliate = $this->monthlySalesByAffiliate($start, $end);
                 $directDownlineSalesByAffiliate = $this->directDownlineSalesByAffiliate($monthlySalesByAffiliate, $affiliateData['uplineByAffiliate']);
+                $totalImportedSales = (float) $this->baseEligibleOrdersQuery($start, $end)->sum('estimated_commission_base');
 
                 $totals = [
-                    'sales' => 0.0,
                     'commission' => 0.0,
                 ];
 
@@ -73,8 +73,6 @@ class CommissionCalculatorService
                             if ($baseAmount <= 0) {
                                 continue;
                             }
-
-                            $totals['sales'] += $baseAmount;
 
                             $this->queueEntry($entries, $totals, $run->id, (int) $order->id, $sellerId, $sellerId, 'personal', null, $rates['personal_rate'], $baseAmount, null, $now);
 
@@ -119,7 +117,7 @@ class CommissionCalculatorService
 
                 $run->update([
                     'status' => $status,
-                    'total_sales' => round($totals['sales'], 2),
+                    'total_sales' => round($totalImportedSales, 2),
                     'total_commission' => round($totals['commission'], 2),
                     'calculated_at' => now(),
                 ]);
@@ -146,10 +144,15 @@ class CommissionCalculatorService
 
     private function eligibleOrdersQuery(Carbon $start, Carbon $end)
     {
+        return $this->baseEligibleOrdersQuery($start, $end)
+            ->whereNotNull('affiliate_id');
+    }
+
+    private function baseEligibleOrdersQuery(Carbon $start, Carbon $end)
+    {
         return TiktokOrder::query()
             ->where('order_status', 'Settled')
             ->where('estimated_commission_base', '>', 0)
-            ->whereNotNull('affiliate_id')
             ->where(function ($query) use ($start, $end): void {
                 $query
                     ->whereBetween('time_commission_paid', [$start, $end])

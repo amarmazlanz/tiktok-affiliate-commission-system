@@ -85,7 +85,7 @@ class OrderImportNoUplineTest extends TestCase
 
         $run = app(CommissionCalculatorService::class)->calculate(4, 2026, 'final');
 
-        $this->assertSame(100.0, (float) $run->total_sales);
+        $this->assertSame(350.0, (float) $run->total_sales);
         $this->assertSame(10.0, (float) $run->total_commission);
         $this->assertDatabaseCount('commission_entries', 1);
         $this->assertDatabaseHas('commission_entries', [

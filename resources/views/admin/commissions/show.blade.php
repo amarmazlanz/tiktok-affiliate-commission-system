@@ -52,11 +52,11 @@
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Total Sales</p>
-                    <p class="stat-value stat-value-money">{{ $money((float) $commission->total_sales + (float) $noUplineTotals['total_sales']) }}</p>
+                    <p class="stat-value stat-value-money">{{ $money($totalImportedSales) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Mapped Affiliate Sales</p>
-                    <p class="stat-value stat-value-money">{{ $money($commission->total_sales) }}</p>
+                    <p class="stat-value stat-value-money">{{ $money($mappedAffiliateSalesTotal) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">No Upline Sales</p>

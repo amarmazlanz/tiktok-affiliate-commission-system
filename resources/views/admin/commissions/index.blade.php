@@ -102,7 +102,7 @@
                             @forelse ($runs as $run)
                                 <tr>
                                     <td class="font-medium text-slate-950">{{ $months[$run->month] }} {{ $run->year }}</td>
-                                    <td class="money text-slate-700">RM {{ number_format((float) $run->total_sales, 2) }}</td>
+                                    <td class="money text-slate-700">RM {{ number_format((float) ($run->display_total_sales ?? $run->total_sales), 2) }}</td>
                                     <td class="money font-semibold text-emerald-700">RM {{ number_format((float) $run->total_commission, 2) }}</td>
                                     <td>
                                         <span class="badge {{ in_array($run->status, ['completed', 'final'], true) ? 'badge-green' : ($run->status === 'processing' ? 'badge-blue' : ($run->status === 'failed' ? 'badge-red' : 'badge-amber')) }}">

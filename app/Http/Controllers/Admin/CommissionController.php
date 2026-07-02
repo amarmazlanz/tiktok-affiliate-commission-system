@@ -22,6 +22,11 @@ class CommissionController extends Controller
     {
         try {
             $runs = CommissionRun::query()->latest('year')->latest('month')->paginate(15);
+            $runs->getCollection()->transform(function (CommissionRun $run): CommissionRun {
+                $run->setAttribute('display_total_sales', $this->totalImportedSalesForPeriod($run->month, $run->year));
+
+                return $run;
+            });
             $setupError = null;
         } catch (\Throwable $exception) {
             Log::error('Commission runs page failed to load.', [
@@ -171,6 +176,11 @@ class CommissionController extends Controller
         $totalOverriding = (float) DB::query()
             ->fromSub($this->summaryQuery($commission->id), 'commission_summaries')
             ->sum('total_overriding');
+        $mappedAffiliateSalesTotal = (float) DB::table('commission_entries')
+            ->where('commission_run_id', $commission->id)
+            ->where('commission_type', 'personal')
+            ->sum('base_amount');
+        $totalImportedSales = $this->totalImportedSalesForPeriod($commission->month, $commission->year);
         $noUplineSales = $this->noUplineSalesQuery($commission->month, $commission->year);
         $noUplineTotals = [
             'total_sales' => (float) (clone $noUplineSales)->sum('estimated_commission_base'),
@@ -218,6 +228,8 @@ class CommissionController extends Controller
             'commission' => $commission,
             'summaries' => $summaries,
             'filteredSummarySalesTotal' => $filteredSummarySalesTotal,
+            'mappedAffiliateSalesTotal' => $mappedAffiliateSalesTotal,
+            'totalImportedSales' => $totalImportedSales,
             'totalOverriding' => $totalOverriding,
             'noUplineTotals' => $noUplineTotals,
             'noUplineSalesRows' => $noUplineSalesRows,
@@ -415,6 +427,26 @@ class CommissionController extends Controller
             });
     }
 
+    private function totalImportedSalesForPeriod(int $month, int $year): float
+    {
+        $start = now()->setDate($year, $month, 1)->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+
+        return (float) TiktokOrder::query()
+            ->where('order_status', 'Settled')
+            ->where('estimated_commission_base', '>', 0)
+            ->where(function ($query) use ($start, $end): void {
+                $query
+                    ->whereBetween('time_commission_paid', [$start, $end])
+                    ->orWhere(function ($query) use ($start, $end): void {
+                        $query
+                            ->whereNull('time_commission_paid')
+                            ->whereBetween('time_created', [$start, $end]);
+                    });
+            })
+            ->sum('estimated_commission_base');
+    }
+
     private function months(): array
     {
         return [
@@ -433,4 +465,3 @@ class CommissionController extends Controller
         ];
     }
 }
-
