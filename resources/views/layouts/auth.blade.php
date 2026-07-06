@@ -139,6 +139,17 @@
                     </div>
 
                     <div class="hidden items-center gap-3 lg:flex">
+                        @if ($isAdmin)
+                            <button onclick="agOpen()"
+                                class="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">
+                                <svg class="h-4 w-4 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-.9.7-1.7 1.2-1.7 2.7"/>
+                                    <path d="M12 17h.01"/>
+                                </svg>
+                                Panduan
+                            </button>
+                        @endif
                         <div class="text-right">
                             <p class="text-sm font-bold text-slate-950">{{ auth()->user()->name }}</p>
                             <p class="text-xs text-slate-500">{{ auth()->user()->email }}</p>
@@ -159,6 +170,12 @@
                             <span>{{ $item['label'] }}</span>
                         </a>
                     @endforeach
+                    @if ($isAdmin)
+                        <button onclick="agOpen()" class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-slate-600 ring-1 ring-slate-200">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-.9.7-1.7 1.2-1.7 2.7"/><path d="M12 17h.01"/></svg>
+                            Panduan
+                        </button>
+                    @endif
                     <form method="POST" action="{{ route('logout') }}" class="shrink-0">
                         @csrf
                         <button type="submit" class="btn-secondary py-2">Logout</button>
@@ -166,6 +183,10 @@
                 </div>
             </div>
         </div>
+
+        @if ($isAdmin)
+            @include('partials.admin-guide')
+        @endif
     @endauth
 
     <div class="@auth app-shell lg:pl-72 @endauth">
