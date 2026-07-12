@@ -166,7 +166,7 @@ class CommissionReportScalabilityTest extends TestCase
             ->assertSee('Aurora Group')
             ->assertSee('Group Total Sales')
             ->assertSee('RM 0.00')
-            ->assertSee('Affiliate Luar');
+            ->assertSee('Online');
 
         $inhouseSummaryResponse = $this
             ->actingAs($admin)
@@ -181,7 +181,7 @@ class CommissionReportScalabilityTest extends TestCase
             ->assertSee('Group Total Sales')
             ->assertSee('RM 4,000,000.00')
             ->assertSee('Large Seller')
-            ->assertDontSee('Affiliate Luar');
+            ->assertDontSee('Online');
 
         $invalidSummaryAffiliateResponse = $this
             ->actingAs($admin)
