@@ -32,14 +32,12 @@
                     <p class="mt-1 text-sm text-slate-600">Tambah, edit, dan nyahaktifkan affiliate.</p>
                 </div>
                 <div class="flex flex-wrap gap-3">
-                    <a href="{{ route('admin.affiliates.hierarchy') }}" class="btn-secondary">
-                        View Hierarchy
-                    </a>
+                    <button type="button" onclick="lrOpen()" class="btn-secondary">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+                        Login Report
+                    </button>
                     <a href="{{ route('admin.affiliates.import.create') }}" class="btn-secondary">
                         Import Affiliates
-                    </a>
-                    <a href="{{ route('admin.affiliates.login-report', array_filter($filters)) }}" class="btn-secondary">
-                        Print Login Report
                     </a>
                     <a href="{{ route('admin.affiliates.create') }}" class="btn-primary">
                         Tambah Affiliate
@@ -93,44 +91,6 @@
                 <div class="flex items-end gap-2">
                     <button type="submit" class="btn-primary w-full">Filter</button>
                     <a href="{{ route('admin.affiliates.index') }}" class="btn-secondary">Reset</a>
-                </div>
-            </form>
-
-            <form id="login-report-actions" method="POST" action="{{ route('admin.affiliates.login-report.generate') }}"
-                class="app-card mb-6 flex flex-col gap-4 p-5 lg:flex-row lg:items-end lg:justify-between">
-                @csrf
-                @foreach ($filters as $key => $value)
-                    @if ($value !== null && $value !== '')
-                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                    @endif
-                @endforeach
-
-                <div>
-                    <p class="text-sm font-bold text-slate-950">Affiliate Login Report</p>
-                    <p class="mt-1 max-w-3xl text-sm text-slate-600">
-                        Generate secure temporary passwords for affiliate login accounts (Inhouse and Online). Passwords are shown once in the printable report and are never stored as plain text.
-                    </p>
-                    <p class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
-                        This action will replace the current passwords of the affected affiliates, or create a login if one does not exist yet. Their existing passwords will stop working immediately.
-                    </p>
-                </div>
-
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
-                    <div>
-                        <label for="generation_scope" class="block text-xs font-bold uppercase text-slate-500">Password Scope</label>
-                        <select id="generation_scope" name="generation_scope" class="form-field mt-2 min-w-48">
-                            <option value="never_logged_in" selected>Never Logged In</option>
-                            <option value="must_change_password">Must Change Password</option>
-                            <option value="selected">Selected Affiliates</option>
-                            <option value="filtered">All Filtered Affiliates</option>
-                        </select>
-                    </div>
-                    <button type="button" id="print-selected-affiliates" class="btn-secondary">
-                        Print Selected
-                    </button>
-                    <button type="submit" class="btn-primary">
-                        Generate Temporary Passwords
-                    </button>
                 </div>
             </form>
 
@@ -273,7 +233,67 @@
         </section>
     </main>
 
+    {{-- Login Report Drawer --}}
+    <div id="lr-overlay" class="fixed inset-0 z-40 hidden bg-slate-900/30 backdrop-blur-[1px]" onclick="lrClose()"></div>
+    <aside id="lr-drawer" class="fixed inset-y-0 right-0 z-50 flex w-full max-w-lg translate-x-full flex-col bg-white shadow-2xl ring-1 ring-slate-200 transition-transform duration-300">
+        <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <h3 class="text-base font-black text-slate-950">Affiliate Login Report</h3>
+            <button onclick="lrClose()" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700" aria-label="Close">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="flex flex-1 flex-col gap-5 overflow-y-auto p-5">
+            <p class="text-sm text-slate-600">
+                Generate secure temporary passwords for affiliate login accounts. Passwords are shown once in the printable report and are never stored as plain text.
+            </p>
+            <p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm font-semibold text-amber-900">
+                This action will replace the current passwords of the affected affiliates, or create a login if one does not exist yet. Their existing passwords will stop working immediately.
+            </p>
+
+            <form id="login-report-actions" method="POST" action="{{ route('admin.affiliates.login-report.generate') }}" class="space-y-4">
+                @csrf
+                @foreach ($filters as $key => $value)
+                    @if ($value !== null && $value !== '')
+                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                    @endif
+                @endforeach
+
+                <div>
+                    <label for="generation_scope" class="block text-xs font-bold uppercase text-slate-500">Password Scope</label>
+                    <select id="generation_scope" name="generation_scope" class="form-field">
+                        <option value="never_logged_in" selected>Never Logged In</option>
+                        <option value="must_change_password">Must Change Password</option>
+                        <option value="selected">Selected Affiliates</option>
+                        <option value="filtered">All Filtered Affiliates</option>
+                    </select>
+                </div>
+
+                <div class="flex flex-col gap-2 border-t border-slate-100 pt-4">
+                    <a href="{{ route('admin.affiliates.login-report', array_filter($filters)) }}" class="btn-secondary justify-center">
+                        Print Login Report
+                    </a>
+                    <button type="button" id="print-selected-affiliates" class="btn-secondary justify-center">
+                        Print Selected
+                    </button>
+                    <button type="submit" class="btn-primary justify-center">
+                        Generate Temporary Passwords
+                    </button>
+                </div>
+            </form>
+        </div>
+    </aside>
+
     <script>
+        function lrOpen() {
+            document.getElementById('lr-overlay').classList.remove('hidden');
+            document.getElementById('lr-drawer').classList.replace('translate-x-full', 'translate-x-0');
+        }
+        function lrClose() {
+            document.getElementById('lr-drawer').classList.replace('translate-x-0', 'translate-x-full');
+            document.getElementById('lr-overlay').classList.add('hidden');
+        }
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') lrClose(); });
+
         document.addEventListener('DOMContentLoaded', () => {
             const selectAll = document.getElementById('select-all-affiliates');
             const affiliateCheckboxes = Array.from(document.querySelectorAll('.affiliate-select'));

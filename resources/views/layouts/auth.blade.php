@@ -66,12 +66,14 @@
                 'tiktok' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 4v11a4 4 0 1 1-4-4"/><path d="M14 4c1 3 3 5 6 5"/></svg>',
                 'settings' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>',
                 'leaderboard' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2Z"/><path d="M14 3h-2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z"/><path d="M22 11h-2a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2Z"/></svg>',
+                'hierarchy' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M12 7v5M12 12H6v5M12 12h6v5"/></svg>',
                 'help' => '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-.9.7-1.7 1.2-1.7 2.7"/><path d="M12 17h.01"/></svg>',
             ];
             $menuItems = $isAdmin
                 ? [
                     ['label' => 'Admin Dashboard', 'route' => route('admin.dashboard'), 'active' => request()->routeIs('admin.dashboard'), 'icon' => 'dashboard'],
-                    ['label' => 'Affiliate Management', 'route' => route('admin.affiliates.index'), 'active' => request()->routeIs('admin.affiliates.*'), 'icon' => 'users'],
+                    ['label' => 'Affiliate Management', 'route' => route('admin.affiliates.index'), 'active' => request()->routeIs('admin.affiliates.*') && !request()->routeIs('admin.affiliates.hierarchy'), 'icon' => 'users'],
+                    ['label' => 'Affiliate Hierarchy', 'route' => route('admin.affiliates.hierarchy'), 'active' => request()->routeIs('admin.affiliates.hierarchy'), 'icon' => 'hierarchy', 'indent' => true],
                     ['label' => 'Pending Registrations', 'route' => route('admin.affiliate-registrations.index'), 'active' => request()->routeIs('admin.affiliate-registrations.*'), 'icon' => 'registrations'],
                     ['label' => 'TikTok Account Requests', 'route' => route('admin.tiktok-account-requests.index'), 'active' => request()->routeIs('admin.tiktok-account-requests.*'), 'icon' => 'tiktok'],
                     ['label' => 'CSV Upload', 'route' => route('admin.orders.upload'), 'active' => request()->routeIs('admin.orders.*'), 'icon' => 'upload'],
@@ -101,14 +103,23 @@
                     </div>
                 </div>
 
-                <nav class="flex-1 space-y-1 overflow-y-auto px-4 py-6">
+                <nav class="flex-1 space-y-0.5 overflow-y-auto px-4 py-6">
                     @foreach ($menuItems as $item)
-                        <a href="{{ $item['route'] }}" class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition {{ $item['active'] ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">
-                            <span class="flex h-9 w-9 items-center justify-center rounded-lg {{ $item['active'] ? 'bg-white text-rose-700 shadow-sm' : 'bg-slate-100 text-slate-500 group-hover:text-slate-700' }}">
-                                {!! $icons[$item['icon']] !!}
-                            </span>
-                            <span>{{ $item['label'] }}</span>
-                        </a>
+                        @if ($item['indent'] ?? false)
+                            <a href="{{ $item['route'] }}" class="group ml-5 flex items-center gap-2.5 rounded-xl px-2 py-2 text-sm font-bold transition {{ $item['active'] ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-950' }}">
+                                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg {{ $item['active'] ? 'bg-white text-rose-700 shadow-sm' : 'bg-slate-100 text-slate-400 group-hover:text-slate-600' }}">
+                                    {!! $icons[$item['icon']] !!}
+                                </span>
+                                <span>{{ $item['label'] }}</span>
+                            </a>
+                        @else
+                            <a href="{{ $item['route'] }}" class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition {{ $item['active'] ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">
+                                <span class="flex h-9 w-9 items-center justify-center rounded-lg {{ $item['active'] ? 'bg-white text-rose-700 shadow-sm' : 'bg-slate-100 text-slate-500 group-hover:text-slate-700' }}">
+                                    {!! $icons[$item['icon']] !!}
+                                </span>
+                                <span>{{ $item['label'] }}</span>
+                            </a>
+                        @endif
                     @endforeach
                 </nav>
 
