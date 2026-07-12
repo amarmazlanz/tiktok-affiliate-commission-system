@@ -230,7 +230,7 @@ class AffiliateHierarchyImportServiceTest extends TestCase
             'upline_id' => null,
             'affiliate_code' => uniqid('AFF-'),
             'group_name' => 'Titan Group',
-            'affiliate_type' => 'external',
+            'affiliate_type' => 'online',
             'name' => $name,
             'name_normalized' => strtolower($name),
             'email' => null,

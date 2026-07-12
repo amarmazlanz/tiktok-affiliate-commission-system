@@ -21,7 +21,7 @@ class AffiliateLoginReportTest extends TestCase
         $external = Affiliate::create([
             'affiliate_code' => 'TIT-0002',
             'group_name' => 'Titan Group',
-            'affiliate_type' => 'external',
+            'affiliate_type' => 'online',
             'name' => 'External Titan',
             'status' => 'active',
         ]);
@@ -278,7 +278,7 @@ class AffiliateLoginReportTest extends TestCase
             'user_id' => $legacyUser->id,
             'affiliate_code' => 'EXT-0001',
             'group_name' => 'Aurora Group',
-            'affiliate_type' => 'external',
+            'affiliate_type' => 'online',
             'name' => 'External Affiliate',
             'status' => 'active',
         ]);
@@ -303,7 +303,7 @@ class AffiliateLoginReportTest extends TestCase
         $external = Affiliate::create([
             'affiliate_code' => 'EXT-0002',
             'group_name' => 'Aurora Group',
-            'affiliate_type' => 'external',
+            'affiliate_type' => 'online',
             'name' => 'New External Affiliate',
             'status' => 'active',
         ]);
@@ -331,7 +331,7 @@ class AffiliateLoginReportTest extends TestCase
         $external = Affiliate::create([
             'affiliate_code' => 'EXT-0003',
             'group_name' => 'Aurora Group',
-            'affiliate_type' => 'external',
+            'affiliate_type' => 'online',
             'name' => 'Bulk External Affiliate',
             'status' => 'active',
         ]);

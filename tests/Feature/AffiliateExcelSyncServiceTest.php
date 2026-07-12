@@ -52,7 +52,7 @@ class AffiliateExcelSyncServiceTest extends TestCase
         ]);
 
         $result = $this->sync([
-            $this->row('UPDATED NAME', 'Aurora Group', 'external', 'stable_username', [
+            $this->row('UPDATED NAME', 'Aurora Group', 'online', 'stable_username', [
                 'affiliate_code' => 'TIT-0042',
                 'status' => 'inactive',
             ]),
@@ -62,7 +62,7 @@ class AffiliateExcelSyncServiceTest extends TestCase
         $this->assertSame('TIT-0042', $affiliate->affiliate_code);
         $this->assertSame('UPDATED NAME', $affiliate->name);
         $this->assertSame('Aurora Group', $affiliate->group_name);
-        $this->assertSame('external', $affiliate->affiliate_type);
+        $this->assertSame('online', $affiliate->affiliate_type);
         $this->assertSame('inactive', $affiliate->status);
         $this->assertSame('Profile Updated', $result['results'][0]['status']);
     }
@@ -78,7 +78,7 @@ class AffiliateExcelSyncServiceTest extends TestCase
         ]);
 
         $this->sync([
-            $this->row('NEW DISPLAY NAME', 'Aurora Group', 'external', 'stable_identity'),
+            $this->row('NEW DISPLAY NAME', 'Aurora Group', 'online', 'stable_identity'),
         ]);
 
         $affiliate->refresh();
@@ -88,7 +88,7 @@ class AffiliateExcelSyncServiceTest extends TestCase
         $this->assertSame('Aurora Group', $affiliate->group_name);
     }
 
-    public function test_type_change_to_external_keeps_existing_login_access(): void
+    public function test_type_change_to_online_keeps_existing_login_access(): void
     {
         $user = User::factory()->create([
             'affiliate_code' => 'TIT-0088',
@@ -106,26 +106,26 @@ class AffiliateExcelSyncServiceTest extends TestCase
         ]);
 
         $this->sync([
-            $this->row('TYPE CHANGE USER', 'Titan Group', 'external', ''),
+            $this->row('TYPE CHANGE USER', 'Titan Group', 'online', ''),
         ]);
 
         $affiliate->refresh();
         $this->assertSame(1, Affiliate::count());
         $this->assertSame('TIT-0088', $affiliate->affiliate_code);
-        $this->assertSame('external', $affiliate->affiliate_type);
+        $this->assertSame('online', $affiliate->affiliate_type);
         $this->assertSame($user->id, $affiliate->user_id);
         $this->assertDatabaseHas('users', ['id' => $user->id]);
     }
 
-    public function test_new_external_affiliate_gets_login_access_without_fake_email(): void
+    public function test_new_online_affiliate_gets_login_access_without_fake_email(): void
     {
         $this->sync([
-            $this->row('AFFILIATE LUAR USER', 'Titan Group', 'external', ''),
+            $this->row('AFFILIATE LUAR USER', 'Titan Group', 'online', ''),
         ]);
 
         $affiliate = Affiliate::query()->sole();
 
-        $this->assertSame('external', $affiliate->affiliate_type);
+        $this->assertSame('online', $affiliate->affiliate_type);
         $this->assertNotNull($affiliate->user_id);
         $this->assertNotNull($affiliate->affiliate_code);
         $this->assertNull($affiliate->user->email);
@@ -143,13 +143,13 @@ class AffiliateExcelSyncServiceTest extends TestCase
         $ummi = $this->externalAffiliate('UMMI ATIKAH BINTI DZULKIFLY', 'AUR-0003', 'Aurora Group');
 
         $result = $this->sync([
-            $this->row($azman->name, 'Aurora Group', 'external', '', ['affiliate_code' => $azman->affiliate_code]),
-            $this->row($amirul->name, 'Aurora Group', 'external', '', [
+            $this->row($azman->name, 'Aurora Group', 'online', '', ['affiliate_code' => $azman->affiliate_code]),
+            $this->row($amirul->name, 'Aurora Group', 'online', '', [
                 'affiliate_code' => $amirul->affiliate_code,
                 'raw_l1' => 'AMIRUL',
                 'raw_l2' => 'En Azman',
             ]),
-            $this->row($ummi->name, 'Aurora Group', 'external', '', [
+            $this->row($ummi->name, 'Aurora Group', 'online', '', [
                 'affiliate_code' => $ummi->affiliate_code,
                 'raw_l1' => 'AMIRUL',
                 'raw_l2' => 'En Azman',
@@ -181,8 +181,8 @@ class AffiliateExcelSyncServiceTest extends TestCase
         ]);
 
         $result = $this->sync([
-            $this->row('TARGET', 'SWG', 'external', 'target_name', ['affiliate_code' => 'SWG-0002']),
-            $this->row('TARGET', 'SWG', 'external', 'owned_name', ['affiliate_code' => 'SWG-0002']),
+            $this->row('TARGET', 'SWG', 'online', 'target_name', ['affiliate_code' => 'SWG-0002']),
+            $this->row('TARGET', 'SWG', 'online', 'owned_name', ['affiliate_code' => 'SWG-0002']),
         ]);
 
         $this->assertSame(2, TiktokAccount::count());
@@ -202,7 +202,7 @@ class AffiliateExcelSyncServiceTest extends TestCase
             ]);
         }
 
-        $rows = [$this->row($affiliate->name, 'Kaizen Group', 'external', 'keep_me', [
+        $rows = [$this->row($affiliate->name, 'Kaizen Group', 'online', 'keep_me', [
             'affiliate_code' => $affiliate->affiliate_code,
         ])];
 
@@ -220,14 +220,14 @@ class AffiliateExcelSyncServiceTest extends TestCase
         $missing = $this->externalAffiliate('MISSING', 'TIT-0002', 'Titan Group');
 
         $sync = $this->sync([
-            $this->row('PRESENT UPDATED', 'Titan Group', 'external', '', ['affiliate_code' => 'TIT-0001']),
+            $this->row('PRESENT UPDATED', 'Titan Group', 'online', '', ['affiliate_code' => 'TIT-0001']),
         ]);
 
         $this->assertSame('active', $missing->fresh()->status);
         $this->assertSame(1, $sync['summary']['missing_affiliates']);
 
         $append = $this->sync([
-            $this->row('SHOULD NOT UPDATE', 'Titan Group', 'external', '', ['affiliate_code' => 'TIT-0001']),
+            $this->row('SHOULD NOT UPDATE', 'Titan Group', 'online', '', ['affiliate_code' => 'TIT-0001']),
         ], ['import_mode' => 'append']);
 
         $this->assertSame('PRESENT UPDATED', $present->fresh()->name);
@@ -264,7 +264,7 @@ class AffiliateExcelSyncServiceTest extends TestCase
         ]);
 
         $this->sync([
-            $this->row('HISTORICAL UPDATED', 'Titan Group', 'external', '', ['affiliate_code' => 'TIT-0099']),
+            $this->row('HISTORICAL UPDATED', 'Titan Group', 'online', '', ['affiliate_code' => 'TIT-0099']),
         ]);
 
         $this->assertDatabaseHas('tiktok_orders', ['id' => $order->id, 'affiliate_id' => $affiliate->id]);
@@ -333,7 +333,7 @@ class AffiliateExcelSyncServiceTest extends TestCase
         return Affiliate::create(array_merge([
             'affiliate_code' => $code,
             'group_name' => $group,
-            'affiliate_type' => 'external',
+            'affiliate_type' => 'online',
             'name' => $name,
             'name_normalized' => strtolower($name),
             'status' => 'active',

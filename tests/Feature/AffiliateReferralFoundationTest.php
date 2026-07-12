@@ -17,7 +17,7 @@ class AffiliateReferralFoundationTest extends TestCase
     public function test_new_inhouse_and_external_affiliates_receive_unique_group_referral_codes(): void
     {
         $inhouse = $this->affiliate('Inhouse Member', 'Titan Group', 'inhouse');
-        $external = $this->affiliate('External Member', 'Aurora Group', 'external');
+        $external = $this->affiliate('External Member', 'Aurora Group', 'online');
 
         $this->assertNotNull($inhouse->fresh()->referral);
         $this->assertNotNull($external->fresh()->referral);
@@ -32,7 +32,7 @@ class AffiliateReferralFoundationTest extends TestCase
 
     public function test_existing_affiliate_without_referral_can_be_backfilled_without_overwriting_codes(): void
     {
-        $affiliate = Affiliate::withoutEvents(fn () => $this->affiliateAttributesCreate('Existing Member', 'SWG', 'external'));
+        $affiliate = Affiliate::withoutEvents(fn () => $this->affiliateAttributesCreate('Existing Member', 'SWG', 'online'));
         $service = app(AffiliateReferralService::class);
         $first = $service->ensureFor($affiliate);
         $second = $service->ensureFor($affiliate->fresh());
@@ -54,13 +54,13 @@ class AffiliateReferralFoundationTest extends TestCase
             ->assertSee($owner->fresh()->referral->referral_code)
             ->assertSee($owner->fresh()->referralUrl())
             ->assertDontSee($other->fresh()->referral->referral_code)
-            ->assertSee('Referral link copied.');
+            ->assertSee('Copy Link');
     }
 
     public function test_admin_can_view_disable_and_reenable_an_affiliate_referral(): void
     {
         $admin = $this->admin();
-        $affiliate = $this->affiliate('Managed Affiliate', 'Kaizen Group', 'external');
+        $affiliate = $this->affiliate('Managed Affiliate', 'Kaizen Group', 'online');
         $referral = $affiliate->fresh()->referral;
 
         $this->actingAs($admin)
@@ -84,7 +84,7 @@ class AffiliateReferralFoundationTest extends TestCase
 
     public function test_public_placeholder_accepts_only_active_referral_and_active_affiliate(): void
     {
-        $affiliate = $this->affiliate('Public Referrer', 'Titan Group', 'external');
+        $affiliate = $this->affiliate('Public Referrer', 'Titan Group', 'online');
         $referral = $affiliate->fresh()->referral;
 
         $this->get(route('public.affiliate-registration.show', strtolower($referral->referral_code)))
@@ -148,7 +148,7 @@ class AffiliateReferralFoundationTest extends TestCase
     private function affiliate(
         string $name,
         string $groupName,
-        string $type = 'external',
+        string $type = 'online',
         ?User $user = null,
     ): Affiliate {
         return $this->affiliateAttributesCreate($name, $groupName, $type, $user);
@@ -157,7 +157,7 @@ class AffiliateReferralFoundationTest extends TestCase
     private function affiliateAttributesCreate(
         string $name,
         string $groupName,
-        string $type = 'external',
+        string $type = 'online',
         ?User $user = null,
     ): Affiliate {
         return Affiliate::query()->create([

@@ -330,7 +330,7 @@ class CommissionReportScalabilityTest extends TestCase
             ->assertSee('entries_page=3', false);
     }
 
-    private function affiliate(string $name, string $groupName, string $affiliateType = 'external'): Affiliate
+    private function affiliate(string $name, string $groupName, string $affiliateType = 'online'): Affiliate
     {
         return Affiliate::query()->create([
             'user_id' => null,

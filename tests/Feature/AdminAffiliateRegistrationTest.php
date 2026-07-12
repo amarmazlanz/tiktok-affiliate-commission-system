@@ -469,14 +469,14 @@ class AdminAffiliateRegistrationTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('admin.affiliate-registrations.approve', $application->application_reference), $this->approvalData($upline, [
-                'affiliate_type' => 'external',
+                'affiliate_type' => 'online',
             ]))
             ->assertRedirect(route('admin.affiliate-registrations.index'))
             ->assertSessionHas('approved_login');
 
         $affiliate = Affiliate::query()->where('email', 'external-approved@example.com')->firstOrFail();
 
-        $this->assertSame('external', $affiliate->affiliate_type);
+        $this->assertSame('online', $affiliate->affiliate_type);
         $this->assertNotNull($affiliate->user);
         $this->assertSame('affiliate', $affiliate->user->role);
         $this->assertTrue($affiliate->user->must_change_password);
@@ -552,7 +552,7 @@ class AdminAffiliateRegistrationTest extends TestCase
             'affiliate_code' => $code,
             'upline_id' => null,
             'group_name' => $group,
-            'affiliate_type' => 'external',
+            'affiliate_type' => 'online',
             'name' => $name,
             'name_normalized' => strtolower($name),
             'email' => null,

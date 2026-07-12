@@ -435,7 +435,7 @@ class PublicAffiliateRegistrationTest extends TestCase
             'affiliate_code' => $code,
             'upline_id' => null,
             'group_name' => $group,
-            'affiliate_type' => $user ? 'inhouse' : 'external',
+            'affiliate_type' => $user ? 'inhouse' : 'online',
             'name' => $name,
             'name_normalized' => strtolower(preg_replace('/\s+/', ' ', trim($name))),
             'email' => $user?->email,
