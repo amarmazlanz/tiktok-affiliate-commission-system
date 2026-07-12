@@ -146,8 +146,8 @@
                                 <tr>
                                     <td class="whitespace-normal break-words font-medium leading-snug text-slate-950">{{ $result['sheet'] ?? '-' }}</td>
                                     <td>
-                                        <span class="badge {{ ($result['section'] ?? '') === 'external' ? 'badge-amber' : 'badge-teal' }}">
-                                            {{ ($result['section'] ?? '') === 'external' ? 'Affiliate Luar' : 'Inhouse' }}
+                                        <span class="badge {{ ($result['section'] ?? '') === 'online' ? 'badge-amber' : 'badge-teal' }}">
+                                            {{ ($result['section'] ?? '') === 'online' ? 'Online' : 'Inhouse' }}
                                         </span>
                                     </td>
                                     <td class="whitespace-normal break-words leading-snug text-slate-700">{{ $result['name'] ?? '-' }}</td>
@@ -169,7 +169,7 @@
                                         @php
                                             $badge = match ($result['status'] ?? '') {
                                                 'Inhouse Created' => 'badge-green',
-                                                'External Created' => 'badge-blue',
+                                                'Online Created' => 'badge-blue',
                                                 'Profile Updated' => 'badge-teal',
                                                 'Unchanged', 'Skipped Existing' => 'badge-gray',
                                                 'Missing From Latest' => 'badge-amber',

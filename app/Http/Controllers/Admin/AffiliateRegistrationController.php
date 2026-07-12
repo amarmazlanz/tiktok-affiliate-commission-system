@@ -151,7 +151,7 @@ class AffiliateRegistrationController extends Controller
         }
 
         $data = $request->validate([
-            'affiliate_type' => ['required', Rule::in(['inhouse', 'external'])],
+            'affiliate_type' => ['required', Rule::in(['inhouse', 'online'])],
             'group_name' => ['required', 'string', 'max:255'],
             'upline_id' => ['required', 'integer', 'exists:affiliates,id'],
             'upline_change_reason' => [

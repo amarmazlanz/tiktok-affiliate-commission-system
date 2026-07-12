@@ -208,8 +208,8 @@
                                     <td class="font-mono text-slate-700">{{ $row['affiliate']->affiliate_code ?: '-' }}</td>
                                     <td><span class="badge badge-blue">{{ $row['level'] }}</span></td>
                                     <td>
-                                        <span class="badge {{ $row['affiliate']->affiliate_type === 'external' ? 'badge-amber' : 'badge-teal' }}">
-                                            {{ $row['affiliate']->affiliate_type === 'external' ? 'Affiliate Luar' : 'Inhouse' }}
+                                        <span class="badge {{ $row['affiliate']->affiliate_type === 'online' ? 'badge-amber' : 'badge-teal' }}">
+                                            {{ $row['affiliate']->affiliate_type === 'online' ? 'Online' : 'Inhouse' }}
                                         </span>
                                     </td>
                                     <td class="money">{{ number_format($row['tiktok_account_count']) }}</td>

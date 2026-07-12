@@ -15,7 +15,7 @@
     @if (! $affiliate->exists)
         <p class="mt-1 text-xs text-slate-500">Login affiliate akan dibuat automatik dengan password default: password.</p>
     @elseif (! $affiliate->user)
-        <p class="mt-1 text-xs text-slate-500">Affiliate luar tidak mempunyai login access. Email boleh dibiarkan kosong.</p>
+        <p class="mt-1 text-xs text-slate-500">Affiliate online tidak mempunyai login access. Email boleh dibiarkan kosong.</p>
     @endif
 </div>
 

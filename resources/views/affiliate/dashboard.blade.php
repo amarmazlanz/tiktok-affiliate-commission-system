@@ -5,8 +5,8 @@
 @section('content')
     @php
         $statusBadge = fn (?string $status) => $status === 'active' ? 'badge-green' : 'badge-gray';
-        $typeLabel = ($affiliate?->affiliate_type ?? 'inhouse') === 'external' ? 'Affiliate Luar' : 'Inhouse';
-        $typeBadge = ($affiliate?->affiliate_type ?? 'inhouse') === 'external' ? 'badge-amber' : 'badge-teal';
+        $typeLabel = ($affiliate?->affiliate_type ?? 'inhouse') === 'online' ? 'Online' : 'Inhouse';
+        $typeBadge = ($affiliate?->affiliate_type ?? 'inhouse') === 'online' ? 'badge-amber' : 'badge-teal';
     @endphp
 
     <main class="min-h-screen bg-slate-100">

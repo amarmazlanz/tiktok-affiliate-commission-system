@@ -35,8 +35,8 @@
                     <p class="stat-value">{{ number_format($affectedCounts['inhouse']) }}</p>
                 </div>
                 <div class="stat-card">
-                    <p class="stat-label">Affiliate Luar Count</p>
-                    <p class="stat-value">{{ number_format($affectedCounts['external']) }}</p>
+                    <p class="stat-label">Online Count</p>
+                    <p class="stat-value">{{ number_format($affectedCounts['online']) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Never Logged In Count</p>

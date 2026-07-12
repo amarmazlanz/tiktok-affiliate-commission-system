@@ -75,7 +75,7 @@
                             <select id="hierarchy-type-filter" class="form-field">
                                 <option value="">All</option>
                                 <option value="inhouse">Inhouse</option>
-                                <option value="external">Affiliate Luar</option>
+                                <option value="online">Online</option>
                             </select>
                         </div>
 
@@ -125,7 +125,7 @@
                                 <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-amber-500"></span>Level 2</span>
                                 <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-slate-400"></span>Level 3+</span>
                                 <span class="badge badge-teal">Inhouse</span>
-                                <span class="badge badge-amber">Affiliate Luar</span>
+                                <span class="badge badge-amber">Online</span>
                             </div>
                         </div>
                         <div class="max-h-[70vh] overflow-y-auto overflow-x-hidden">
@@ -426,7 +426,7 @@
                         <tr>
                             <td class="font-medium text-slate-950">${escapeHtml(row.name)}<div class="font-mono text-xs font-normal text-slate-500">${escapeHtml(row.affiliate_code)}</div></td>
                             <td><span class="badge badge-blue">${escapeHtml(row.group_name)}</span></td>
-                            <td><span class="badge ${row.affiliate_type === 'external' ? 'badge-amber' : 'badge-teal'}">${row.affiliate_type === 'external' ? 'Affiliate Luar' : 'Inhouse'}</span></td>
+                            <td><span class="badge ${row.affiliate_type === 'online' ? 'badge-amber' : 'badge-teal'}">${row.affiliate_type === 'online' ? 'Online' : 'Inhouse'}</span></td>
                             <td class="text-slate-700">${escapeHtml(row.direct_upline)}</td>
                             <td><span class="badge ${row.position === 'Manager' ? 'badge-green' : 'badge-gray'}">${escapeHtml(row.position)}</span></td>
                             <td class="money text-slate-700">${row.direct_count}</td>

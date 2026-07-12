@@ -60,8 +60,8 @@
                     <span class="inline-flex rounded-full border px-2 py-0.5 text-[10px] font-black uppercase {{ $theme['label'] }}">{{ $levelLabel }}</span>
                     <span class="whitespace-normal break-words text-sm font-black leading-snug {{ $theme['name'] }}">{{ $member->name }}</span>
                     <span class="rounded bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-600">{{ $member->affiliate_code ?: '-' }}</span>
-                    <span class="badge {{ $member->affiliate_type === 'external' ? 'badge-amber' : 'badge-teal' }}">
-                        {{ $member->affiliate_type === 'external' ? 'Affiliate Luar' : 'Inhouse' }}
+                    <span class="badge {{ $member->affiliate_type === 'online' ? 'badge-amber' : 'badge-teal' }}">
+                        {{ $member->affiliate_type === 'online' ? 'Online' : 'Inhouse' }}
                     </span>
                     <span class="badge {{ $member->status === 'active' ? 'badge-green' : 'badge-gray' }}">{{ ucfirst($member->status) }}</span>
                 </div>

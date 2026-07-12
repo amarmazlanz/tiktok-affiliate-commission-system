@@ -48,8 +48,8 @@
                                     </td>
                                     <td class="text-slate-700">
                                         {{ $request->affiliate->group_name ?: '-' }}
-                                        <span class="badge {{ $request->affiliate->affiliate_type === 'external' ? 'badge-amber' : 'badge-teal' }} ml-1">
-                                            {{ $request->affiliate->affiliate_type === 'external' ? 'Affiliate Luar' : 'Inhouse' }}
+                                        <span class="badge {{ $request->affiliate->affiliate_type === 'online' ? 'badge-amber' : 'badge-teal' }} ml-1">
+                                            {{ $request->affiliate->affiliate_type === 'online' ? 'Online' : 'Inhouse' }}
                                         </span>
                                     </td>
                                     <td class="font-mono text-slate-950">{{ $request->requested_username }}</td>

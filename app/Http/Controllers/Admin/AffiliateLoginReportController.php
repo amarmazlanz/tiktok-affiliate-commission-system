@@ -64,7 +64,7 @@ class AffiliateLoginReportController extends Controller
         $affectedCounts = [
             'total' => $totalAffected,
             'inhouse' => (clone $affectedQuery)->where('affiliate_type', 'inhouse')->count(),
-            'external' => (clone $affectedQuery)->where('affiliate_type', 'external')->count(),
+            'online' => (clone $affectedQuery)->where('affiliate_type', 'online')->count(),
             'never_logged_in' => (clone $affectedQuery)->whereHas('user', fn (Builder $query) => $query->whereNull('last_login_at'))->count(),
             'must_change_password' => (clone $affectedQuery)->whereHas('user', fn (Builder $query) => $query->where('must_change_password', true))->count(),
             'existing_passwords_replaced' => (clone $affectedQuery)->whereNotNull('user_id')->count(),
@@ -310,7 +310,7 @@ class AffiliateLoginReportController extends Controller
     {
         return $request->validate([
             'group' => ['nullable', 'string', 'max:255'],
-            'type' => ['nullable', Rule::in(['inhouse', 'external'])],
+            'type' => ['nullable', Rule::in(['inhouse', 'online'])],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
             'search' => ['nullable', 'string', 'max:255'],
             'selected' => ['nullable', 'array'],

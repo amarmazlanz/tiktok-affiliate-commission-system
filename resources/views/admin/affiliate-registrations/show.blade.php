@@ -159,7 +159,7 @@
                         </div>
                         <div>
                             <p class="text-xs font-bold uppercase text-slate-500">Affiliate Type</p>
-                            <p class="mt-1 font-semibold text-slate-950">{{ $application->approved_affiliate_type === 'external' ? 'Affiliate Luar' : 'Inhouse' }}</p>
+                            <p class="mt-1 font-semibold text-slate-950">{{ $application->approved_affiliate_type === 'online' ? 'Online' : 'Inhouse' }}</p>
                         </div>
                         <div>
                             <p class="text-xs font-bold uppercase text-slate-500">Approved Group</p>
@@ -200,7 +200,7 @@
                                 <label for="affiliate_type" class="block text-xs font-bold uppercase text-slate-500">Affiliate Type</label>
                                 <select id="affiliate_type" name="affiliate_type" class="form-field">
                                     <option value="inhouse" @selected(old('affiliate_type', 'inhouse') === 'inhouse')>Inhouse</option>
-                                    <option value="external" @selected(old('affiliate_type') === 'external')>Affiliate Luar</option>
+                                    <option value="online" @selected(old('affiliate_type') === 'online')>Online</option>
                                 </select>
                                 @error('affiliate_type')<p class="mt-2 text-sm font-semibold text-red-600">{{ $message }}</p>@enderror
                             </div>

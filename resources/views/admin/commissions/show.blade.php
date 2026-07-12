@@ -199,8 +199,8 @@
                                     <tr class="hover:bg-slate-50">
                                         <td class="whitespace-normal break-words px-3 py-3 leading-snug">
                                             <span class="font-medium text-slate-950">{{ $summary->affiliate_name }}</span>
-                                            @if ($summary->affiliate_type === 'external')
-                                                <span class="mt-1 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Affiliate Luar</span>
+                                            @if ($summary->affiliate_type === 'online')
+                                                <span class="mt-1 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Online</span>
                                             @endif
                                         </td>
                                         <td class="whitespace-nowrap px-3 py-3 text-right text-slate-700">{{ $money($summary->total_sales) }}</td>
@@ -228,8 +228,8 @@
                     @forelse ($summaries as $summary)
                         <article class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
                             <h3 class="break-words text-sm font-bold leading-snug text-slate-950">{{ $summary->affiliate_name }}</h3>
-                            @if ($summary->affiliate_type === 'external')
-                                <span class="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Affiliate Luar</span>
+                            @if ($summary->affiliate_type === 'online')
+                                <span class="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Online</span>
                             @endif
                             <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                                 <div><dt class="text-xs font-bold uppercase text-slate-500">Sales</dt><dd class="whitespace-nowrap font-semibold text-slate-900">{{ $money($summary->total_sales) }}</dd></div>

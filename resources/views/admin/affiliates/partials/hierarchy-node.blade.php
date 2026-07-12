@@ -48,8 +48,8 @@
         'name' => $affiliate->name,
         'affiliate_code' => $affiliate->affiliate_code ?? '-',
         'group_name' => $affiliate->group_name ?? '-',
-        'affiliate_type' => $affiliate->affiliate_type === 'external'
-            ? 'Affiliate Luar'
+        'affiliate_type' => $affiliate->affiliate_type === 'online'
+            ? 'Online'
             : 'Inhouse',
         'position' => $position,
         'status' => ucfirst($affiliate->status),
@@ -114,8 +114,8 @@
                     @if ($isRoot)
                         <span class="badge badge-blue">{{ $affiliate->group_name ?: '-' }}</span>
                     @endif
-                    <span class="badge {{ $affiliate->affiliate_type === 'external' ? 'badge-amber' : 'badge-teal' }}">
-                        {{ $affiliate->affiliate_type === 'external' ? 'Affiliate Luar' : 'Inhouse' }}
+                    <span class="badge {{ $affiliate->affiliate_type === 'online' ? 'badge-amber' : 'badge-teal' }}">
+                        {{ $affiliate->affiliate_type === 'online' ? 'Online' : 'Inhouse' }}
                     </span>
                     <span class="badge {{ $position === 'Manager' ? 'badge-green' : 'badge-gray' }}">
                         {{ $position }}

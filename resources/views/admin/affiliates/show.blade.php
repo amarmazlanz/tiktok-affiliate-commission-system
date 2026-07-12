@@ -73,7 +73,7 @@
                     </div>
                     <div>
                         <dt class="font-medium text-slate-500">Type</dt>
-                        <dd class="mt-1"><span class="badge {{ $affiliate->affiliate_type === 'external' ? 'badge-amber' : 'badge-teal' }}">{{ $affiliate->affiliate_type === 'external' ? 'Affiliate Luar' : 'Inhouse' }}</span></dd>
+                        <dd class="mt-1"><span class="badge {{ $affiliate->affiliate_type === 'online' ? 'badge-amber' : 'badge-teal' }}">{{ $affiliate->affiliate_type === 'online' ? 'Online' : 'Inhouse' }}</span></dd>
                     </div>
                     <div>
                         <dt class="font-medium text-slate-500">Login ID</dt>

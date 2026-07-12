@@ -151,7 +151,7 @@ class AffiliateExcelSyncService
         foreach ($rows as $row) {
             $name = $this->normalizeDisplayName((string) ($row['name'] ?? ''));
             $group = $this->normalizeDisplayName((string) ($row['group_name'] ?? 'Unknown Group'));
-            $type = ($row['affiliate_type'] ?? 'inhouse') === 'external' ? 'external' : 'inhouse';
+            $type = in_array(($row['affiliate_type'] ?? 'inhouse'), ['external', 'online'], true) ? 'online' : 'inhouse';
             $code = strtoupper(trim((string) ($row['affiliate_code'] ?? '')));
             $key = $code !== ''
                 ? 'code|'.$code
@@ -366,7 +366,7 @@ class AffiliateExcelSyncService
         }
 
         $status = $created
-            ? ($profile['affiliate_type'] === 'external' ? 'External Created' : 'Inhouse Created')
+            ? ($profile['affiliate_type'] === 'online' ? 'Online Created' : 'Inhouse Created')
             : ($changed ? 'Profile Updated' : 'Unchanged');
 
         return [
@@ -490,9 +490,9 @@ class AffiliateExcelSyncService
 
         return [
             'total_rows' => $totalRows,
-            'new_created' => $collection->whereIn('profile_status', ['Inhouse Created', 'External Created'])->count(),
+            'new_created' => $collection->whereIn('profile_status', ['Inhouse Created', 'Online Created'])->count(),
             'inhouse_created' => $collection->where('profile_status', 'Inhouse Created')->count(),
-            'external_created' => $collection->where('profile_status', 'External Created')->count(),
+            'online_created' => $collection->where('profile_status', 'Online Created')->count(),
             'updated' => $collection->where('profile_status', 'Profile Updated')->count(),
             'unchanged' => $collection->where('profile_status', 'Unchanged')->count(),
             'tiktok_added' => $collection->sum(fn (array $result): int => count($result['tiktok_added'] ?? [])),

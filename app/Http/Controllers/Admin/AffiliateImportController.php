@@ -77,7 +77,7 @@ class AffiliateImportController extends Controller
             ->whereIn('group_name', array_values($groups) ?: [''])
             ->get()
             ->each(function (Affiliate $affiliate) use (&$affiliatesByKey): void {
-                $key = strtolower((string) $affiliate->group_name).'|'.($affiliate->affiliate_type === 'external' ? 'external' : 'inhouse').'|'.$this->normalizeName($affiliate->name);
+                $key = strtolower((string) $affiliate->group_name).'|'.($affiliate->affiliate_type === 'online' ? 'online' : 'inhouse').'|'.$this->normalizeName($affiliate->name);
                 $affiliatesByKey[$key] = $affiliate;
             });
 
@@ -130,7 +130,7 @@ class AffiliateImportController extends Controller
         $originalName = $this->normalizeDisplayName($row['name'] ?? '');
         $nameNormalized = $this->normalizeName($originalName);
         $groupName = $this->normalizeDisplayName($row['group_name'] ?? 'Unknown Group');
-        $affiliateType = ($row['affiliate_type'] ?? 'inhouse') === 'external' ? 'external' : 'inhouse';
+        $affiliateType = ($row['affiliate_type'] ?? 'inhouse') === 'online' ? 'online' : 'inhouse';
         $rawUsername = trim((string) ($row['tiktok_username'] ?? ''));
         $usernameNormalized = $this->normalizeUsername($rawUsername);
         $affiliateKey = strtolower($groupName).'|'.$affiliateType.'|'.$nameNormalized;
@@ -196,7 +196,7 @@ class AffiliateImportController extends Controller
                 'status' => 'active',
             ]);
 
-            $profileStatus = $affiliateType === 'inhouse' ? 'Inhouse Created' : 'External Created';
+            $profileStatus = $affiliateType === 'inhouse' ? 'Inhouse Created' : 'Online Created';
             $importState['profile_status_by_key'][$affiliateKey] = $profileStatus;
         } else {
             $affiliate->update([
@@ -581,7 +581,7 @@ class AffiliateImportController extends Controller
                 $rows[] = [
                     'affiliate_code' => $row['affiliate code'] ?? $row['affiliate_code'] ?? $row['kod affiliate'] ?? '',
                     'group_name' => $this->normalizeDisplayName((string) ($row['group_name'] ?? $row['group'] ?? 'CSV Import')),
-                    'affiliate_type' => strtolower((string) ($row['affiliate_type'] ?? $row['type'] ?? 'inhouse')) === 'external' ? 'external' : 'inhouse',
+                    'affiliate_type' => in_array(strtolower((string) ($row['affiliate_type'] ?? $row['type'] ?? 'inhouse')), ['external', 'online'], true) ? 'online' : 'inhouse',
                     'name' => $row['nama penuh'] ?? $row['name'] ?? $row['nama'] ?? '',
                     'phone' => $row['phone'] ?? '',
                     'status' => $row['status'] ?? '',
@@ -714,8 +714,8 @@ class AffiliateImportController extends Controller
     {
         $text = strtolower(implode(' ', array_map(fn ($value) => trim((string) $value), $row)));
 
-        if (str_contains($text, 'affiliate luar')) {
-            return 'external';
+        if (str_contains($text, 'affiliate luar') || str_contains($text, 'online')) {
+            return 'online';
         }
 
         if (str_contains($text, 'inhouse')) {

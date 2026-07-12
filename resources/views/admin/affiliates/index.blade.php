@@ -79,7 +79,7 @@
                     <select id="type" name="type" class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100">
                         <option value="">All Types</option>
                         <option value="inhouse" @selected(($filters['type'] ?? '') === 'inhouse')>Inhouse</option>
-                        <option value="external" @selected(($filters['type'] ?? '') === 'external')>Affiliate Luar</option>
+                        <option value="online" @selected(($filters['type'] ?? '') === 'online')>Online</option>
                     </select>
                 </div>
                 <div>
@@ -108,7 +108,7 @@
                 <div>
                     <p class="text-sm font-bold text-slate-950">Affiliate Login Report</p>
                     <p class="mt-1 max-w-3xl text-sm text-slate-600">
-                        Generate secure temporary passwords for affiliate login accounts (Inhouse and Affiliate Luar). Passwords are shown once in the printable report and are never stored as plain text.
+                        Generate secure temporary passwords for affiliate login accounts (Inhouse and Online). Passwords are shown once in the printable report and are never stored as plain text.
                     </p>
                     <p class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
                         This action will replace the current passwords of the affected affiliates, or create a login if one does not exist yet. Their existing passwords will stop working immediately.
@@ -183,8 +183,8 @@
                                         <span class="badge badge-blue">{{ $affiliate->group_name ?: '-' }}</span>
                                     </td>
                                     <td>
-                                        <span class="badge {{ $affiliate->affiliate_type === 'external' ? 'badge-amber' : 'badge-teal' }}">
-                                            {{ $affiliate->affiliate_type === 'external' ? 'Affiliate Luar' : 'Inhouse' }}
+                                        <span class="badge {{ $affiliate->affiliate_type === 'online' ? 'badge-amber' : 'badge-teal' }}">
+                                            {{ $affiliate->affiliate_type === 'online' ? 'Online' : 'Inhouse' }}
                                         </span>
                                     </td>
                                     <td class="text-slate-700">
