@@ -33,9 +33,15 @@
                         <p class="mt-4 text-sm text-emerald-900">Your application will be reviewed by the administrator before activation.</p>
                     </div>
 
+                    @php($resolvedType = old('proposed_affiliate_type', $proposedType ?? 'online'))
+                    <div class="rounded-lg border {{ $resolvedType === 'inhouse' ? 'border-teal-200 bg-teal-50' : 'border-amber-200 bg-amber-50' }} px-4 py-3 text-sm font-semibold {{ $resolvedType === 'inhouse' ? 'text-teal-800' : 'text-amber-800' }}">
+                        Pendaftaran sebagai: <span class="font-black">{{ $resolvedType === 'inhouse' ? 'Affiliate Inhouse' : 'Affiliate Online' }}</span>
+                    </div>
+
                     <form method="POST" action="{{ route('public.affiliate-registration.store', $referral->referral_code) }}" class="space-y-6" data-registration-form>
                         @csrf
                         <input type="hidden" name="referral_code" value="{{ $referral->referral_code }}">
+                        <input type="hidden" name="proposed_affiliate_type" value="{{ $resolvedType }}">
                         <div class="absolute -left-[9999px]" aria-hidden="true">
                             <label for="website">Website</label>
                             <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">

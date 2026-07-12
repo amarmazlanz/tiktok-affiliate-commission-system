@@ -29,6 +29,7 @@
             ['Invited By', $application->referrer?->name ?: '-'],
             ['Proposed Upline', $application->proposedUpline?->name ?: '-'],
             ['Proposed Group', $application->proposed_group_name ?: '-'],
+            ['Proposed Affiliate Type', $application->proposed_affiliate_type === 'inhouse' ? 'Inhouse' : ($application->proposed_affiliate_type === 'online' ? 'Online' : '-')],
             ['Submitted At', $application->submitted_at?->format('d M Y, h:i A') ?? '-'],
             ['Consent Timestamp', $application->consent_at?->format('d M Y, h:i A') ?? '-'],
             ['Duplicate Status', ucfirst(str_replace('_', ' ', (string) $application->duplicate_status))],
@@ -199,8 +200,9 @@
                             <div>
                                 <label for="affiliate_type" class="block text-xs font-bold uppercase text-slate-500">Affiliate Type</label>
                                 <select id="affiliate_type" name="affiliate_type" class="form-field">
-                                    <option value="inhouse" @selected(old('affiliate_type', 'inhouse') === 'inhouse')>Inhouse</option>
-                                    <option value="online" @selected(old('affiliate_type') === 'online')>Online</option>
+                                    @php($defaultType = old('affiliate_type', $application->proposed_affiliate_type ?? 'inhouse'))
+                                    <option value="inhouse" @selected($defaultType === 'inhouse')>Inhouse</option>
+                                    <option value="online" @selected($defaultType === 'online')>Online</option>
                                 </select>
                                 @error('affiliate_type')<p class="mt-2 text-sm font-semibold text-red-600">{{ $message }}</p>@enderror
                             </div>

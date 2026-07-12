@@ -14,11 +14,14 @@ class InviteController extends Controller
         $affiliate = $request->user()->affiliate;
         abort_unless($affiliate, 404);
         $referral = $referrals->ensureFor($affiliate);
+        $baseUrl = $affiliate->referralUrl();
 
         return view('affiliate.invite', [
             'affiliate' => $affiliate,
             'referral' => $referral,
             'referralEnabled' => $affiliate->status === 'active' && $referral->is_active,
+            'inhouseInviteUrl' => $baseUrl.'?type=inhouse',
+            'onlineInviteUrl' => $baseUrl.'?type=online',
         ]);
     }
 }

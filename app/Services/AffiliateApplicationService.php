@@ -178,6 +178,9 @@ class AffiliateApplicationService
                 'referrer_affiliate_id' => $referral->affiliate_id,
                 'proposed_upline_id' => $referral->affiliate_id,
                 'proposed_group_name' => $referral->affiliate->group_name,
+                'proposed_affiliate_type' => in_array($data['proposed_affiliate_type'] ?? null, ['inhouse', 'online'], true)
+                    ? $data['proposed_affiliate_type']
+                    : null,
                 'full_name' => trim($data['full_name']),
                 'normalized_name' => $normalized['name'],
                 'nric_encrypted' => $nric,

@@ -22,9 +22,14 @@ class PublicAffiliateRegistrationController extends Controller
             return $this->invalidReferralResponse();
         }
 
+        $proposedType = in_array(request()->query('type'), ['inhouse', 'online'], true)
+            ? request()->query('type')
+            : 'online';
+
         return view('public.affiliate-registration', [
             'isValid' => true,
             'referral' => $referral,
+            'proposedType' => $proposedType,
         ]);
     }
 
@@ -59,6 +64,7 @@ class PublicAffiliateRegistrationController extends Controller
             'consent' => ['accepted'],
             'website' => ['nullable', 'max:0'],
             'referral_code' => ['nullable', Rule::in([$referral->referral_code])],
+            'proposed_affiliate_type' => ['nullable', Rule::in(['inhouse', 'online'])],
         ], [
             'full_name.regex' => 'Full name contains unsupported characters.',
             'tiktok_username.regex' => 'TikTok username may contain letters, numbers, underscore, and period only.',

@@ -13,6 +13,7 @@ class AffiliateApplication extends Model
         'referrer_affiliate_id',
         'proposed_upline_id',
         'proposed_group_name',
+        'proposed_affiliate_type',
         'full_name',
         'normalized_name',
         'nric_encrypted',
