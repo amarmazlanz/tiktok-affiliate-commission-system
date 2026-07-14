@@ -4,30 +4,6 @@
 
 @section('content')
     <main class="min-h-screen bg-slate-100">
-        <header class="border-b border-slate-200 bg-white">
-            <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-                <div>
-                    <p class="text-sm font-medium text-emerald-700">Admin</p>
-                    <h1 class="text-xl font-semibold text-slate-950">Upload History</h1>
-                </div>
-                <div class="flex items-center gap-3">
-                    @if ($totalOrders > 0)
-                        <form method="POST" action="{{ route('admin.orders.destroy-all') }}"
-                            onsubmit="return confirm('⚠️ PADAM SEMUA DATA ORDERS\n\n{{ number_format($totalOrders) }} orders akan dipadam dari database, termasuk orders lama yang tiada dalam senarai upload di bawah.\n\nCommission runs yang sudah dikira TIDAK akan terjejas, tetapi jika kau kira semula commission selepas ini, hasilnya akan kosong.\n\nTaip OK untuk teruskan.')">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn-danger">
-                                Padam Semua Orders ({{ number_format($totalOrders) }})
-                            </button>
-                        </form>
-                    @endif
-                    <a href="{{ route('admin.orders.upload') }}" class="btn-primary">
-                        Upload CSV Baru
-                    </a>
-                </div>
-            </div>
-        </header>
-
         <section class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
             @if (session('success'))
                 <div class="mb-5 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -36,9 +12,26 @@
             @endif
 
             <div class="app-card overflow-hidden">
-                <div class="border-b border-slate-200 px-6 py-5">
-                    <h2 class="text-lg font-semibold text-slate-950">Senarai Upload</h2>
-                    <p class="mt-1 text-sm text-slate-500">Setiap baris adalah satu sesi upload CSV. Delete akan padam semua orders dalam sesi tersebut.</p>
+                <div class="flex items-start justify-between border-b border-slate-200 px-6 py-5">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-950">Senarai Upload</h2>
+                        <p class="mt-1 text-sm text-slate-500">Setiap baris adalah satu sesi upload CSV. Delete akan padam semua orders dalam sesi tersebut.</p>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-3 pl-4">
+                        @if ($totalOrders > 0)
+                            <form method="POST" action="{{ route('admin.orders.destroy-all') }}"
+                                onsubmit="return confirm('PADAM SEMUA DATA ORDERS\n\n{{ number_format($totalOrders) }} orders akan dipadam dari database, termasuk orders lama yang tiada dalam senarai di bawah.\n\nJika kau kira semula commission selepas ini, hasilnya akan kosong.\n\nTekan OK untuk teruskan.')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn-danger">
+                                    Padam Semua Orders ({{ number_format($totalOrders) }})
+                                </button>
+                            </form>
+                        @endif
+                        <a href="{{ route('admin.orders.upload') }}" class="btn-primary">
+                            Upload CSV Baru
+                        </a>
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto">
