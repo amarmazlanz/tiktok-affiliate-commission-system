@@ -153,15 +153,8 @@ class CommissionCalculatorService
         return TiktokOrder::query()
             ->where('order_status', 'Settled')
             ->where('estimated_commission_base', '>', 0)
-            ->where(function ($query) use ($start, $end): void {
-                $query
-                    ->whereBetween('time_commission_paid', [$start, $end])
-                    ->orWhere(function ($query) use ($start, $end): void {
-                        $query
-                            ->whereNull('time_commission_paid')
-                            ->whereBetween('time_created', [$start, $end]);
-                    });
-            });
+            ->whereNotNull('time_commission_paid')
+            ->whereBetween('time_commission_paid', [$start, $end]);
     }
 
     private function affiliateData(): array

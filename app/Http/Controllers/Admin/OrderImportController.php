@@ -300,11 +300,7 @@ class OrderImportController extends Controller
             }
         }
 
-        try {
-            return Carbon::parse($value);
-        } catch (\Throwable) {
-            return null;
-        }
+        return null;
     }
 
     private function nullableString(mixed $value): ?string

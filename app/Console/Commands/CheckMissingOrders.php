@@ -28,13 +28,8 @@ class CheckMissingOrders extends Command
             ->whereNull('affiliate_id')
             ->where('order_status', 'Settled')
             ->where('creator_username_normalized', 'like', "%{$username}%")
-            ->where(function ($q) use ($start, $end): void {
-                $q->whereBetween('time_commission_paid', [$start, $end])
-                    ->orWhere(function ($q) use ($start, $end): void {
-                        $q->whereNull('time_commission_paid')
-                            ->whereBetween('time_created', [$start, $end]);
-                    });
-            })
+            ->whereNotNull('time_commission_paid')
+            ->whereBetween('time_commission_paid', [$start, $end])
             ->orderBy('time_commission_paid')
             ->get(['order_id', 'creator_username', 'estimated_commission_base', 'time_commission_paid']);
 
@@ -69,13 +64,8 @@ class CheckMissingOrders extends Command
         $excluded = TiktokOrder::query()
             ->whereIn('affiliate_id', $affiliateIds)
             ->where('order_status', 'Settled')
-            ->where(function ($q) use ($start, $end): void {
-                $q->whereBetween('time_commission_paid', [$start, $end])
-                    ->orWhere(function ($q) use ($start, $end): void {
-                        $q->whereNull('time_commission_paid')
-                            ->whereBetween('time_created', [$start, $end]);
-                    });
-            })
+            ->whereNotNull('time_commission_paid')
+            ->whereBetween('time_commission_paid', [$start, $end])
             ->where(function ($q): void {
                 $q->whereNull('estimated_commission_base')
                     ->orWhere('estimated_commission_base', '<=', 0);
@@ -130,13 +120,8 @@ class CheckMissingOrders extends Command
             ->whereIn('affiliate_id', $affiliateIds)
             ->where('order_status', 'Settled')
             ->where('estimated_commission_base', '>', 0)
-            ->where(function ($q) use ($start, $end): void {
-                $q->whereBetween('time_commission_paid', [$start, $end])
-                    ->orWhere(function ($q) use ($start, $end): void {
-                        $q->whereNull('time_commission_paid')
-                            ->whereBetween('time_created', [$start, $end]);
-                    });
-            })
+            ->whereNotNull('time_commission_paid')
+            ->whereBetween('time_commission_paid', [$start, $end])
             ->sum('estimated_commission_base');
 
         $this->line('');

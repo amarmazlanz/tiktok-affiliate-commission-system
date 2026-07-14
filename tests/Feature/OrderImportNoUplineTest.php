@@ -48,8 +48,8 @@ class OrderImportNoUplineTest extends TestCase
 
         $csv = implode("\n", [
             'Order ID,Creator Username,Order Status,Est. Commission Base,Actual Commission Base,Actual Commission Payment,Payment Amount,Currency,Quantity,Time Created,Payment time,Time Commission Paid,Platform',
-            'ORD-MAPPED,@ali_shop,Settled,100.00,100.00,10.00,100.00,MYR,1,2026-04-10 10:00:00,,,TikTok',
-            'ORD-NO-UPLINE,@unknown_shop,Settled,250.00,250.00,25.00,250.00,MYR,1,2026-04-11 10:00:00,,,TikTok',
+            'ORD-MAPPED,@ali_shop,Settled,100.00,100.00,10.00,100.00,MYR,1,2026-04-10 10:00:00,,2026-04-10 10:00:00,TikTok',
+            'ORD-NO-UPLINE,@unknown_shop,Settled,250.00,250.00,25.00,250.00,MYR,1,2026-04-11 10:00:00,,2026-04-11 10:00:00,TikTok',
         ]);
 
         $file = UploadedFile::fake()->createWithContent('orders.csv', $csv);
