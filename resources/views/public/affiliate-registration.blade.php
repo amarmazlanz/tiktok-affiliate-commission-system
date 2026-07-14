@@ -33,7 +33,9 @@
                         <p class="mt-4 text-sm text-emerald-900">Your application will be reviewed by the administrator before activation.</p>
                     </div>
 
-                    @php($resolvedType = old('proposed_affiliate_type', $proposedType ?? 'online'))
+                    @php
+                        $resolvedType = old('proposed_affiliate_type', $proposedType ?? 'online');
+                    @endphp
                     <div class="rounded-lg border {{ $resolvedType === 'inhouse' ? 'border-teal-200 bg-teal-50' : 'border-amber-200 bg-amber-50' }} px-4 py-3 text-sm font-semibold {{ $resolvedType === 'inhouse' ? 'text-teal-800' : 'text-amber-800' }}">
                         Pendaftaran sebagai: <span class="font-black">{{ $resolvedType === 'inhouse' ? 'Affiliate Inhouse' : 'Affiliate Online' }}</span>
                     </div>

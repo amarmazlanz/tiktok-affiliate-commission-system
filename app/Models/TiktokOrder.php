@@ -13,6 +13,7 @@ class TiktokOrder extends Model
 
     protected $fillable = [
         'order_id',
+        'order_import_id',
         'affiliate_id',
         'sales_source',
         'creator_username',
@@ -44,6 +45,11 @@ class TiktokOrder extends Model
             'time_commission_paid' => 'datetime',
             'raw_data' => 'array',
         ];
+    }
+
+    public function orderImport(): BelongsTo
+    {
+        return $this->belongsTo(OrderImport::class);
     }
 
     public function affiliate(): BelongsTo

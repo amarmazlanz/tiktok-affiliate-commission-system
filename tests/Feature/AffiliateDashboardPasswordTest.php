@@ -105,8 +105,9 @@ class AffiliateDashboardPasswordTest extends TestCase
 
         $this->actingAs($user)->get(route('affiliate.invite'))
             ->assertOk()
-            ->assertSee('Share this link with a new applicant.')
-            ->assertSee('Online registration and approval are not active yet.');
+            ->assertSee('Use the appropriate link below to invite new affiliates to your downline.')
+            ->assertSee('Inhouse Affiliate Invite Link')
+            ->assertSee('Online Affiliate Invite Link');
 
         $this->actingAs($user)->get(route('affiliate.settings'))
             ->assertOk()

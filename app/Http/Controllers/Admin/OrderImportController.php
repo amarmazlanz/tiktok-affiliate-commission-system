@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\OrderImport;
 use App\Models\TiktokAccount;
 use App\Models\TiktokOrder;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\View\View;
@@ -19,6 +21,16 @@ class OrderImportController extends Controller
         'Order Status',
         'Est. Commission Base',
     ];
+
+    public function index(): View
+    {
+        $imports = OrderImport::query()
+            ->with('importedBy')
+            ->latest()
+            ->paginate(25);
+
+        return view('admin.orders.index', compact('imports'));
+    }
 
     public function create(): View
     {
@@ -56,8 +68,14 @@ class OrderImportController extends Controller
                     'missing_columns' => $missingColumns,
                     'sample_skipped_rows' => [],
                 ],
+                'import' => null,
             ]);
         }
+
+        $import = OrderImport::query()->create([
+            'imported_by' => $request->user()?->id,
+            'file_name' => $file->getClientOriginalName(),
+        ]);
 
         $accounts = TiktokAccount::query()
             ->get(['affiliate_id', 'username_normalized'])
@@ -119,6 +137,7 @@ class OrderImportController extends Controller
             }
 
             $orderData = [
+                'order_import_id' => $import->id,
                 'affiliate_id' => $account?->affiliate_id,
                 'sales_source' => $isMatched ? 'mapped_affiliate' : 'no_upline',
                 'creator_username' => $creatorUsername,
@@ -154,7 +173,25 @@ class OrderImportController extends Controller
             $this->flushOrderBatch($pendingOrders, $summary);
         }
 
-        return view('admin.orders.result', compact('summary'));
+        $import->update([
+            'total_rows' => $summary['total_rows'],
+            'inserted_orders' => $summary['inserted_orders'],
+            'updated_orders' => $summary['updated_orders'],
+            'skipped_rows' => $summary['skipped_invalid_rows'],
+            'matched_orders' => $summary['matched_orders'],
+            'no_upline_orders' => $summary['no_upline_orders'],
+            'total_sales' => round($summary['total_sales_imported'], 2),
+        ]);
+
+        return view('admin.orders.result', compact('summary', 'import'));
+    }
+
+    public function destroy(OrderImport $orderImport): RedirectResponse
+    {
+        $orderImport->delete();
+
+        return redirect()->route('admin.orders.index')
+            ->with('success', "Upload '{$orderImport->file_name}' dan semua orders berkaitan telah dipadam.");
     }
 
     private function flushOrderBatch(array $orders, array &$summary): void
@@ -170,6 +207,7 @@ class OrderImportController extends Controller
             array_values($orders),
             ['order_id'],
             [
+                'order_import_id',
                 'affiliate_id',
                 'sales_source',
                 'creator_username',

@@ -123,8 +123,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('tiktok-account-requests/{tiktokAccountRequest}/approve', [TiktokAccountRequestController::class, 'approve'])->name('tiktok-account-requests.approve');
     Route::post('tiktok-account-requests/{tiktokAccountRequest}/reject', [TiktokAccountRequestController::class, 'reject'])->name('tiktok-account-requests.reject');
 
+    Route::get('orders', [OrderImportController::class, 'index'])->name('orders.index');
     Route::get('orders/upload', [OrderImportController::class, 'create'])->name('orders.upload');
     Route::post('orders/upload', [OrderImportController::class, 'store'])->name('orders.import');
+    Route::delete('orders/{orderImport}', [OrderImportController::class, 'destroy'])->name('orders.destroy');
 
     Route::get('commissions', [CommissionController::class, 'index'])->name('commissions.index');
     Route::post('commissions', [CommissionController::class, 'store'])->name('commissions.store');

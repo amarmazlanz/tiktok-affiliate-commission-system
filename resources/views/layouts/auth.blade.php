@@ -76,7 +76,7 @@
                     ['label' => 'Affiliate Hierarchy', 'route' => route('admin.affiliates.hierarchy'), 'active' => request()->routeIs('admin.affiliates.hierarchy'), 'icon' => 'hierarchy', 'indent' => true],
                     ['label' => 'Pending Registrations', 'route' => route('admin.affiliate-registrations.index'), 'active' => request()->routeIs('admin.affiliate-registrations.*'), 'icon' => 'registrations'],
                     ['label' => 'TikTok Account Requests', 'route' => route('admin.tiktok-account-requests.index'), 'active' => request()->routeIs('admin.tiktok-account-requests.*'), 'icon' => 'tiktok'],
-                    ['label' => 'CSV Upload', 'route' => route('admin.orders.upload'), 'active' => request()->routeIs('admin.orders.*'), 'icon' => 'upload'],
+                    ['label' => 'Upload History', 'route' => route('admin.orders.index'), 'active' => request()->routeIs('admin.orders.*'), 'icon' => 'upload'],
                     ['label' => 'Commission Runs', 'route' => route('admin.commissions.index'), 'active' => request()->routeIs('admin.commissions.*'), 'icon' => 'report'],
                     ['label' => 'Admin Settings', 'route' => route('admin.settings.edit'), 'active' => request()->routeIs('admin.settings.*'), 'icon' => 'settings'],
                 ]
