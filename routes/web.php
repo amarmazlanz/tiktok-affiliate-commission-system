@@ -126,6 +126,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('orders', [OrderImportController::class, 'index'])->name('orders.index');
     Route::get('orders/upload', [OrderImportController::class, 'create'])->name('orders.upload');
     Route::post('orders/upload', [OrderImportController::class, 'store'])->name('orders.import');
+    Route::delete('orders', [OrderImportController::class, 'destroyAll'])->name('orders.destroy-all');
     Route::delete('orders/{orderImport}', [OrderImportController::class, 'destroy'])->name('orders.destroy');
 
     Route::get('commissions', [CommissionController::class, 'index'])->name('commissions.index');

@@ -10,9 +10,21 @@
                     <p class="text-sm font-medium text-emerald-700">Admin</p>
                     <h1 class="text-xl font-semibold text-slate-950">Upload History</h1>
                 </div>
-                <a href="{{ route('admin.orders.upload') }}" class="btn-primary">
-                    Upload CSV Baru
-                </a>
+                <div class="flex items-center gap-3">
+                    @if ($totalOrders > 0)
+                        <form method="POST" action="{{ route('admin.orders.destroy-all') }}"
+                            onsubmit="return confirm('⚠️ PADAM SEMUA DATA ORDERS\n\n{{ number_format($totalOrders) }} orders akan dipadam dari database, termasuk orders lama yang tiada dalam senarai upload di bawah.\n\nCommission runs yang sudah dikira TIDAK akan terjejas, tetapi jika kau kira semula commission selepas ini, hasilnya akan kosong.\n\nTaip OK untuk teruskan.')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn-danger">
+                                Padam Semua Orders ({{ number_format($totalOrders) }})
+                            </button>
+                        </form>
+                    @endif
+                    <a href="{{ route('admin.orders.upload') }}" class="btn-primary">
+                        Upload CSV Baru
+                    </a>
+                </div>
             </div>
         </header>
 

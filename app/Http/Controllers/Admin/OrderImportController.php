@@ -29,7 +29,9 @@ class OrderImportController extends Controller
             ->latest()
             ->paginate(25);
 
-        return view('admin.orders.index', compact('imports'));
+        $totalOrders = TiktokOrder::query()->count();
+
+        return view('admin.orders.index', compact('imports', 'totalOrders'));
     }
 
     public function create(): View
@@ -192,6 +194,16 @@ class OrderImportController extends Controller
 
         return redirect()->route('admin.orders.index')
             ->with('success', "Upload '{$orderImport->file_name}' dan semua orders berkaitan telah dipadam.");
+    }
+
+    public function destroyAll(): RedirectResponse
+    {
+        $count = TiktokOrder::query()->count();
+        TiktokOrder::query()->delete();
+        OrderImport::query()->delete();
+
+        return redirect()->route('admin.orders.index')
+            ->with('success', "Semua data orders telah dipadam ({$count} orders). Sila upload CSV baru.");
     }
 
     private function flushOrderBatch(array $orders, array &$summary): void
