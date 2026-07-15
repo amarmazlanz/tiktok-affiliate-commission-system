@@ -61,6 +61,8 @@ class AffiliateCommissionService
     {
         $month = $periodFilters['month'];
         $year = $periodFilters['year'];
+        $dateFrom = $periodFilters['date_from'] ?? null;
+        $dateTo = $periodFilters['date_to'] ?? null;
 
         $summaryQuery = DB::table('commission_entries')
             ->join('commission_runs', 'commission_runs.id', '=', 'commission_entries.commission_run_id')
@@ -73,6 +75,12 @@ class AffiliateCommissionService
             ->selectRaw("SUM(CASE WHEN commission_type = 'l2_overriding' OR (commission_type = 'overriding' AND level = 2) THEN commission_amount ELSE 0 END) as l2_overriding")
             ->selectRaw("SUM(CASE WHEN commission_type = 'l3_overriding' OR (commission_type = 'overriding' AND level = 3) THEN commission_amount ELSE 0 END) as l3_overriding");
         $this->applyCommissionPeriod($summaryQuery, $month, $year);
+
+        if ($dateFrom && $dateTo) {
+            $summaryQuery->join('tiktok_orders as to_s', 'to_s.id', '=', 'commission_entries.tiktok_order_id')
+                         ->whereBetween('to_s.time_commission_paid', [$dateFrom, $dateTo]);
+        }
+
         $summary = array_map(
             fn ($value) => (float) $value,
             array_merge($this->emptySummary(), (array) $summaryQuery->first()),
@@ -85,13 +93,16 @@ class AffiliateCommissionService
             + $summary['l2_overriding']
             + $summary['l3_overriding'];
 
-        // Use commission_entries so Total Sales matches the admin report exactly
-        // (both use settlement date via commission run period, not order creation date).
         $personalSalesQuery = DB::table('commission_entries')
             ->join('commission_runs', 'commission_runs.id', '=', 'commission_entries.commission_run_id')
             ->where('commission_entries.source_affiliate_id', $affiliate->id)
             ->where('commission_entries.commission_type', 'personal');
         $this->applyCommissionPeriod($personalSalesQuery, $month, $year);
+
+        if ($dateFrom && $dateTo) {
+            $personalSalesQuery->join('tiktok_orders as to_ps', 'to_ps.id', '=', 'commission_entries.tiktok_order_id')
+                               ->whereBetween('to_ps.time_commission_paid', [$dateFrom, $dateTo]);
+        }
 
         return [
             'personalSales' => (float) $personalSalesQuery->sum('commission_entries.base_amount'),
@@ -103,6 +114,8 @@ class AffiliateCommissionService
     {
         $month = $periodFilters['month'];
         $year = $periodFilters['year'];
+        $dateFrom = $periodFilters['date_from'] ?? null;
+        $dateTo = $periodFilters['date_to'] ?? null;
         $typeLabels = $this->entryTypeLabels();
         $commissionType = trim((string) $request->query('commission_type', ''));
         $sourceAffiliate = $request->filled('source_affiliate') ? $request->integer('source_affiliate') : null;
@@ -137,6 +150,7 @@ class AffiliateCommissionService
             ])
             ->when($commissionType !== '', fn ($query) => $query->where('commission_type', $commissionType))
             ->when($sourceAffiliate, fn ($query) => $query->where('source_affiliate_id', $sourceAffiliate))
+            ->when($dateFrom && $dateTo, fn ($query) => $query->whereHas('tiktokOrder', fn ($q) => $q->whereBetween('time_commission_paid', [$dateFrom, $dateTo])))
             ->whereHas('commissionRun', function ($query) use ($month, $year): void {
                 $this->applyCommissionRunPeriod($query, $month, $year);
             })
@@ -194,7 +208,23 @@ class AffiliateCommissionService
             $month = 'all';
         }
 
-        return ['month' => $month, 'year' => $year];
+        $dateFrom = null;
+        $dateTo = null;
+
+        if ($request->filled('date_from') && $request->filled('date_to')) {
+            try {
+                $df = Carbon::createFromFormat('Y-m-d', $request->input('date_from'))->startOfDay();
+                $dt = Carbon::createFromFormat('Y-m-d', $request->input('date_to'))->endOfDay();
+                if ($df->lte($dt)) {
+                    $dateFrom = $df;
+                    $dateTo = $dt;
+                }
+            } catch (\Throwable) {
+                // invalid dates — ignore
+            }
+        }
+
+        return ['month' => $month, 'year' => $year, 'date_from' => $dateFrom, 'date_to' => $dateTo];
     }
 
     private function availableOrderYears(int $affiliateId): Collection

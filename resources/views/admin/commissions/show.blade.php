@@ -68,7 +68,7 @@
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">Total Commission</p>
-                    <p class="stat-value stat-value-money">{{ $money($commission->total_commission) }}</p>
+                    <p class="stat-value stat-value-money">{{ $money($filteredTotalCommission) }}</p>
                 </div>
                 <div class="stat-card">
                     <p class="stat-label">No Upline Orders</p>
@@ -86,6 +86,34 @@
                         </span>
                     </p>
                 </div>
+            </div>
+
+            {{-- Date Range Filter --}}
+            <div class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200 px-6 py-4">
+                <form method="GET" action="{{ route('admin.commissions.show', $commission) }}" class="flex flex-wrap items-end gap-3">
+                    @foreach (request()->except(['date_from', 'date_to', 'summary_page', 'entries_page', 'no_upline_page']) as $key => $value)
+                        @if (is_scalar($value))
+                            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                        @endif
+                    @endforeach
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">Dari Tarikh</label>
+                        <input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-field mt-1">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">Hingga Tarikh</label>
+                        <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-field mt-1">
+                    </div>
+                    <button type="submit" class="btn-primary">Tapis</button>
+                    @if (($filters['date_from'] ?? '') || ($filters['date_to'] ?? ''))
+                        <a href="{{ route('admin.commissions.show', $commission) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                            Reset Filter
+                        </a>
+                        <span class="text-sm text-emerald-700 font-semibold">
+                            Menunjukkan data: {{ $filters['date_from'] }} hingga {{ $filters['date_to'] }}
+                        </span>
+                    @endif
+                </form>
             </div>
 
             <div class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">

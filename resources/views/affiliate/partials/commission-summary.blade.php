@@ -10,7 +10,7 @@
                 <h2 class="mt-1 text-xl font-black text-slate-950" data-period-title>{{ $periodLabel }}</h2>
             </div>
 
-            <form method="GET" action="{{ $periodRoute }}" class="grid gap-3 sm:grid-cols-2" data-period-filter-form>
+            <form method="GET" action="{{ $periodRoute }}" class="flex flex-col gap-3" data-period-filter-form>
                 @if (($commissionFilters['commission_type'] ?? '') !== '')
                     <input type="hidden" name="commission_type" value="{{ $commissionFilters['commission_type'] }}">
                 @endif
@@ -18,24 +18,41 @@
                     <input type="hidden" name="source_affiliate" value="{{ $commissionFilters['source_affiliate'] }}">
                 @endif
 
-                <div>
-                    <label for="month" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Month</label>
-                    <select id="month" name="month" class="form-field min-w-40" data-period-select>
-                        <option value="all" @selected($periodFilters['month'] === 'all')>All Months</option>
-                        @foreach ($months as $monthNumber => $monthName)
-                            <option value="{{ $monthNumber }}" @selected((string) $periodFilters['month'] === (string) $monthNumber)>{{ $monthName }}</option>
-                        @endforeach
-                    </select>
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label for="month" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Month</label>
+                        <select id="month" name="month" class="form-field min-w-40" data-period-select>
+                            <option value="all" @selected($periodFilters['month'] === 'all')>All Months</option>
+                            @foreach ($months as $monthNumber => $monthName)
+                                <option value="{{ $monthNumber }}" @selected((string) $periodFilters['month'] === (string) $monthNumber)>{{ $monthName }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="year" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Year</label>
+                        <select id="year" name="year" class="form-field min-w-36" data-period-select>
+                            <option value="all" @selected($periodFilters['year'] === 'all')>All Years</option>
+                            @foreach ($availableYears as $yearOption)
+                                <option value="{{ $yearOption }}" @selected((string) $periodFilters['year'] === (string) $yearOption)>{{ $yearOption }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
 
-                <div>
-                    <label for="year" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Year</label>
-                    <select id="year" name="year" class="form-field min-w-36" data-period-select>
-                        <option value="all" @selected($periodFilters['year'] === 'all')>All Years</option>
-                        @foreach ($availableYears as $yearOption)
-                            <option value="{{ $yearOption }}" @selected((string) $periodFilters['year'] === (string) $yearOption)>{{ $yearOption }}</option>
-                        @endforeach
-                    </select>
+                <div class="flex flex-wrap items-end gap-2">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">Dari Tarikh</label>
+                        <input type="date" name="date_from" value="{{ $periodFilters['date_from']?->format('Y-m-d') ?? '' }}" class="form-field mt-1">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">Hingga Tarikh</label>
+                        <input type="date" name="date_to" value="{{ $periodFilters['date_to']?->format('Y-m-d') ?? '' }}" class="form-field mt-1">
+                    </div>
+                    <button type="submit" class="btn-primary">Tapis</button>
+                    @if ($periodFilters['date_from'] || $periodFilters['date_to'])
+                        <a href="{{ $periodRoute }}?month={{ $periodFilters['month'] }}&year={{ $periodFilters['year'] }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Reset</a>
+                    @endif
                 </div>
             </form>
         </div>

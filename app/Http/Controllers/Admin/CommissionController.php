@@ -112,8 +112,24 @@ class CommissionController extends Controller
 
     public function show(Request $request, CommissionRun $commission): View|JsonResponse
     {
+        $dateFrom = null;
+        $dateTo = null;
+
+        if ($request->filled('date_from') && $request->filled('date_to')) {
+            try {
+                $df = \Carbon\Carbon::createFromFormat('Y-m-d', $request->input('date_from'))->startOfDay();
+                $dt = \Carbon\Carbon::createFromFormat('Y-m-d', $request->input('date_to'))->endOfDay();
+                if ($df->lte($dt)) {
+                    $dateFrom = $df;
+                    $dateTo = $dt;
+                }
+            } catch (\Throwable) {
+                // invalid dates — ignore
+            }
+        }
+
         $entryTypeLabels = $this->entryTypeLabels();
-        $entryData = $this->commissionEntryData($request, $commission, $entryTypeLabels);
+        $entryData = $this->commissionEntryData($request, $commission, $entryTypeLabels, $dateFrom, $dateTo);
 
         if ($request->boolean('ajax') || $request->expectsJson()) {
             return response()->json([
@@ -167,21 +183,25 @@ class CommissionController extends Controller
             $summaryAffiliate = null;
         }
 
-        $summaryQuery = $this->summaryQuery($commission->id)
+        $summaryQuery = $this->summaryQuery($commission->id, $dateFrom, $dateTo)
             ->when($summaryGroup !== '', fn ($query) => $query->where('affiliates.group_name', $summaryGroup))
             ->when($summaryAffiliate, fn ($query) => $query->where('affiliates.id', $summaryAffiliate));
         $filteredSummarySalesTotal = (float) DB::query()
             ->fromSub(clone $summaryQuery, 'filtered_summaries')
             ->sum('total_sales');
         $totalOverriding = (float) DB::query()
-            ->fromSub($this->summaryQuery($commission->id), 'commission_summaries')
+            ->fromSub($this->summaryQuery($commission->id, $dateFrom, $dateTo), 'commission_summaries')
             ->sum('total_overriding');
         $mappedAffiliateSalesTotal = (float) DB::table('commission_entries')
             ->where('commission_run_id', $commission->id)
             ->where('commission_type', 'personal')
+            ->when($dateFrom && $dateTo, fn ($q) =>
+                $q->join('tiktok_orders as to_mapped', 'to_mapped.id', '=', 'commission_entries.tiktok_order_id')
+                  ->whereBetween('to_mapped.time_commission_paid', [$dateFrom, $dateTo])
+            )
             ->sum('base_amount');
-        $totalImportedSales = $this->totalImportedSalesForPeriod($commission->month, $commission->year);
-        $noUplineSales = $this->noUplineSalesQuery($commission->month, $commission->year);
+        $totalImportedSales = $this->totalImportedSalesForPeriod($commission->month, $commission->year, $dateFrom, $dateTo);
+        $noUplineSales = $this->noUplineSalesQuery($commission->month, $commission->year, $dateFrom, $dateTo);
         $noUplineTotals = [
             'total_sales' => (float) (clone $noUplineSales)->sum('estimated_commission_base'),
             'order_count' => (int) (clone $noUplineSales)->count(),
@@ -224,6 +244,14 @@ class CommissionController extends Controller
             ->orderBy('affiliates.group_name')
             ->pluck('affiliates.group_name');
 
+        $filteredTotalCommission = $dateFrom && $dateTo
+            ? (float) DB::table('commission_entries')
+                ->where('commission_run_id', $commission->id)
+                ->join('tiktok_orders as to_tc', 'to_tc.id', '=', 'commission_entries.tiktok_order_id')
+                ->whereBetween('to_tc.time_commission_paid', [$dateFrom, $dateTo])
+                ->sum('commission_amount')
+            : (float) $commission->total_commission;
+
         return view('admin.commissions.show', [
             'commission' => $commission,
             'summaries' => $summaries,
@@ -231,6 +259,7 @@ class CommissionController extends Controller
             'mappedAffiliateSalesTotal' => $mappedAffiliateSalesTotal,
             'totalImportedSales' => $totalImportedSales,
             'totalOverriding' => $totalOverriding,
+            'filteredTotalCommission' => $filteredTotalCommission,
             'noUplineTotals' => $noUplineTotals,
             'noUplineSalesRows' => $noUplineSalesRows,
             'commissionEntries' => $entryData['commissionEntries'],
@@ -245,13 +274,15 @@ class CommissionController extends Controller
                 'summary_affiliate' => $summaryAffiliate,
                 'summary_sort' => $summarySort,
                 'summary_dir' => $summaryDirection,
+                'date_from' => $dateFrom?->format('Y-m-d'),
+                'date_to' => $dateTo?->format('Y-m-d'),
             ],
             'months' => $this->months(),
             'entryTypeLabels' => $entryTypeLabels,
         ]);
     }
 
-    private function commissionEntryData(Request $request, CommissionRun $commission, array $entryTypeLabels): array
+    private function commissionEntryData(Request $request, CommissionRun $commission, array $entryTypeLabels, ?\Carbon\Carbon $dateFrom = null, ?\Carbon\Carbon $dateTo = null): array
     {
         $perPage = in_array((int) $request->query('per_page', 50), [50, 100, 200], true)
             ? (int) $request->query('per_page', 50)
@@ -298,6 +329,7 @@ class CommissionController extends Controller
             ->when($source, fn ($query) => $query->where('source_affiliate_id', $source))
             ->when($type !== '', fn ($query) => $query->where('commission_type', $type))
             ->when($orderId !== '', fn ($query) => $query->whereHas('tiktokOrder', fn ($query) => $query->where('order_id', 'like', '%'.$orderId.'%')))
+            ->when($dateFrom && $dateTo, fn ($query) => $query->whereHas('tiktokOrder', fn ($query) => $query->whereBetween('time_commission_paid', [$dateFrom, $dateTo])))
             ->latest('id');
 
         $commissionEntries = $entryQuery
@@ -344,7 +376,7 @@ class CommissionController extends Controller
         ];
     }
 
-    private function summaryQuery(int $commissionRunId)
+    private function summaryQuery(int $commissionRunId, ?\Carbon\Carbon $dateFrom = null, ?\Carbon\Carbon $dateTo = null)
     {
         $l1Condition = "commission_entries.commission_type IN ('l1_overriding', 'l1_split_seller', 'l1_split_upline') OR (commission_entries.commission_type = 'overriding' AND commission_entries.level = 1)";
         $l2Condition = "commission_entries.commission_type = 'l2_overriding' OR (commission_entries.commission_type = 'overriding' AND commission_entries.level = 2)";
@@ -354,10 +386,16 @@ class CommissionController extends Controller
         $salesSubquery = DB::table('commission_entries')
             ->select('source_affiliate_id', DB::raw('SUM(base_amount) as total_sales'))
             ->where('commission_run_id', $commissionRunId)
-            ->where('commission_type', 'personal')
-            ->groupBy('source_affiliate_id');
+            ->where('commission_type', 'personal');
 
-        return DB::table('commission_entries')
+        if ($dateFrom && $dateTo) {
+            $salesSubquery->join('tiktok_orders as to_sales', 'to_sales.id', '=', 'commission_entries.tiktok_order_id')
+                          ->whereBetween('to_sales.time_commission_paid', [$dateFrom, $dateTo]);
+        }
+
+        $salesSubquery->groupBy('source_affiliate_id');
+
+        $query = DB::table('commission_entries')
             ->join('affiliates', 'affiliates.id', '=', 'commission_entries.receiver_affiliate_id')
             ->leftJoinSub($salesSubquery, 'sales', fn ($join) => $join->on('sales.source_affiliate_id', '=', 'affiliates.id'))
             ->where('commission_entries.commission_run_id', $commissionRunId)
@@ -376,6 +414,13 @@ class CommissionController extends Controller
                 DB::raw("SUM(CASE WHEN {$overridingCondition} THEN commission_entries.commission_amount ELSE 0 END) as total_overriding"),
                 DB::raw("SUM(CASE WHEN commission_entries.commission_type = 'personal' OR {$overridingCondition} THEN commission_entries.commission_amount ELSE 0 END) as total"),
             ]);
+
+        if ($dateFrom && $dateTo) {
+            $query->join('tiktok_orders as to_filter', 'to_filter.id', '=', 'commission_entries.tiktok_order_id')
+                  ->whereBetween('to_filter.time_commission_paid', [$dateFrom, $dateTo]);
+        }
+
+        return $query;
     }
 
     private function affiliateBelongsToGroup(int $affiliateId, string $groupName): bool
@@ -404,10 +449,10 @@ class CommissionController extends Controller
         ];
     }
 
-    private function noUplineSalesQuery(int $month, int $year)
+    private function noUplineSalesQuery(int $month, int $year, ?\Carbon\Carbon $dateFrom = null, ?\Carbon\Carbon $dateTo = null)
     {
-        $start = now()->setDate($year, $month, 1)->startOfMonth();
-        $end = $start->copy()->endOfMonth();
+        $start = $dateFrom ?? now()->setDate($year, $month, 1)->startOfMonth();
+        $end = $dateTo ?? now()->setDate($year, $month, 1)->endOfMonth();
 
         return TiktokOrder::query()
             ->where('order_status', 'Settled')
@@ -420,10 +465,10 @@ class CommissionController extends Controller
             ->whereBetween('time_commission_paid', [$start, $end]);
     }
 
-    private function totalImportedSalesForPeriod(int $month, int $year): float
+    private function totalImportedSalesForPeriod(int $month, int $year, ?\Carbon\Carbon $dateFrom = null, ?\Carbon\Carbon $dateTo = null): float
     {
-        $start = now()->setDate($year, $month, 1)->startOfMonth();
-        $end = $start->copy()->endOfMonth();
+        $start = $dateFrom ?? now()->setDate($year, $month, 1)->startOfMonth();
+        $end = $dateTo ?? now()->setDate($year, $month, 1)->endOfMonth();
 
         return (float) TiktokOrder::query()
             ->where('order_status', 'Settled')
