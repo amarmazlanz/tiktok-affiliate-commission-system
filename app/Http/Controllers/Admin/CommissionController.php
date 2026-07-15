@@ -134,7 +134,7 @@ class CommissionController extends Controller
         $entryTypeLabels = $this->entryTypeLabels();
         $entryData = $this->commissionEntryData($request, $commission, $entryTypeLabels, $dateFrom, $dateTo);
 
-        if ($request->boolean('ajax') || $request->expectsJson()) {
+        if (($request->boolean('ajax') || $request->expectsJson()) && $request->query('section') !== 'summary') {
             return response()->json([
                 'html' => view('admin.commissions.partials.entry-results', [
                     'commissionEntries' => $entryData['commissionEntries'],
