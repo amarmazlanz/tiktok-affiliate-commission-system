@@ -98,70 +98,67 @@
             </div>
 
             {{-- Date Range Filter --}}
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-                <form method="GET" action="{{ route('admin.commissions.show', $commission) }}" class="p-6" data-date-range-picker>
-                    @foreach (request()->except(['date_from', 'date_to', 'summary_page', 'entries_page', 'no_upline_page']) as $key => $value)
-                        @if (is_scalar($value))
-                            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+            <div class="flex items-center gap-3" data-date-filter-wrapper>
+                <div class="relative">
+                    <button type="button"
+                            class="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm transition {{ $selectedDateFrom ? 'border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}"
+                            data-date-filter-toggle>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                        </svg>
+                        @if ($selectedDateFrom && $selectedDateTo)
+                            {{ \Carbon\Carbon::parse($selectedDateFrom)->format('d/m/Y') }} – {{ \Carbon\Carbon::parse($selectedDateTo)->format('d/m/Y') }}
+                        @else
+                            Pilih Tarikh
                         @endif
-                    @endforeach
-                    <input type="hidden" name="date_from" value="{{ $selectedDateFrom }}" data-date-from>
-                    <input type="hidden" name="date_to" value="{{ $selectedDateTo }}" data-date-to>
+                    </button>
 
-                    <div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                        <div class="min-w-0">
-                            <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">Date Range</p>
-                            <h2 class="mt-1 text-lg font-black text-slate-950">{{ $months[$commission->month] }} {{ $commission->year }}</h2>
-                            <p class="mt-1 max-w-xl text-sm text-slate-500">
-                                Pilih tarikh mula dan tarikh akhir. Calendar ini dikunci kepada bulan report ini sahaja.
-                            </p>
-                            <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                                <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                                    <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Dari</p>
-                                    <p class="mt-1 text-sm font-bold text-slate-950" data-date-from-label>{{ $selectedDateFrom ? \Carbon\Carbon::parse($selectedDateFrom)->format('d/m/Y') : 'Pilih tarikh mula' }}</p>
-                                </div>
-                                <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                                    <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Hingga</p>
-                                    <p class="mt-1 text-sm font-bold text-slate-950" data-date-to-label>{{ $selectedDateTo ? \Carbon\Carbon::parse($selectedDateTo)->format('d/m/Y') : 'Pilih tarikh akhir' }}</p>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="absolute left-0 top-full z-50 mt-2 hidden" data-date-filter-panel>
+                        <form method="GET" action="{{ route('admin.commissions.show', $commission) }}" class="w-64 rounded-2xl bg-slate-950 p-4 text-white shadow-2xl ring-1 ring-white/10" data-date-range-picker>
+                            @foreach (request()->except(['date_from', 'date_to', 'summary_page', 'entries_page', 'no_upline_page']) as $key => $value)
+                                @if (is_scalar($value))
+                                    <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                                @endif
+                            @endforeach
+                            <input type="hidden" name="date_from" value="{{ $selectedDateFrom }}" data-date-from>
+                            <input type="hidden" name="date_to" value="{{ $selectedDateTo }}" data-date-to>
 
-                        <div class="w-full rounded-2xl border border-slate-200 bg-slate-950 p-4 text-white shadow-sm xl:w-[360px]">
-                            <div class="mb-4 flex items-center justify-between gap-3">
+                            <div class="mb-3 flex items-center justify-between gap-2">
                                 <div>
-                                    <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Report Month</p>
-                                    <p class="text-base font-black">{{ $months[$commission->month] }} {{ $commission->year }}</p>
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">{{ $months[$commission->month] }} {{ $commission->year }}</p>
+                                    <p class="mt-0.5 text-sm font-semibold">
+                                        <span data-date-from-label class="text-slate-100">{{ $selectedDateFrom ? \Carbon\Carbon::parse($selectedDateFrom)->format('d/m') : 'Dari' }}</span>
+                                        <span class="mx-1 text-slate-500">→</span>
+                                        <span data-date-to-label class="text-slate-100">{{ $selectedDateTo ? \Carbon\Carbon::parse($selectedDateTo)->format('d/m') : 'Hingga' }}</span>
+                                    </p>
                                 </div>
                                 @if ($selectedDateFrom && $selectedDateTo)
-                                    <a href="{{ route('admin.commissions.show', array_merge(['commission' => $commission], request()->except(['date_from', 'date_to', 'summary_page', 'entries_page', 'no_upline_page']))) }}" class="rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20">
-                                        Reset
-                                    </a>
+                                    <a href="{{ route('admin.commissions.show', array_merge(['commission' => $commission], request()->except(['date_from', 'date_to', 'summary_page', 'entries_page', 'no_upline_page']))) }}" class="shrink-0 rounded border border-white/10 bg-white/10 px-2 py-1 text-[11px] font-bold hover:bg-white/20">Reset</a>
                                 @endif
                             </div>
 
-                            <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400">
+                            <div class="grid grid-cols-7 text-center text-[10px] font-bold text-slate-500">
                                 @foreach ($weekdayLabels as $weekdayLabel)
-                                    <div class="py-2">{{ $weekdayLabel }}</div>
+                                    <div class="py-1">{{ $weekdayLabel }}</div>
                                 @endforeach
                             </div>
-                            <div class="mt-1 grid grid-cols-7 gap-1" data-calendar-grid data-month-start="{{ $reportMonthStartDate }}" data-month-end="{{ $reportMonthEndDate }}">
+                            <div class="mt-0.5 grid grid-cols-7" data-calendar-grid data-month-start="{{ $reportMonthStartDate }}" data-month-end="{{ $reportMonthEndDate }}">
                                 @for ($blank = 0; $blank < $calendarLeadingBlanks; $blank++)
-                                    <div class="aspect-square rounded-lg"></div>
+                                    <div></div>
                                 @endfor
                                 @for ($day = 1; $day <= $calendarDaysInMonth; $day++)
                                     @php $dateValue = $reportMonthStart->copy()->day($day)->toDateString(); @endphp
-                                    <button type="button" data-calendar-day="{{ $dateValue }}" class="aspect-square rounded-lg text-sm font-semibold text-slate-100 transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-rose-300">
-                                        {{ $day }}
-                                    </button>
+                                    <button type="button" data-calendar-day="{{ $dateValue }}" class="aspect-square rounded text-xs font-semibold text-slate-100 transition hover:bg-white/15 focus:outline-none focus:ring-1 focus:ring-rose-300">{{ $day }}</button>
                                 @endfor
                             </div>
-                            <p class="mt-4 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-300" data-calendar-help>
-                                Klik tarikh mula, kemudian klik tarikh akhir. Filter akan apply secara automatik.
-                            </p>
-                        </div>
+                            <p class="mt-3 text-[11px] text-slate-400" data-calendar-help>Klik tarikh mula, kemudian tarikh akhir.</p>
+                        </form>
                     </div>
-                </form>
+                </div>
+
+                @if ($selectedDateFrom && $selectedDateTo)
+                    <a href="{{ route('admin.commissions.show', array_merge(['commission' => $commission], request()->except(['date_from', 'date_to', 'summary_page', 'entries_page', 'no_upline_page']))) }}" class="text-sm font-medium text-slate-500 hover:text-slate-900">✕ Reset</a>
+                @endif
             </div>
 
             <div class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
@@ -468,6 +465,23 @@
 
     <script>
         (() => {
+            // Date filter toggle
+            const dateFilterWrapper = document.querySelector('[data-date-filter-wrapper]');
+            const dateFilterToggle = dateFilterWrapper?.querySelector('[data-date-filter-toggle]');
+            const dateFilterPanel = dateFilterWrapper?.querySelector('[data-date-filter-panel]');
+
+            if (dateFilterToggle && dateFilterPanel) {
+                dateFilterToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dateFilterPanel.classList.toggle('hidden');
+                });
+                document.addEventListener('click', (e) => {
+                    if (dateFilterWrapper && !dateFilterWrapper.contains(e.target)) {
+                        dateFilterPanel.classList.add('hidden');
+                    }
+                });
+            }
+
             const dateRangePicker = document.querySelector('[data-date-range-picker]');
 
             if (dateRangePicker) {
