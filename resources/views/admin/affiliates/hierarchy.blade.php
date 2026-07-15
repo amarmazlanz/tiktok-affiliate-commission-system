@@ -135,7 +135,7 @@
                                 </div>
 
                                 @foreach ($tree as $rootNode)
-                                    <section class="rounded-xl border border-slate-200 bg-white/60 p-2 shadow-sm sm:p-3">
+                                    <section class="rounded-xl border border-slate-200 bg-white/60 p-2 shadow-sm sm:p-3" data-hierarchy-root-section>
                                         @include('admin.affiliates.partials.hierarchy-node', [
                                             'node' => $rootNode,
                                             'parentId' => '',
@@ -370,6 +370,10 @@
                 });
 
                 nodes.forEach((node) => node.classList.toggle('hidden', !visibleIds.has(node.dataset.nodeId)));
+                document.querySelectorAll('[data-hierarchy-root-section]').forEach((section) => {
+                    const rootNode = section.querySelector(':scope > [data-hierarchy-node]');
+                    section.classList.toggle('hidden', !rootNode || rootNode.classList.contains('hidden'));
+                });
                 noMatch?.classList.toggle('hidden', matchingIds.size > 0 || nodes.length === 0);
 
                 if (searchCount) {
