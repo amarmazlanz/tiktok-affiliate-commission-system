@@ -114,17 +114,20 @@ class CommissionController extends Controller
     {
         $dateFrom = null;
         $dateTo = null;
+        $reportMonthStart = \Carbon\Carbon::create($commission->year, $commission->month, 1)->startOfMonth();
+        $reportMonthEnd = \Carbon\Carbon::create($commission->year, $commission->month, 1)->endOfMonth();
 
         if ($request->filled('date_from') && $request->filled('date_to')) {
             try {
                 $df = \Carbon\Carbon::createFromFormat('Y-m-d', $request->input('date_from'))->startOfDay();
                 $dt = \Carbon\Carbon::createFromFormat('Y-m-d', $request->input('date_to'))->endOfDay();
-                if ($df->lte($dt)) {
-                    $dateFrom = $df;
-                    $dateTo = $dt;
+
+                if ($df->lte($dt) && $df->lte($reportMonthEnd) && $dt->gte($reportMonthStart)) {
+                    $dateFrom = $df->lt($reportMonthStart) ? $reportMonthStart->copy() : $df;
+                    $dateTo = $dt->gt($reportMonthEnd) ? $reportMonthEnd->copy() : $dt;
                 }
             } catch (\Throwable) {
-                // invalid dates — ignore
+                // invalid dates - ignore
             }
         }
 

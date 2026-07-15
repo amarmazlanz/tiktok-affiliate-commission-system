@@ -23,6 +23,15 @@
         $summarySortIcon = fn (string $key) => ($filters['summary_sort'] ?? 'affiliate') === $key
             ? (($filters['summary_dir'] ?? 'asc') === 'asc' ? '^' : 'v')
             : '';
+        $reportMonthStart = \Carbon\Carbon::create($commission->year, $commission->month, 1)->startOfMonth();
+        $reportMonthEnd = \Carbon\Carbon::create($commission->year, $commission->month, 1)->endOfMonth();
+        $reportMonthStartDate = $reportMonthStart->toDateString();
+        $reportMonthEndDate = $reportMonthEnd->toDateString();
+        $selectedDateFrom = $filters['date_from'] ?? '';
+        $selectedDateTo = $filters['date_to'] ?? '';
+        $calendarLeadingBlanks = $reportMonthStart->dayOfWeek;
+        $calendarDaysInMonth = $reportMonthStart->daysInMonth;
+        $weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     @endphp
 
     <main class="min-h-screen bg-slate-100">
@@ -89,30 +98,69 @@
             </div>
 
             {{-- Date Range Filter --}}
-            <div class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200 px-6 py-4">
-                <form method="GET" action="{{ route('admin.commissions.show', $commission) }}" class="flex flex-wrap items-end gap-3">
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+                <form method="GET" action="{{ route('admin.commissions.show', $commission) }}" class="p-6" data-date-range-picker>
                     @foreach (request()->except(['date_from', 'date_to', 'summary_page', 'entries_page', 'no_upline_page']) as $key => $value)
                         @if (is_scalar($value))
                             <input type="hidden" name="{{ $key }}" value="{{ $value }}">
                         @endif
                     @endforeach
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">Dari Tarikh</label>
-                        <input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-field mt-1">
+                    <input type="hidden" name="date_from" value="{{ $selectedDateFrom }}" data-date-from>
+                    <input type="hidden" name="date_to" value="{{ $selectedDateTo }}" data-date-to>
+
+                    <div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                        <div class="min-w-0">
+                            <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">Date Range</p>
+                            <h2 class="mt-1 text-lg font-black text-slate-950">{{ $months[$commission->month] }} {{ $commission->year }}</h2>
+                            <p class="mt-1 max-w-xl text-sm text-slate-500">
+                                Pilih tarikh mula dan tarikh akhir. Calendar ini dikunci kepada bulan report ini sahaja.
+                            </p>
+                            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                                <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                                    <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Dari</p>
+                                    <p class="mt-1 text-sm font-bold text-slate-950" data-date-from-label>{{ $selectedDateFrom ? \Carbon\Carbon::parse($selectedDateFrom)->format('d/m/Y') : 'Pilih tarikh mula' }}</p>
+                                </div>
+                                <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                                    <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Hingga</p>
+                                    <p class="mt-1 text-sm font-bold text-slate-950" data-date-to-label>{{ $selectedDateTo ? \Carbon\Carbon::parse($selectedDateTo)->format('d/m/Y') : 'Pilih tarikh akhir' }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="w-full rounded-2xl border border-slate-200 bg-slate-950 p-4 text-white shadow-sm xl:w-[360px]">
+                            <div class="mb-4 flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Report Month</p>
+                                    <p class="text-base font-black">{{ $months[$commission->month] }} {{ $commission->year }}</p>
+                                </div>
+                                @if ($selectedDateFrom && $selectedDateTo)
+                                    <a href="{{ route('admin.commissions.show', array_merge(['commission' => $commission], request()->except(['date_from', 'date_to', 'summary_page', 'entries_page', 'no_upline_page']))) }}" class="rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-xs font-bold text-white hover:bg-white/20">
+                                        Reset
+                                    </a>
+                                @endif
+                            </div>
+
+                            <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400">
+                                @foreach ($weekdayLabels as $weekdayLabel)
+                                    <div class="py-2">{{ $weekdayLabel }}</div>
+                                @endforeach
+                            </div>
+                            <div class="mt-1 grid grid-cols-7 gap-1" data-calendar-grid data-month-start="{{ $reportMonthStartDate }}" data-month-end="{{ $reportMonthEndDate }}">
+                                @for ($blank = 0; $blank < $calendarLeadingBlanks; $blank++)
+                                    <div class="aspect-square rounded-lg"></div>
+                                @endfor
+                                @for ($day = 1; $day <= $calendarDaysInMonth; $day++)
+                                    @php $dateValue = $reportMonthStart->copy()->day($day)->toDateString(); @endphp
+                                    <button type="button" data-calendar-day="{{ $dateValue }}" class="aspect-square rounded-lg text-sm font-semibold text-slate-100 transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-rose-300">
+                                        {{ $day }}
+                                    </button>
+                                @endfor
+                            </div>
+                            <p class="mt-4 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-300" data-calendar-help>
+                                Klik tarikh mula, kemudian klik tarikh akhir. Filter akan apply secara automatik.
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">Hingga Tarikh</label>
-                        <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-field mt-1">
-                    </div>
-                    <button type="submit" class="btn-primary">Tapis</button>
-                    @if (($filters['date_from'] ?? '') || ($filters['date_to'] ?? ''))
-                        <a href="{{ route('admin.commissions.show', $commission) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-                            Reset Filter
-                        </a>
-                        <span class="text-sm text-emerald-700 font-semibold">
-                            Menunjukkan data: {{ $filters['date_from'] }} hingga {{ $filters['date_to'] }}
-                        </span>
-                    @endif
                 </form>
             </div>
 
@@ -420,6 +468,80 @@
 
     <script>
         (() => {
+            const dateRangePicker = document.querySelector('[data-date-range-picker]');
+
+            if (dateRangePicker) {
+                const fromInput = dateRangePicker.querySelector('[data-date-from]');
+                const toInput = dateRangePicker.querySelector('[data-date-to]');
+                const fromLabel = dateRangePicker.querySelector('[data-date-from-label]');
+                const toLabel = dateRangePicker.querySelector('[data-date-to-label]');
+                const helpText = dateRangePicker.querySelector('[data-calendar-help]');
+                const dayButtons = Array.from(dateRangePicker.querySelectorAll('[data-calendar-day]'));
+                let selectedFrom = fromInput.value || '';
+                let selectedTo = toInput.value || '';
+                let submitTimer = null;
+
+                const formatDisplayDate = (dateValue) => {
+                    if (! dateValue) return '';
+                    const [year, month, day] = dateValue.split('-');
+                    return `${day}/${month}/${year}`;
+                };
+
+                const setHelpText = (message) => {
+                    if (helpText) helpText.textContent = message;
+                };
+
+                const updateCalendar = () => {
+                    dayButtons.forEach((button) => {
+                        const date = button.dataset.calendarDay;
+                        const isStart = selectedFrom === date;
+                        const isEnd = selectedTo === date;
+                        const isInRange = selectedFrom && selectedTo && date > selectedFrom && date < selectedTo;
+
+                        button.className = 'aspect-square rounded-lg text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-rose-300';
+
+                        if (isStart || isEnd) {
+                            button.classList.add('bg-rose-500', 'text-white', 'shadow-sm', 'hover:bg-rose-500');
+                        } else if (isInRange) {
+                            button.classList.add('bg-rose-500/20', 'text-rose-100', 'hover:bg-rose-500/30');
+                        } else {
+                            button.classList.add('text-slate-100', 'hover:bg-white/15');
+                        }
+                    });
+
+                    fromInput.value = selectedFrom;
+                    toInput.value = selectedTo;
+                    if (fromLabel) fromLabel.textContent = selectedFrom ? formatDisplayDate(selectedFrom) : 'Pilih tarikh mula';
+                    if (toLabel) toLabel.textContent = selectedTo ? formatDisplayDate(selectedTo) : 'Pilih tarikh akhir';
+                };
+
+                const submitRange = () => {
+                    window.clearTimeout(submitTimer);
+                    submitTimer = window.setTimeout(() => dateRangePicker.submit(), 250);
+                };
+
+                dayButtons.forEach((button) => {
+                    button.addEventListener('click', () => {
+                        const date = button.dataset.calendarDay;
+
+                        if (! selectedFrom || (selectedFrom && selectedTo) || date < selectedFrom) {
+                            selectedFrom = date;
+                            selectedTo = '';
+                            setHelpText('Sekarang pilih tarikh akhir.');
+                            updateCalendar();
+                            return;
+                        }
+
+                        selectedTo = date;
+                        setHelpText(`Menapis data ${formatDisplayDate(selectedFrom)} hingga ${formatDisplayDate(selectedTo)}...`);
+                        updateCalendar();
+                        submitRange();
+                    });
+                });
+
+                updateCalendar();
+            }
+
             const entryForm = document.querySelector('[data-entry-filter-form]');
             const entryResults = document.querySelector('[data-entry-results]');
             const entryLoading = entryForm?.querySelector('[data-entry-loading]');
