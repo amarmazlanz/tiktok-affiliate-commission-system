@@ -161,30 +161,26 @@
                 @endif
             </div>
 
-            <div class="overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
+            <div class="relative overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200" data-summary-section>
+                {{-- Loading overlay --}}
+                <div class="pointer-events-none absolute inset-0 z-10 hidden items-center justify-center bg-white/60 backdrop-blur-[1px]" data-summary-loading>
+                    <div class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-lg">
+                        <span class="h-4 w-4 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent"></span> Loading...
+                    </div>
+                </div>
+
                 <div class="border-b border-slate-200 px-6 py-5">
-                    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                        <div class="space-y-3">
-                            <h2 class="text-lg font-semibold text-slate-950">Affiliate Income Summary</h2>
-                            <p class="mt-1 text-sm text-slate-500">
-                                Showing {{ number_format($summaries->firstItem() ?? 0) }}-{{ number_format($summaries->lastItem() ?? 0) }} of {{ number_format($summaries->total()) }} affiliates
-                            </p>
-                            <div class="inline-flex items-center gap-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2">
-                                <span class="text-xs font-bold uppercase tracking-wide text-emerald-700">
-                                    {{ ($filters['summary_group'] ?? '') !== '' ? 'Group Total Sales' : 'Filtered Total Sales' }}
-                                </span>
-                                <span class="text-sm font-black text-emerald-800">{{ $money($filteredSummarySalesTotal) }}</span>
-                            </div>
-                        </div>
-                        <form method="GET" action="{{ route('admin.commissions.show', $commission) }}" class="grid w-full gap-2 sm:grid-cols-[220px_minmax(0,1fr)_auto] lg:w-auto" data-auto-filter-form>
-                            @foreach (request()->except(['summary_search', 'summary_group', 'summary_affiliate', 'summary_page']) as $key => $value)
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <h2 class="text-lg font-semibold text-slate-950">Affiliate Income Summary</h2>
+                        <form method="GET" action="{{ route('admin.commissions.show', $commission) }}" class="grid w-full gap-2 sm:grid-cols-[220px_minmax(0,1fr)_auto] lg:w-auto" data-summary-filter-form>
+                            @foreach (request()->except(['ajax', 'section', 'summary_group', 'summary_affiliate', 'summary_page']) as $key => $value)
                                 @if (is_scalar($value))
                                     <input type="hidden" name="{{ $key }}" value="{{ $value }}">
                                 @endif
                             @endforeach
                             <div>
                                 <label for="summary_group" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Group</label>
-                                <select id="summary_group" name="summary_group" class="form-field" data-auto-submit data-clear-target="summary_affiliate">
+                                <select id="summary_group" name="summary_group" class="form-field">
                                     <option value="">All Groups</option>
                                     @foreach ($summaryGroupOptions as $groupName)
                                         <option value="{{ $groupName }}" @selected(($filters['summary_group'] ?? '') === $groupName)>{{ $groupName }}</option>
@@ -193,7 +189,7 @@
                             </div>
                             <div class="min-w-0">
                                 <label for="summary_affiliate_search" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Affiliate</label>
-                                <div class="relative" data-combobox>
+                                <div class="relative" data-combobox data-summary-affiliate-combobox>
                                     <input id="summary_affiliate" name="summary_affiliate" type="hidden" value="{{ $filters['summary_affiliate'] }}" data-combobox-value>
                                     <div class="mt-2 flex overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-100">
                                         <input
@@ -235,96 +231,19 @@
                                     </div>
                                 </div>
                             </div>
-                            <a href="{{ route('admin.commissions.show', array_merge(['commission' => $commission], request()->except(['summary_search', 'summary_group', 'summary_affiliate', 'summary_sort', 'summary_dir', 'summary_page']))) }}" class="btn-secondary self-end">Clear</a>
+                            <a href="{{ route('admin.commissions.show', array_merge(['commission' => $commission], request()->except(['ajax', 'section', 'summary_group', 'summary_affiliate', 'summary_sort', 'summary_dir', 'summary_page']))) }}" class="btn-secondary self-end" data-summary-clear>Clear</a>
                         </form>
                     </div>
                 </div>
 
-                <div class="hidden lg:block">
-                    <div class="max-h-[430px] overflow-y-auto">
-                        <table class="w-full table-fixed divide-y divide-slate-200 text-[13px]">
-                            <colgroup>
-                                <col class="w-[20%]">
-                                <col class="w-[10%]">
-                                <col class="w-[9%]">
-                                <col class="w-[10%]">
-                                <col class="w-[10%]">
-                                <col class="w-[9%]">
-                                <col class="w-[9%]">
-                                <col class="w-[11%]">
-                                <col class="w-[12%]">
-                            </colgroup>
-                            <thead class="sticky top-0 z-10 bg-slate-100 shadow-sm">
-                                <tr>
-                                    <th class="px-3 py-3 text-left font-bold text-slate-700"><a href="{{ $summarySortUrl('affiliate') }}">Affiliate {{ $summarySortIcon('affiliate') }}</a></th>
-                                    <th class="px-3 py-3 text-right font-bold text-slate-700"><a href="{{ $summarySortUrl('total_sales') }}">Total Sales {{ $summarySortIcon('total_sales') }}</a></th>
-                                    <th class="px-3 py-3 text-right font-bold text-slate-700"><a href="{{ $summarySortUrl('personal') }}">Personal {{ $summarySortIcon('personal') }}</a></th>
-                                    <th class="px-3 py-3 text-right font-bold text-slate-700"><a href="{{ $summarySortUrl('manager_bonus') }}">Manager Bonus {{ $summarySortIcon('manager_bonus') }}</a></th>
-                                    <th class="px-3 py-3 text-right font-bold text-slate-700"><a href="{{ $summarySortUrl('l1_earnings') }}">Level 1 Earnings {{ $summarySortIcon('l1_earnings') }}</a></th>
-                                    <th class="px-3 py-3 text-right font-bold text-slate-700"><a href="{{ $summarySortUrl('l2_earnings') }}">Level 2 Earnings {{ $summarySortIcon('l2_earnings') }}</a></th>
-                                    <th class="px-3 py-3 text-right font-bold text-slate-700"><a href="{{ $summarySortUrl('l3_earnings') }}">Level 3 Earnings {{ $summarySortIcon('l3_earnings') }}</a></th>
-                                    <th class="px-3 py-3 text-right font-bold text-teal-700"><a href="{{ $summarySortUrl('total_overriding') }}">Total Overriding {{ $summarySortIcon('total_overriding') }}</a></th>
-                                    <th class="px-3 py-3 text-right font-bold text-slate-700"><a href="{{ $summarySortUrl('total') }}">Total Commission {{ $summarySortIcon('total') }}</a></th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 bg-white">
-                                @forelse ($summaries as $summary)
-                                    <tr class="hover:bg-slate-50">
-                                        <td class="whitespace-normal break-words px-3 py-3 leading-snug">
-                                            <span class="font-medium text-slate-950">{{ $summary->affiliate_name }}</span>
-                                            @if ($summary->affiliate_type === 'online')
-                                                <span class="mt-1 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Online</span>
-                                            @endif
-                                        </td>
-                                        <td class="whitespace-nowrap px-3 py-3 text-right text-slate-700">{{ $money($summary->total_sales) }}</td>
-                                        <td class="whitespace-nowrap px-3 py-3 text-right text-slate-700">{{ $money($summary->personal) }}</td>
-                                        <td class="whitespace-nowrap px-3 py-3 text-right text-slate-700">{{ $money($summary->manager_bonus) }}</td>
-                                        <td class="whitespace-nowrap px-3 py-3 text-right text-slate-700">{{ $money($summary->l1_earnings) }}</td>
-                                        <td class="whitespace-nowrap px-3 py-3 text-right text-slate-700">{{ $money($summary->l2_earnings) }}</td>
-                                        <td class="whitespace-nowrap px-3 py-3 text-right text-slate-700">{{ $money($summary->l3_earnings) }}</td>
-                                        <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-teal-700">{{ $money($summary->total_overriding) }}</td>
-                                        <td class="whitespace-nowrap px-3 py-3 text-right font-bold text-slate-950">{{ $money($summary->total) }}</td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="9" class="px-5 py-10 text-center text-slate-500">
-                                            No affiliate found for the current search.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="max-h-[430px] space-y-3 overflow-y-auto p-4 lg:hidden">
-                    @forelse ($summaries as $summary)
-                        <article class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                            <h3 class="break-words text-sm font-bold leading-snug text-slate-950">{{ $summary->affiliate_name }}</h3>
-                            @if ($summary->affiliate_type === 'online')
-                                <span class="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Online</span>
-                            @endif
-                            <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                                <div><dt class="text-xs font-bold uppercase text-slate-500">Sales</dt><dd class="whitespace-nowrap font-semibold text-slate-900">{{ $money($summary->total_sales) }}</dd></div>
-                                <div><dt class="text-xs font-bold uppercase text-slate-500">Total</dt><dd class="whitespace-nowrap font-bold text-emerald-700">{{ $money($summary->total) }}</dd></div>
-                                <div><dt class="text-xs font-bold uppercase text-slate-500">Personal</dt><dd class="whitespace-nowrap text-slate-700">{{ $money($summary->personal) }}</dd></div>
-                                <div><dt class="text-xs font-bold uppercase text-slate-500">Manager</dt><dd class="whitespace-nowrap text-slate-700">{{ $money($summary->manager_bonus) }}</dd></div>
-                                <div><dt class="text-xs font-bold uppercase text-slate-500">Level 1</dt><dd class="whitespace-nowrap text-slate-700">{{ $money($summary->l1_earnings) }}</dd></div>
-                                <div><dt class="text-xs font-bold uppercase text-slate-500">Level 2</dt><dd class="whitespace-nowrap text-slate-700">{{ $money($summary->l2_earnings) }}</dd></div>
-                                <div><dt class="text-xs font-bold uppercase text-slate-500">Level 3</dt><dd class="whitespace-nowrap text-slate-700">{{ $money($summary->l3_earnings) }}</dd></div>
-                                <div><dt class="text-xs font-bold uppercase text-slate-500">Total Overriding</dt><dd class="whitespace-nowrap font-semibold text-teal-700">{{ $money($summary->total_overriding) }}</dd></div>
-                            </dl>
-                        </article>
-                    @empty
-                        <div class="px-5 py-10 text-center text-sm text-slate-500">
-                            No affiliate found for the current search.
-                        </div>
-                    @endforelse
-                </div>
-
-                <div class="border-t border-slate-100 bg-slate-50 px-6 py-3">
-                    <p class="text-xs text-slate-500">Level 1 Earnings includes normal L1 overriding and qualified L1 split earnings.</p>
-                    <div class="mt-3">{{ $summaries->links() }}</div>
+                <div data-summary-results>
+                    @include('admin.commissions.partials.summary-results', [
+                        'summaries' => $summaries,
+                        'filteredSummarySalesTotal' => $filteredSummarySalesTotal,
+                        'filters' => $filters,
+                        'commission' => $commission,
+                        'money' => $money,
+                    ])
                 </div>
             </div>
 
@@ -482,6 +401,91 @@
                 });
             }
 
+            // ── Summary AJAX ──────────────────────────────────────────────────────
+            const summarySection = document.querySelector('[data-summary-section]');
+            const summaryResults = summarySection?.querySelector('[data-summary-results]');
+            const summaryFilterForm = summarySection?.querySelector('[data-summary-filter-form]');
+            const summaryLoadingEl = summarySection?.querySelector('[data-summary-loading]');
+            const summaryAffiliateCombobox = summarySection?.querySelector('[data-summary-affiliate-combobox]');
+            let summaryRequest = null;
+
+            const setSummaryLoading = (loading) => {
+                summaryLoadingEl?.classList.toggle('hidden', ! loading);
+                summaryLoadingEl?.classList.toggle('flex', loading);
+                summaryResults?.classList.toggle('opacity-60', loading);
+            };
+
+            const buildSummaryUrl = (overrides = {}) => {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('ajax');
+                url.searchParams.delete('section');
+                Object.entries(overrides).forEach(([key, value]) => {
+                    if (value === null || value === undefined || value === '') {
+                        url.searchParams.delete(key);
+                    } else {
+                        url.searchParams.set(key, value);
+                    }
+                });
+                return url;
+            };
+
+            const updateSummaryAffiliateOptions = (options) => {
+                const optionsPanel = summaryAffiliateCombobox?.querySelector('[data-combobox-options]');
+                const hiddenInput = summaryAffiliateCombobox?.querySelector('[data-combobox-value]');
+                const searchInput = summaryAffiliateCombobox?.querySelector('[data-combobox-input]');
+                if (! optionsPanel) return;
+
+                const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                let html = `<button type="button" class="block w-full px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800" data-combobox-option data-id="" data-label="All Affiliates" data-search="all affiliates">All Affiliates</button>`;
+                options.forEach((opt) => {
+                    html += `<button type="button" class="block w-full px-3 py-2 text-left text-sm hover:bg-emerald-50" data-combobox-option data-id="${esc(opt.id)}" data-label="${esc(opt.label)}" data-search="${esc(opt.search)}">
+                        <span class="block font-semibold text-slate-900">${esc(opt.name)}</span>
+                        ${opt.affiliate_code ? `<span class="block text-xs text-slate-500">${esc(opt.affiliate_code)}</span>` : ''}
+                    </button>`;
+                });
+                html += `<p class="hidden px-3 py-3 text-sm text-slate-500" data-combobox-empty>No affiliate found</p>`;
+                optionsPanel.innerHTML = html;
+
+                if (hiddenInput) hiddenInput.value = '';
+                if (searchInput) { searchInput.value = ''; searchInput.placeholder = 'All Affiliates'; }
+                if (summaryAffiliateCombobox) {
+                    delete summaryAffiliateCombobox.dataset.comboboxReady;
+                    initializeCombobox(summaryAffiliateCombobox);
+                }
+            };
+
+            const fetchSummaryResults = async (url, updateHistory = true) => {
+                if (! summaryResults) return;
+                summaryRequest?.abort();
+                const controller = new AbortController();
+                summaryRequest = controller;
+                const requestUrl = new URL(String(url), window.location.origin);
+                requestUrl.searchParams.set('ajax', '1');
+                requestUrl.searchParams.set('section', 'summary');
+                setSummaryLoading(true);
+                try {
+                    const response = await fetch(requestUrl, {
+                        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        signal: controller.signal,
+                    });
+                    if (! response.ok) throw new Error('Failed');
+                    const data = await response.json();
+                    summaryResults.innerHTML = data.html;
+                    if (data.affiliateOptions) updateSummaryAffiliateOptions(data.affiliateOptions);
+                    if (updateHistory) {
+                        const historyUrl = new URL(requestUrl);
+                        historyUrl.searchParams.delete('ajax');
+                        historyUrl.searchParams.delete('section');
+                        window.history.replaceState({}, '', `${historyUrl.pathname}${historyUrl.search}`);
+                    }
+                } catch (error) {
+                    // silently ignore aborts
+                } finally {
+                    if (summaryRequest === controller) { setSummaryLoading(false); summaryRequest = null; }
+                }
+            };
+
+            // ── Date range picker ────────────────────────────────────────────────
             const dateRangePicker = document.querySelector('[data-date-range-picker]');
 
             if (dateRangePicker) {
@@ -654,6 +658,17 @@
                     return;
                 }
 
+                if (form?.matches('[data-summary-filter-form]')) {
+                    const affiliateVal = form.querySelector('[name="summary_affiliate"]')?.value ?? '';
+                    const groupVal = form.querySelector('[name="summary_group"]')?.value ?? '';
+                    fetchSummaryResults(buildSummaryUrl({
+                        summary_group: groupVal || null,
+                        summary_affiliate: affiliateVal || null,
+                        summary_page: null,
+                    }));
+                    return;
+                }
+
                 if (form?.requestSubmit) {
                     form.requestSubmit();
                     return;
@@ -767,6 +782,57 @@
             };
 
             document.querySelectorAll('[data-combobox]').forEach(initializeCombobox);
+
+            // ── Summary event listeners ──────────────────────────────────────────
+            summarySection?.querySelector('[name="summary_group"]')?.addEventListener('change', (e) => {
+                fetchSummaryResults(buildSummaryUrl({
+                    summary_group: e.target.value || null,
+                    summary_affiliate: null,
+                    summary_page: null,
+                }));
+            });
+
+            summaryFilterForm?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                submitForm(summaryFilterForm);
+            });
+
+            summarySection?.addEventListener('click', (e) => {
+                const clearBtn = e.target.closest('[data-summary-clear]');
+                if (clearBtn) {
+                    e.preventDefault();
+                    const clearUrl = new URL(clearBtn.href, window.location.href);
+                    clearUrl.searchParams.delete('ajax');
+                    clearUrl.searchParams.delete('section');
+                    const groupSelect = summaryFilterForm?.querySelector('[name="summary_group"]');
+                    const hiddenInput = summaryAffiliateCombobox?.querySelector('[data-combobox-value]');
+                    const searchInput = summaryAffiliateCombobox?.querySelector('[data-combobox-input]');
+                    if (groupSelect) groupSelect.value = '';
+                    if (hiddenInput) hiddenInput.value = '';
+                    if (searchInput) { searchInput.value = ''; }
+                    fetchSummaryResults(clearUrl);
+                    return;
+                }
+
+                const sortLink = e.target.closest('[data-summary-sort]');
+                if (sortLink) {
+                    e.preventDefault();
+                    const sortUrl = new URL(sortLink.href, window.location.href);
+                    sortUrl.searchParams.delete('ajax');
+                    sortUrl.searchParams.delete('section');
+                    fetchSummaryResults(sortUrl);
+                    return;
+                }
+
+                const pageLink = e.target.closest('[data-summary-pagination] a[href]');
+                if (pageLink) {
+                    e.preventDefault();
+                    const pageUrl = new URL(pageLink.href, window.location.href);
+                    pageUrl.searchParams.delete('ajax');
+                    pageUrl.searchParams.delete('section');
+                    fetchSummaryResults(pageUrl);
+                }
+            });
 
             document.querySelectorAll('[data-auto-submit]').forEach((field) => {
                 field.addEventListener('change', () => {

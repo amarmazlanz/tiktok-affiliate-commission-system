@@ -255,6 +255,33 @@ class CommissionController extends Controller
                 ->sum('commission_amount')
             : (float) $commission->total_commission;
 
+        $summaryFilters = [
+            'summary_sort' => $summarySort,
+            'summary_dir' => $summaryDirection,
+            'summary_group' => $summaryGroup,
+            'summary_affiliate' => $summaryAffiliate,
+            'date_from' => $dateFrom?->format('Y-m-d'),
+            'date_to' => $dateTo?->format('Y-m-d'),
+        ];
+
+        if ($request->boolean('ajax') && $request->query('section') === 'summary') {
+            return response()->json([
+                'html' => view('admin.commissions.partials.summary-results', [
+                    'summaries' => $summaries,
+                    'filteredSummarySalesTotal' => $filteredSummarySalesTotal,
+                    'filters' => $summaryFilters,
+                    'commission' => $commission,
+                ])->render(),
+                'affiliateOptions' => $summaryAffiliateOptions->map(fn ($a) => [
+                    'id' => $a->id,
+                    'name' => $a->name,
+                    'affiliate_code' => $a->affiliate_code ?? '',
+                    'label' => trim($a->name.' '.($a->affiliate_code ? '('.$a->affiliate_code.')' : '')),
+                    'search' => strtolower(trim($a->name.' '.(string) ($a->affiliate_code ?? ''))),
+                ])->values(),
+            ]);
+        }
+
         return view('admin.commissions.show', [
             'commission' => $commission,
             'summaries' => $summaries,
@@ -273,12 +300,7 @@ class CommissionController extends Controller
             'summaryGroupOptions' => $summaryGroupOptions,
             'filters' => [
                 ...$entryData['filters'],
-                'summary_group' => $summaryGroup,
-                'summary_affiliate' => $summaryAffiliate,
-                'summary_sort' => $summarySort,
-                'summary_dir' => $summaryDirection,
-                'date_from' => $dateFrom?->format('Y-m-d'),
-                'date_to' => $dateTo?->format('Y-m-d'),
+                ...$summaryFilters,
             ],
             'months' => $this->months(),
             'entryTypeLabels' => $entryTypeLabels,
