@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'tiktok_shop' => [
+        'key' => env('TIKTOK_APP_KEY'),
+        'secret' => env('TIKTOK_APP_SECRET'),
+    ],
+
 ];

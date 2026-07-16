@@ -21,6 +21,7 @@ use App\Http\Controllers\Affiliate\LeaderboardController as AffiliateLeaderboard
 use App\Http\Controllers\Affiliate\TeamController as AffiliateTeamController;
 use App\Http\Controllers\Affiliate\TiktokAccountController as AffiliateTiktokAccountController;
 use App\Http\Controllers\PublicAffiliateRegistrationController;
+use App\Http\Controllers\TiktokOAuthController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +34,9 @@ Route::get('/', function () {
         ? redirect()->route('admin.dashboard')
         : redirect()->route('affiliate.dashboard');
 });
+
+Route::get('/connect/tiktok/callback', [TiktokOAuthController::class, 'callback'])
+    ->name('tiktok.oauth.callback');
 
 Route::get('/register/ref/{referralCode}', [PublicAffiliateRegistrationController::class, 'show'])
     ->where('referralCode', '[A-Za-z0-9-]+')
