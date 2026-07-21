@@ -47,12 +47,16 @@ class DashboardController extends Controller
         $loginEmail = $request->user()->email && ! str_ends_with($request->user()->email, '@inhouse.local')
             ? $request->user()->email
             : null;
-        $tierData    = $tiers->forMonth($affiliate, (int) now()->month, (int) now()->year);
+        $tierData     = $tiers->forMonth($affiliate, (int) now()->month, (int) now()->year);
         $earnedBadges = $badges->earned($affiliate);
+        $groupSalesData = $teamSummary['direct_count'] > 0
+            ? $teams->groupSales($affiliate, (int) now()->month, (int) now()->year)
+            : null;
 
         return view('affiliate.dashboard', array_merge($periodData, $summaryData, [
             'affiliate' => $affiliate,
             'teamSummary' => $teamSummary,
+            'groupSalesData' => $groupSalesData,
             'tierData' => $tierData,
             'earnedBadges' => $earnedBadges,
             'profileSummary' => [

@@ -9,13 +9,86 @@ class AffiliateTeamService
 {
     public function summary(Affiliate $root): array
     {
-        $depths = collect($this->branchRows($root->id))->pluck('depth')->map(fn ($depth): int => (int) $depth);
+        $rows = collect($this->branchRows($root->id));
+        $depths = $rows->pluck('depth')->map(fn ($depth): int => (int) $depth);
+
+        $descendantIds = $rows
+            ->filter(fn ($r) => (int) $r->depth > 0)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $typeById = $descendantIds
+            ? Affiliate::whereKey($descendantIds)->pluck('affiliate_type', 'id')->all()
+            : [];
+
+        $depthById = $rows
+            ->filter(fn ($r) => (int) $r->depth > 0)
+            ->mapWithKeys(fn ($r) => [(int) $r->id => (int) $r->depth])
+            ->all();
+
+        $levelBreakdown = [
+            1 => ['inhouse' => 0, 'online' => 0],
+            2 => ['inhouse' => 0, 'online' => 0],
+            3 => ['inhouse' => 0, 'online' => 0],
+        ];
+
+        foreach ($descendantIds as $id) {
+            $depth = $depthById[$id] ?? 1;
+            $type  = $typeById[$id] ?? 'inhouse';
+            $key   = min($depth, 3);
+            $levelBreakdown[$key][$type]++;
+        }
+
+        $inhouseCount = array_sum(array_column($levelBreakdown, 'inhouse'));
+        $onlineCount  = array_sum(array_column($levelBreakdown, 'online'));
 
         return [
-            'direct_count' => $depths->filter(fn ($depth) => $depth === 1)->count(),
-            'total_count' => $depths->filter(fn ($depth) => $depth > 0)->count(),
-            'level_2_count' => $depths->filter(fn ($depth) => $depth === 2)->count(),
+            'direct_count'       => $depths->filter(fn ($depth) => $depth === 1)->count(),
+            'total_count'        => $depths->filter(fn ($depth) => $depth > 0)->count(),
+            'level_2_count'      => $depths->filter(fn ($depth) => $depth === 2)->count(),
             'level_3_plus_count' => $depths->filter(fn ($depth) => $depth >= 3)->count(),
+            'inhouse_count'      => $inhouseCount,
+            'online_count'       => $onlineCount,
+            'level_breakdown'    => [
+                ['label' => 'L1 (Direct)', 'inhouse' => $levelBreakdown[1]['inhouse'], 'online' => $levelBreakdown[1]['online']],
+                ['label' => 'L2',          'inhouse' => $levelBreakdown[2]['inhouse'], 'online' => $levelBreakdown[2]['online']],
+                ['label' => 'L3+',         'inhouse' => $levelBreakdown[3]['inhouse'], 'online' => $levelBreakdown[3]['online']],
+            ],
+        ];
+    }
+
+    public function groupSales(Affiliate $root, int $month, int $year): array
+    {
+        $descendantIds = collect($this->branchRows($root->id))
+            ->filter(fn ($r) => (int) $r->depth > 0)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if (empty($descendantIds)) {
+            return ['group_total' => 0.0, 'inhouse_sales' => 0.0, 'online_sales' => 0.0];
+        }
+
+        $results = DB::table('commission_entries')
+            ->join('commission_runs', 'commission_runs.id', '=', 'commission_entries.commission_run_id')
+            ->join('affiliates', 'affiliates.id', '=', 'commission_entries.source_affiliate_id')
+            ->whereIn('commission_entries.source_affiliate_id', $descendantIds)
+            ->where('commission_entries.commission_type', 'personal')
+            ->where('commission_runs.month', $month)
+            ->where('commission_runs.year', $year)
+            ->selectRaw('affiliates.affiliate_type, SUM(commission_entries.base_amount) as total_sales')
+            ->groupBy('affiliates.affiliate_type')
+            ->get()
+            ->keyBy('affiliate_type');
+
+        $inhouse = (float) ($results->get('inhouse')?->total_sales ?? 0);
+        $online  = (float) ($results->get('online')?->total_sales ?? 0);
+
+        return [
+            'group_total'   => $inhouse + $online,
+            'inhouse_sales' => $inhouse,
+            'online_sales'  => $online,
         ];
     }
 
