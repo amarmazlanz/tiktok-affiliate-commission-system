@@ -48,6 +48,16 @@
         .form-field { margin-top: 0.5rem; display: block; width: 100%; border-radius: 0.5rem; border: 1px solid #cbd5e1; padding: 0.625rem 0.8rem; font-size: 0.875rem; box-shadow: 0 1px 2px rgb(15 23 42 / .05); outline: none; }
         .form-field:focus { border-color: #f43f5e; box-shadow: 0 0 0 3px #ffe4e6; }
     </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        .flatpickr-day.selected,.flatpickr-day.startRange,.flatpickr-day.endRange,
+        .flatpickr-day.selected:hover,.flatpickr-day.startRange:hover,.flatpickr-day.endRange:hover
+            { background:#e11d48; border-color:#e11d48; }
+        .flatpickr-day.inRange { background:#fff1f2; border-color:#fff1f2; box-shadow:-5px 0 0 #fff1f2,5px 0 0 #fff1f2; }
+        .flatpickr-day:hover:not(.selected):not(.startRange):not(.endRange) { background:#fff1f2; }
+        .flatpickr-months .flatpickr-prev-month:hover svg,.flatpickr-months .flatpickr-next-month:hover svg { fill:#e11d48; }
+        .flatpickr-calendar { border-radius:.75rem; box-shadow:0 10px 40px rgb(15 23 42/.12); border:1px solid #e2e8f0; }
+    </style>
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-900 antialiased">
     @auth
@@ -203,5 +213,6 @@
     <div class="@auth app-shell lg:pl-72 @endauth">
         @yield('content')
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </body>
 </html>

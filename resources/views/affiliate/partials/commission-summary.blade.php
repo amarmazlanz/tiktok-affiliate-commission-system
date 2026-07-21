@@ -40,18 +40,23 @@
                     </div>
                 </div>
 
-                <div class="flex flex-wrap items-end gap-2">
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">Dari Tarikh</label>
-                        <input type="date" name="date_from" value="{{ $periodFilters['date_from']?->format('Y-m-d') ?? '' }}" class="form-field mt-1">
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="relative">
+                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                        </span>
+                        <input type="text" id="date-range-picker" name="_date_display"
+                            placeholder="Pilih tarikh..."
+                            readonly autocomplete="off"
+                            class="form-field min-w-[15rem] cursor-pointer pl-9" style="margin-top:0">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wide text-slate-500">Hingga Tarikh</label>
-                        <input type="date" name="date_to" value="{{ $periodFilters['date_to']?->format('Y-m-d') ?? '' }}" class="form-field mt-1">
-                    </div>
-                    <button type="submit" class="btn-primary">Tapis</button>
+                    <input type="hidden" name="date_from" id="date-from-value" value="{{ $periodFilters['date_from']?->format('Y-m-d') ?? '' }}">
+                    <input type="hidden" name="date_to" id="date-to-value" value="{{ $periodFilters['date_to']?->format('Y-m-d') ?? '' }}">
                     @if ($periodFilters['date_from'] || $periodFilters['date_to'])
-                        <a href="{{ $periodRoute }}?month={{ $periodFilters['month'] }}&year={{ $periodFilters['year'] }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Reset</a>
+                        <a href="{{ $periodRoute }}?month={{ $periodFilters['month'] }}&year={{ $periodFilters['year'] }}"
+                           class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                            &times; Reset
+                        </a>
                     @endif
                 </div>
             </form>
