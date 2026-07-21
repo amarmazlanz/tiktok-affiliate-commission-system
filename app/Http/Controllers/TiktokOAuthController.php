@@ -70,10 +70,10 @@ class TiktokOAuthController extends Controller
                 'seller_name' => $data['seller_name'] ?? null,
                 'region' => $data['seller_base_region'] ?? 'MY',
                 'expires_at' => isset($data['access_token_expire_in'])
-                    ? now()->addSeconds((int) $data['access_token_expire_in'])
+                    ? \Carbon\Carbon::createFromTimestamp((int) $data['access_token_expire_in'])
                     : now()->addHours(24),
                 'refresh_token_expires_at' => isset($data['refresh_token_expire_in'])
-                    ? now()->addSeconds((int) $data['refresh_token_expire_in'])
+                    ? \Carbon\Carbon::createFromTimestamp((int) $data['refresh_token_expire_in'])
                     : now()->addDays(30),
             ]
         );
