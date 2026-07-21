@@ -20,12 +20,36 @@ class TiktokOAuthController extends Controller
                 ->with('error', 'TikTok authorization gagal - tiada code diterima.');
         }
 
-        $response = Http::get('https://auth.tiktok-shops.com/api/v2/token/get', [
-            'app_key' => config('services.tiktok_shop.key'),
-            'app_secret' => config('services.tiktok_shop.secret'),
-            'auth_code' => $code,
+        $appKey    = config('services.tiktok_shop.key');
+        $appSecret = config('services.tiktok_shop.secret');
+        $timestamp = (string) time();
+
+        $signParams = [
+            'app_key'    => $appKey,
+            'auth_code'  => $code,
             'grant_type' => 'authorized_code',
+            'timestamp'  => $timestamp,
+        ];
+        ksort($signParams);
+
+        $signBase = $appSecret;
+        foreach ($signParams as $k => $v) {
+            $signBase .= $k . $v;
+        }
+        $signBase .= $appSecret;
+        $sign = strtoupper(hash('sha256', $signBase));
+
+        Log::info('TikTok token exchange attempt', [
+            'app_key'   => $appKey,
+            'sign'      => $sign,
+            'timestamp' => $timestamp,
+            'code_len'  => strlen($code),
         ]);
+
+        $response = Http::get('https://auth.tiktok-shops.com/api/v2/token/get', array_merge($signParams, [
+            'app_secret' => $appSecret,
+            'sign'       => $sign,
+        ]));
 
         $json = $response->json();
 
