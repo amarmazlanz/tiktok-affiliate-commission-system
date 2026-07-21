@@ -29,16 +29,25 @@ class DashboardController extends Controller
         $periodData = $commissions->periodData($affiliate, $request);
         $summaryData = $commissions->summary($affiliate, $periodData['periodFilters']);
 
+        $isManager = $affiliate->directDownlines()->exists();
+        $groupSalesData = $isManager
+            ? $teams->groupSales($affiliate, $periodData['periodFilters']['month'], $periodData['periodFilters']['year'])
+            : null;
+
         if ($request->expectsJson() || $request->boolean('ajax')) {
             return response()->json([
                 'html' => view('affiliate.partials.commission-summary', array_merge(
                     $periodData,
                     $summaryData,
-                    ['periodRoute' => route('affiliate.dashboard'), 'showManagerBonus' => false],
+                    [
+                        'periodRoute'    => route('affiliate.dashboard'),
+                        'showManagerBonus' => false,
+                        'groupSalesData' => $groupSalesData,
+                    ],
                 ))->render(),
                 'periodLabel' => $periodData['periodLabel'],
                 'month' => $periodData['periodFilters']['month'],
-                'year' => $periodData['periodFilters']['year'],
+                'year'  => $periodData['periodFilters']['year'],
             ]);
         }
 
@@ -49,21 +58,18 @@ class DashboardController extends Controller
             : null;
         $tierData     = $tiers->forMonth($affiliate, (int) now()->month, (int) now()->year);
         $earnedBadges = $badges->earned($affiliate);
-        $groupSalesData = $teamSummary['direct_count'] > 0
-            ? $teams->groupSales($affiliate, (int) now()->month, (int) now()->year)
-            : null;
 
         return view('affiliate.dashboard', array_merge($periodData, $summaryData, [
-            'affiliate' => $affiliate,
-            'teamSummary' => $teamSummary,
+            'affiliate'      => $affiliate,
+            'teamSummary'    => $teamSummary,
             'groupSalesData' => $groupSalesData,
-            'tierData' => $tierData,
-            'earnedBadges' => $earnedBadges,
+            'tierData'       => $tierData,
+            'earnedBadges'   => $earnedBadges,
             'profileSummary' => [
-                'position' => $teamSummary['direct_count'] > 0 ? 'Manager' : 'Affiliate',
+                'position'    => $teamSummary['direct_count'] > 0 ? 'Manager' : 'Affiliate',
                 'login_label' => $loginEmail ?: ($request->user()->affiliate_code ?: $affiliate->affiliate_code),
             ],
-            'periodRoute' => route('affiliate.dashboard'),
+            'periodRoute'      => route('affiliate.dashboard'),
             'showManagerBonus' => false,
         ]));
     }

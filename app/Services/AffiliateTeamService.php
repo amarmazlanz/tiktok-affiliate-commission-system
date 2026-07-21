@@ -58,7 +58,7 @@ class AffiliateTeamService
         ];
     }
 
-    public function groupSales(Affiliate $root, int $month, int $year): array
+    public function groupSales(Affiliate $root, int|string $month, int|string $year): array
     {
         $descendantIds = collect($this->branchRows($root->id))
             ->filter(fn ($r) => (int) $r->depth > 0)
@@ -70,13 +70,20 @@ class AffiliateTeamService
             return ['group_total' => 0.0, 'inhouse_sales' => 0.0, 'online_sales' => 0.0];
         }
 
-        $results = DB::table('commission_entries')
+        $query = DB::table('commission_entries')
             ->join('commission_runs', 'commission_runs.id', '=', 'commission_entries.commission_run_id')
             ->join('affiliates', 'affiliates.id', '=', 'commission_entries.source_affiliate_id')
             ->whereIn('commission_entries.source_affiliate_id', $descendantIds)
-            ->where('commission_entries.commission_type', 'personal')
-            ->where('commission_runs.month', $month)
-            ->where('commission_runs.year', $year)
+            ->where('commission_entries.commission_type', 'personal');
+
+        if ($year !== 'all') {
+            $query->where('commission_runs.year', $year);
+        }
+        if ($month !== 'all') {
+            $query->where('commission_runs.month', $month);
+        }
+
+        $results = $query
             ->selectRaw('affiliates.affiliate_type, SUM(commission_entries.base_amount) as total_sales')
             ->groupBy('affiliates.affiliate_type')
             ->get()
