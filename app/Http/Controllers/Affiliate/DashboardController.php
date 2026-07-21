@@ -29,8 +29,8 @@ class DashboardController extends Controller
         $periodData = $commissions->periodData($affiliate, $request);
         $summaryData = $commissions->summary($affiliate, $periodData['periodFilters']);
 
-        $isManager = $affiliate->directDownlines()->exists();
-        $groupSalesData = $isManager
+        $teamSummary = $teams->summary($affiliate);
+        $groupSalesData = $teamSummary['direct_count'] > 0
             ? $teams->groupSales($affiliate, $periodData['periodFilters']['month'], $periodData['periodFilters']['year'])
             : null;
 
@@ -40,9 +40,10 @@ class DashboardController extends Controller
                     $periodData,
                     $summaryData,
                     [
-                        'periodRoute'    => route('affiliate.dashboard'),
+                        'periodRoute'      => route('affiliate.dashboard'),
                         'showManagerBonus' => false,
-                        'groupSalesData' => $groupSalesData,
+                        'groupSalesData'   => $groupSalesData,
+                        'teamSummary'      => $teamSummary,
                     ],
                 ))->render(),
                 'periodLabel' => $periodData['periodLabel'],
@@ -52,7 +53,6 @@ class DashboardController extends Controller
         }
 
         $affiliate->loadMissing('upline:id,name,affiliate_code');
-        $teamSummary = $teams->summary($affiliate);
         $loginEmail = $request->user()->email && ! str_ends_with($request->user()->email, '@inhouse.local')
             ? $request->user()->email
             : null;
