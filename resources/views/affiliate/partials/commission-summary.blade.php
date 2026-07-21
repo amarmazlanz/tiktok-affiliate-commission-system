@@ -46,7 +46,7 @@
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
                         </span>
                         <input type="text" id="date-range-picker" name="_date_display"
-                            placeholder="Pilih tarikh..."
+                            placeholder="Select date range..."
                             readonly autocomplete="off"
                             class="form-field min-w-[15rem] cursor-pointer pl-9" style="margin-top:0">
                     </div>
@@ -110,7 +110,7 @@
     <div class="flex items-center justify-between">
         <div>
             <p class="text-sm font-bold text-emerald-700">Group Overview</p>
-            <h2 class="mt-1 text-lg font-black text-slate-950">Struktur &amp; Jualan Pasukan</h2>
+            <h2 class="mt-1 text-lg font-black text-slate-950">Team Structure &amp; Sales</h2>
         </div>
         <span class="text-xs font-bold text-slate-400">{{ $periodLabel }}</span>
     </div>
@@ -118,7 +118,7 @@
     @isset($teamSummary)
     <div class="mt-4 grid grid-cols-3 gap-3">
         <div class="rounded-lg bg-slate-50 p-4 text-center">
-            <p class="stat-label">Jumlah Ahli</p>
+            <p class="stat-label">Total Members</p>
             <p class="mt-1 text-2xl font-black text-slate-950">{{ number_format($teamSummary['total_count']) }}</p>
         </div>
         <div class="rounded-lg bg-teal-50 p-4 text-center">
@@ -138,7 +138,7 @@
                     <th class="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Level</th>
                     <th class="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-teal-600">Inhouse</th>
                     <th class="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-amber-600">Online</th>
-                    <th class="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-slate-500">Jumlah</th>
+                    <th class="px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-slate-500">Total</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -157,15 +157,15 @@
 
     <div class="mt-4 grid grid-cols-3 gap-3">
         <div class="rounded-lg bg-emerald-50 p-4">
-            <p class="stat-label text-emerald-700">Jualan Kumpulan</p>
+            <p class="stat-label text-emerald-700">Group Sales</p>
             <p class="mt-1 text-xl font-black text-emerald-900">RM {{ number_format($groupSalesData['group_total'], 2) }}</p>
         </div>
         <div class="rounded-lg bg-teal-50 p-4">
-            <p class="stat-label text-teal-700">Jualan Inhouse</p>
+            <p class="stat-label text-teal-700">Inhouse Sales</p>
             <p class="mt-1 text-xl font-black text-teal-900">RM {{ number_format($groupSalesData['inhouse_sales'], 2) }}</p>
         </div>
         <div class="rounded-lg bg-amber-50 p-4">
-            <p class="stat-label text-amber-700">Jualan Online</p>
+            <p class="stat-label text-amber-700">Online Sales</p>
             <p class="mt-1 text-xl font-black text-amber-900">RM {{ number_format($groupSalesData['online_sales'], 2) }}</p>
         </div>
     </div>

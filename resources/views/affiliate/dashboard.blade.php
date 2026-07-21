@@ -41,15 +41,15 @@
                         @if ($tierData['next'])
                             <div class="flex items-center justify-between text-sm">
                                 <p class="font-bold text-slate-700">Progress to {{ $tierData['next']['label'] }}</p>
-                                <p class="font-bold text-emerald-700">RM {{ number_format($tierData['amount_to_next'], 2) }} lagi</p>
+                                <p class="font-bold text-emerald-700">RM {{ number_format($tierData['amount_to_next'], 2) }} to go</p>
                             </div>
                             <div class="tier-progress-track mt-2">
                                 <div class="tier-progress-fill" style="width: {{ $tierData['progress_percent'] }}%"></div>
                             </div>
-                            <p class="mt-1 text-xs text-slate-500">Sales bulan ini: RM {{ number_format($tierData['sales'], 2) }} / RM {{ number_format($tierData['next']['min_sales'], 2) }}</p>
+                            <p class="mt-1 text-xs text-slate-500">This month's sales: RM {{ number_format($tierData['sales'], 2) }} / RM {{ number_format($tierData['next']['min_sales'], 2) }}</p>
                         @else
                             <div class="rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-800">
-                                🎉 Anda di tahap tertinggi: {{ $tierData['current']['label'] }}! Sales bulan ini: RM {{ number_format($tierData['sales'], 2) }}
+                                🎉 You've reached the highest tier: {{ $tierData['current']['label'] }}! This month's sales: RM {{ number_format($tierData['sales'], 2) }}
                             </div>
                         @endif
                     </div>
@@ -87,8 +87,8 @@
 
                 @if ($earnedBadges->isNotEmpty())
                 <div class="app-card p-5 sm:p-6">
-                    <p class="text-sm font-bold text-emerald-700">Pencapaian Anda</p>
-                    <h2 class="mt-1 text-lg font-black text-slate-950">Badge yang diperoleh</h2>
+                    <p class="text-sm font-bold text-emerald-700">Your Achievements</p>
+                    <h2 class="mt-1 text-lg font-black text-slate-950">Badges Earned</h2>
                     <div class="mt-4 flex flex-wrap gap-3">
                         @foreach ($earnedBadges as $badge)
                             <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2" title="{{ $badge['desc'] }}">
