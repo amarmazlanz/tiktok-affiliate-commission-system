@@ -58,7 +58,7 @@ class AffiliateTeamService
         ];
     }
 
-    public function groupSales(Affiliate $root, int|string $month, int|string $year): array
+    public function groupSales(Affiliate $root, int|string $month, int|string $year, $dateFrom = null, $dateTo = null): array
     {
         $descendantIds = collect($this->branchRows($root->id))
             ->filter(fn ($r) => (int) $r->depth > 0)
@@ -76,11 +76,16 @@ class AffiliateTeamService
             ->whereIn('commission_entries.source_affiliate_id', $descendantIds)
             ->where('commission_entries.commission_type', 'personal');
 
-        if ($year !== 'all') {
-            $query->where('commission_runs.year', $year);
-        }
-        if ($month !== 'all') {
-            $query->where('commission_runs.month', $month);
+        if ($dateFrom && $dateTo) {
+            $query->join('tiktok_orders as to_group_sales', 'to_group_sales.id', '=', 'commission_entries.tiktok_order_id')
+                ->whereBetween('to_group_sales.time_commission_paid', [$dateFrom, $dateTo]);
+        } else {
+            if ($year !== 'all') {
+                $query->where('commission_runs.year', $year);
+            }
+            if ($month !== 'all') {
+                $query->where('commission_runs.month', $month);
+            }
         }
 
         $results = $query

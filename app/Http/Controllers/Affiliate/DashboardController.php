@@ -31,7 +31,13 @@ class DashboardController extends Controller
 
         $teamSummary = $teams->summary($affiliate);
         $groupSalesData = $teamSummary['direct_count'] > 0
-            ? $teams->groupSales($affiliate, $periodData['periodFilters']['month'], $periodData['periodFilters']['year'])
+            ? $teams->groupSales(
+                $affiliate,
+                $periodData['periodFilters']['month'],
+                $periodData['periodFilters']['year'],
+                $periodData['periodFilters']['date_from'],
+                $periodData['periodFilters']['date_to'],
+            )
             : null;
 
         if ($request->expectsJson() || $request->boolean('ajax')) {
@@ -47,8 +53,11 @@ class DashboardController extends Controller
                     ],
                 ))->render(),
                 'periodLabel' => $periodData['periodLabel'],
+                'periodType' => $periodData['periodFilters']['period_type'],
                 'month' => $periodData['periodFilters']['month'],
                 'year'  => $periodData['periodFilters']['year'],
+                'dateFrom' => $periodData['periodFilters']['date_from']?->format('Y-m-d'),
+                'dateTo' => $periodData['periodFilters']['date_to']?->format('Y-m-d'),
             ]);
         }
 

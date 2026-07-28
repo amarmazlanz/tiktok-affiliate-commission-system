@@ -1,11 +1,26 @@
 <script>
     window.initCommissionDatePicker = () => {
+        const form = document.querySelector('[data-period-filter-form]');
+        const periodType = form?.querySelector('[name="period_type"]');
+        const customControls = form?.querySelector('[data-custom-date-controls]');
+        const monthYearControls = form?.querySelector('[data-month-year-controls]');
         const el = document.getElementById('date-range-picker');
+
+        const syncVisibility = () => {
+            const type = periodType?.value || 'month';
+            customControls?.classList.toggle('hidden', type !== 'custom');
+            monthYearControls?.classList.toggle('hidden', type !== 'month');
+        };
+
+        syncVisibility();
+
         if (!el || !window.flatpickr) return;
         if (el._flatpickr) el._flatpickr.destroy();
 
-        const fromVal = document.getElementById('date-from-value')?.value;
-        const toVal   = document.getElementById('date-to-value')?.value;
+        const fromInput = document.getElementById('date-from-value');
+        const toInput = document.getElementById('date-to-value');
+        const fromVal = fromInput?.value;
+        const toVal = toInput?.value;
 
         const parseDate = (str) => {
             if (!str) return null;
@@ -22,20 +37,21 @@
             mode: 'range',
             dateFormat: 'Y-m-d',
             defaultDate: defaultDate.length ? defaultDate : null,
-            locale: { rangeSeparator: ' → ' },
+            locale: { rangeSeparator: ' -> ' },
             onReady: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    el.value = `${fmtDisplay(selectedDates[0])} → ${fmtDisplay(selectedDates[1])}`;
+                    el.value = `${fmtDisplay(selectedDates[0])} -> ${fmtDisplay(selectedDates[1])}`;
                 } else if (selectedDates.length === 1) {
                     el.value = fmtDisplay(selectedDates[0]);
                 }
             },
             onChange: (selectedDates) => {
                 if (selectedDates.length === 2) {
-                    document.getElementById('date-from-value').value = fmtYmd(selectedDates[0]);
-                    document.getElementById('date-to-value').value   = fmtYmd(selectedDates[1]);
-                    el.value = `${fmtDisplay(selectedDates[0])} → ${fmtDisplay(selectedDates[1])}`;
-                    el.closest('form')?.submit();
+                    periodType.value = 'custom';
+                    fromInput.value = fmtYmd(selectedDates[0]);
+                    toInput.value = fmtYmd(selectedDates[1]);
+                    el.value = `${fmtDisplay(selectedDates[0])} -> ${fmtDisplay(selectedDates[1])}`;
+                    el.closest('form')?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
                 }
             },
         });
@@ -53,7 +69,7 @@
             loadingPanel?.classList.toggle('flex', loading);
             summary?.classList.toggle('opacity-60', loading);
             breakdown?.classList.toggle('opacity-60', loading);
-            document.querySelectorAll('[data-period-select]').forEach((field) => {
+            document.querySelectorAll('[data-period-select], [data-period-type-select]').forEach((field) => {
                 field.disabled = loading;
             });
         };
@@ -88,8 +104,18 @@
                 const browserUrl = new URL(requestUrl);
                 browserUrl.searchParams.delete('ajax');
                 browserUrl.searchParams.delete('commission_page');
+                browserUrl.searchParams.set('period_type', data.periodType || 'month');
                 browserUrl.searchParams.set('month', data.month);
                 browserUrl.searchParams.set('year', data.year);
+
+                if (data.dateFrom && data.dateTo) {
+                    browserUrl.searchParams.set('date_from', data.dateFrom);
+                    browserUrl.searchParams.set('date_to', data.dateTo);
+                } else {
+                    browserUrl.searchParams.delete('date_from');
+                    browserUrl.searchParams.delete('date_to');
+                }
+
                 if (data.sourceAffiliate === null) browserUrl.searchParams.delete('source_affiliate');
                 if (updateHistory) window.history.replaceState({}, '', browserUrl);
             } catch (error) {
@@ -99,21 +125,54 @@
             }
         };
 
+        const submitPeriodForm = (form) => {
+            if (! form) return;
+            const formData = new FormData(form);
+            const url = new URL(form.action || window.location.href, window.location.origin);
+            url.search = '';
+            formData.forEach((value, key) => {
+                if (String(value) !== '' && key !== '_date_display') url.searchParams.set(key, value);
+            });
+            url.searchParams.delete('commission_page');
+            loadPeriod(url);
+        };
+
         document.addEventListener('change', (event) => {
+            const typeSelect = event.target.closest('[data-period-type-select]');
+
+            if (typeSelect) {
+                const form = typeSelect.form;
+                const dateFrom = form?.querySelector('[name="date_from"]');
+                const dateTo = form?.querySelector('[name="date_to"]');
+                const customControls = form?.querySelector('[data-custom-date-controls]');
+                const monthYearControls = form?.querySelector('[data-month-year-controls]');
+
+                customControls?.classList.toggle('hidden', typeSelect.value !== 'custom');
+                monthYearControls?.classList.toggle('hidden', typeSelect.value !== 'month');
+
+                if (typeSelect.value !== 'custom') {
+                    if (dateFrom) dateFrom.value = '';
+                    if (dateTo) dateTo.value = '';
+                    submitPeriodForm(form);
+                }
+                return;
+            }
+
             const periodSelect = event.target.closest('[data-period-select]');
 
             if (periodSelect) {
                 const form = periodSelect.form;
                 const month = form?.querySelector('[name="month"]');
                 const year = form?.querySelector('[name="year"]');
+                const periodType = form?.querySelector('[name="period_type"]');
+                const dateFrom = form?.querySelector('[name="date_from"]');
+                const dateTo = form?.querySelector('[name="date_to"]');
                 if (! form || ! month || ! year) return;
+                if (periodType) periodType.value = 'month';
+                if (dateFrom) dateFrom.value = '';
+                if (dateTo) dateTo.value = '';
                 if (year.value === 'all') month.value = 'all';
-
-                const url = new URL(window.location.href);
-                url.searchParams.set('month', month.value);
-                url.searchParams.set('year', year.value);
-                url.searchParams.delete('commission_page');
-                loadPeriod(url);
+                submitPeriodForm(form);
                 return;
             }
 
@@ -122,6 +181,13 @@
                 autoSubmitSelect.form.dataset.submitting = '1';
                 autoSubmitSelect.form.submit();
             }
+        });
+
+        document.addEventListener('submit', (event) => {
+            const form = event.target.closest('[data-period-filter-form]');
+            if (! form) return;
+            event.preventDefault();
+            submitPeriodForm(form);
         });
 
         window.addEventListener('popstate', () => loadPeriod(window.location.href, false));

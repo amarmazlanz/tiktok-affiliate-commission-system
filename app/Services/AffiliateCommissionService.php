@@ -51,7 +51,7 @@ class AffiliateCommissionService
 
         return [
             'periodFilters' => $filters,
-            'periodLabel' => $this->periodLabel($filters['month'], $filters['year']),
+            'periodLabel' => $this->periodLabel($filters),
             'availableYears' => $years->unique()->sortDesc()->values(),
             'months' => $this->months(),
         ];
@@ -74,11 +74,12 @@ class AffiliateCommissionService
             ->selectRaw("SUM(CASE WHEN commission_type = 'l1_split_upline' THEN commission_amount ELSE 0 END) as l1_split_upline")
             ->selectRaw("SUM(CASE WHEN commission_type = 'l2_overriding' OR (commission_type = 'overriding' AND level = 2) THEN commission_amount ELSE 0 END) as l2_overriding")
             ->selectRaw("SUM(CASE WHEN commission_type = 'l3_overriding' OR (commission_type = 'overriding' AND level = 3) THEN commission_amount ELSE 0 END) as l3_overriding");
-        $this->applyCommissionPeriod($summaryQuery, $month, $year);
 
         if ($dateFrom && $dateTo) {
             $summaryQuery->join('tiktok_orders as to_s', 'to_s.id', '=', 'commission_entries.tiktok_order_id')
                          ->whereBetween('to_s.time_commission_paid', [$dateFrom, $dateTo]);
+        } else {
+            $this->applyCommissionPeriod($summaryQuery, $month, $year);
         }
 
         $summary = array_map(
@@ -97,11 +98,12 @@ class AffiliateCommissionService
             ->join('commission_runs', 'commission_runs.id', '=', 'commission_entries.commission_run_id')
             ->where('commission_entries.source_affiliate_id', $affiliate->id)
             ->where('commission_entries.commission_type', 'personal');
-        $this->applyCommissionPeriod($personalSalesQuery, $month, $year);
 
         if ($dateFrom && $dateTo) {
             $personalSalesQuery->join('tiktok_orders as to_ps', 'to_ps.id', '=', 'commission_entries.tiktok_order_id')
                                ->whereBetween('to_ps.time_commission_paid', [$dateFrom, $dateTo]);
+        } else {
+            $this->applyCommissionPeriod($personalSalesQuery, $month, $year);
         }
 
         return [
@@ -124,7 +126,7 @@ class AffiliateCommissionService
             $commissionType = '';
         }
 
-        if ($sourceAffiliate && ! $this->validSource($affiliate->id, $sourceAffiliate, $month, $year)) {
+        if ($sourceAffiliate && ! $this->validSource($affiliate->id, $sourceAffiliate, $periodFilters)) {
             $sourceAffiliate = null;
         }
 
@@ -150,10 +152,13 @@ class AffiliateCommissionService
             ])
             ->when($commissionType !== '', fn ($query) => $query->where('commission_type', $commissionType))
             ->when($sourceAffiliate, fn ($query) => $query->where('source_affiliate_id', $sourceAffiliate))
-            ->when($dateFrom && $dateTo, fn ($query) => $query->whereHas('tiktokOrder', fn ($q) => $q->whereBetween('time_commission_paid', [$dateFrom, $dateTo])))
-            ->whereHas('commissionRun', function ($query) use ($month, $year): void {
-                $this->applyCommissionRunPeriod($query, $month, $year);
-            })
+            ->when(
+                $dateFrom && $dateTo,
+                fn ($query) => $query->whereHas('tiktokOrder', fn ($q) => $q->whereBetween('time_commission_paid', [$dateFrom, $dateTo])),
+                fn ($query) => $query->whereHas('commissionRun', function ($query) use ($month, $year): void {
+                    $this->applyCommissionRunPeriod($query, $month, $year);
+                })
+            )
             ->latest('id')
             ->paginate(25, ['*'], 'commission_page')
             ->withQueryString();
@@ -165,7 +170,12 @@ class AffiliateCommissionService
             ->select('affiliates.id', 'affiliates.name', 'affiliates.affiliate_code')
             ->distinct()
             ->orderBy('affiliates.name');
-        $this->applyCommissionPeriod($sourceOptions, $month, $year);
+        if ($dateFrom && $dateTo) {
+            $sourceOptions->join('tiktok_orders as to_source_options', 'to_source_options.id', '=', 'commission_entries.tiktok_order_id')
+                ->whereBetween('to_source_options.time_commission_paid', [$dateFrom, $dateTo]);
+        } else {
+            $this->applyCommissionPeriod($sourceOptions, $month, $year);
+        }
 
         return [
             'commissionEntries' => $entries,
@@ -178,19 +188,40 @@ class AffiliateCommissionService
         ];
     }
 
-    private function validSource(int $receiverId, int $sourceId, int|string $month, int|string $year): bool
+    private function validSource(int $receiverId, int $sourceId, array $periodFilters): bool
     {
+        $month = $periodFilters['month'];
+        $year = $periodFilters['year'];
+        $dateFrom = $periodFilters['date_from'] ?? null;
+        $dateTo = $periodFilters['date_to'] ?? null;
+
         $query = DB::table('commission_entries')
             ->join('commission_runs', 'commission_runs.id', '=', 'commission_entries.commission_run_id')
             ->where('receiver_affiliate_id', $receiverId)
             ->where('source_affiliate_id', $sourceId);
-        $this->applyCommissionPeriod($query, $month, $year);
+        if ($dateFrom && $dateTo) {
+            $query->join('tiktok_orders as to_valid_source', 'to_valid_source.id', '=', 'commission_entries.tiktok_order_id')
+                ->whereBetween('to_valid_source.time_commission_paid', [$dateFrom, $dateTo]);
+        } else {
+            $this->applyCommissionPeriod($query, $month, $year);
+        }
 
         return $query->exists();
     }
 
     private function resolvePeriodFilters(Request $request, array $defaultPeriod): array
     {
+        $periodType = (string) $request->query('period_type', 'month');
+        $allowedPeriodTypes = ['month', 'today', 'yesterday', 'last_7_days', 'this_month', 'last_month', 'custom'];
+
+        if (! in_array($periodType, $allowedPeriodTypes, true)) {
+            $periodType = 'month';
+        }
+
+        if (! $request->filled('period_type') && $request->filled('date_from') && $request->filled('date_to')) {
+            $periodType = 'custom';
+        }
+
         $month = $request->query('month');
         $year = $request->query('year');
         $month = $month === null ? $defaultPeriod['month'] : ($month === 'all' ? 'all' : filter_var($month, FILTER_VALIDATE_INT));
@@ -210,23 +241,51 @@ class AffiliateCommissionService
 
         $dateFrom = null;
         $dateTo = null;
+        $today = now();
 
-        if ($request->filled('date_from') && $request->filled('date_to')) {
+        if ($periodType === 'today') {
+            $dateFrom = $today->copy()->startOfDay();
+            $dateTo = $today->copy()->endOfDay();
+        } elseif ($periodType === 'yesterday') {
+            $dateFrom = $today->copy()->subDay()->startOfDay();
+            $dateTo = $today->copy()->subDay()->endOfDay();
+        } elseif ($periodType === 'last_7_days') {
+            $dateFrom = $today->copy()->subDays(6)->startOfDay();
+            $dateTo = $today->copy()->endOfDay();
+        } elseif ($periodType === 'this_month') {
+            $dateFrom = $today->copy()->startOfMonth();
+            $dateTo = $today->copy()->endOfMonth();
+        } elseif ($periodType === 'last_month') {
+            $dateFrom = $today->copy()->subMonthNoOverflow()->startOfMonth();
+            $dateTo = $today->copy()->subMonthNoOverflow()->endOfMonth();
+        }
+
+        if ($periodType === 'custom' && $request->filled('date_from') && $request->filled('date_to')) {
             try {
                 $df = Carbon::createFromFormat('Y-m-d', $request->input('date_from'))->startOfDay();
                 $dt = Carbon::createFromFormat('Y-m-d', $request->input('date_to'))->endOfDay();
+
                 if ($df->lte($dt)) {
                     $dateFrom = $df;
                     $dateTo = $dt;
                 }
             } catch (\Throwable) {
-                // invalid dates — ignore
+                // invalid dates - ignore
             }
         }
 
-        return ['month' => $month, 'year' => $year, 'date_from' => $dateFrom, 'date_to' => $dateTo];
-    }
+        if ($periodType !== 'month' && (! $dateFrom || ! $dateTo)) {
+            $periodType = 'month';
+        }
 
+        return [
+            'period_type' => $periodType,
+            'month' => $month,
+            'year' => $year,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+        ];
+    }
     private function availableOrderYears(int $affiliateId): Collection
     {
         $yearExpression = DB::connection()->getDriverName() === 'sqlite'
@@ -271,18 +330,36 @@ class AffiliateCommissionService
         }
     }
 
-    private function periodLabel(int|string $month, int|string $year): string
+    private function periodLabel(array $filters): string
     {
+        $month = $filters['month'];
+        $year = $filters['year'];
+        $dateFrom = $filters['date_from'] ?? null;
+        $dateTo = $filters['date_to'] ?? null;
+        $periodType = $filters['period_type'] ?? 'month';
+
+        if ($periodType !== 'month' && $dateFrom && $dateTo) {
+            return match ($periodType) {
+                'today' => 'Today',
+                'yesterday' => 'Yesterday',
+                'last_7_days' => 'Last 7 Days',
+                'this_month' => 'This Month',
+                'last_month' => 'Last Month',
+                'custom' => $dateFrom->format('d M Y').' - '.$dateTo->format('d M Y'),
+                default => $dateFrom->format('d M Y').' - '.$dateTo->format('d M Y'),
+            };
+        }
+
         if ($year === 'all') {
             return 'Lifetime Performance';
         }
+
         if ($month === 'all') {
             return 'Year '.$year;
         }
 
         return $this->months()[$month].' '.$year;
     }
-
     private function emptySummary(): array
     {
         return [

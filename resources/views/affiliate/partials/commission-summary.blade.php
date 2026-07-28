@@ -18,47 +18,66 @@
                     <input type="hidden" name="source_affiliate" value="{{ $commissionFilters['source_affiliate'] }}">
                 @endif
 
-                <div class="grid gap-3 sm:grid-cols-2">
+                <div class="grid gap-3 lg:grid-cols-[190px_1fr] lg:items-end">
                     <div>
-                        <label for="month" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Month</label>
-                        <select id="month" name="month" class="form-field min-w-40" data-period-select>
-                            <option value="all" @selected($periodFilters['month'] === 'all')>All Months</option>
-                            @foreach ($months as $monthNumber => $monthName)
-                                <option value="{{ $monthNumber }}" @selected((string) $periodFilters['month'] === (string) $monthNumber)>{{ $monthName }}</option>
-                            @endforeach
+                        <label for="period_type" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Period</label>
+                        <select id="period_type" name="period_type" class="form-field min-w-44" data-period-type-select>
+                            <option value="month" @selected(($periodFilters['period_type'] ?? 'month') === 'month')>Monthly</option>
+                            <option value="today" @selected(($periodFilters['period_type'] ?? 'month') === 'today')>Today</option>
+                            <option value="yesterday" @selected(($periodFilters['period_type'] ?? 'month') === 'yesterday')>Yesterday</option>
+                            <option value="last_7_days" @selected(($periodFilters['period_type'] ?? 'month') === 'last_7_days')>Last 7 Days</option>
+                            <option value="this_month" @selected(($periodFilters['period_type'] ?? 'month') === 'this_month')>This Month</option>
+                            <option value="last_month" @selected(($periodFilters['period_type'] ?? 'month') === 'last_month')>Last Month</option>
+                            <option value="custom" @selected(($periodFilters['period_type'] ?? 'month') === 'custom')>Custom Date</option>
                         </select>
                     </div>
 
-                    <div>
-                        <label for="year" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Year</label>
-                        <select id="year" name="year" class="form-field min-w-36" data-period-select>
-                            <option value="all" @selected($periodFilters['year'] === 'all')>All Years</option>
-                            @foreach ($availableYears as $yearOption)
-                                <option value="{{ $yearOption }}" @selected((string) $periodFilters['year'] === (string) $yearOption)>{{ $yearOption }}</option>
-                            @endforeach
-                        </select>
+                    <div class="grid gap-3 sm:grid-cols-2" data-month-year-controls>
+                        <div>
+                            <label for="month" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Month</label>
+                            <select id="month" name="month" class="form-field min-w-40" data-period-select>
+                                <option value="all" @selected($periodFilters['month'] === 'all')>All Months</option>
+                                @foreach ($months as $monthNumber => $monthName)
+                                    <option value="{{ $monthNumber }}" @selected((string) $periodFilters['month'] === (string) $monthNumber)>{{ $monthName }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="year" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Year</label>
+                            <select id="year" name="year" class="form-field min-w-36" data-period-select>
+                                <option value="all" @selected($periodFilters['year'] === 'all')>All Years</option>
+                                @foreach ($availableYears as $yearOption)
+                                    <option value="{{ $yearOption }}" @selected((string) $periodFilters['year'] === (string) $yearOption)>{{ $yearOption }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-2">
-                    <div class="relative">
-                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                        </span>
-                        <input type="text" id="date-range-picker" name="_date_display"
-                            placeholder="Select date range..."
-                            readonly autocomplete="off"
-                            class="form-field min-w-[15rem] cursor-pointer pl-9" style="margin-top:0">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3" data-custom-date-controls>
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <div class="relative min-w-0 flex-1">
+                            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                            </span>
+                            <input type="text" id="date-range-picker" name="_date_display"
+                                placeholder="Select custom date range..."
+                                readonly autocomplete="off"
+                                class="form-field w-full cursor-pointer bg-white pl-9" style="margin-top:0">
+                        </div>
+                        @if ($periodFilters['date_from'] || $periodFilters['date_to'])
+                            <a href="{{ $periodRoute }}?period_type=month&month={{ $periodFilters['month'] }}&year={{ $periodFilters['year'] }}"
+                               class="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                                &times; Reset
+                            </a>
+                        @endif
                     </div>
-                    <input type="hidden" name="date_from" id="date-from-value" value="{{ $periodFilters['date_from']?->format('Y-m-d') ?? '' }}">
-                    <input type="hidden" name="date_to" id="date-to-value" value="{{ $periodFilters['date_to']?->format('Y-m-d') ?? '' }}">
-                    @if ($periodFilters['date_from'] || $periodFilters['date_to'])
-                        <a href="{{ $periodRoute }}?month={{ $periodFilters['month'] }}&year={{ $periodFilters['year'] }}"
-                           class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
-                            &times; Reset
-                        </a>
-                    @endif
+                    <p class="mt-2 text-xs font-medium text-slate-500">Custom date can include multiple months, for example 01 Apr 2026 to 18 Jun 2026.</p>
                 </div>
+
+                <input type="hidden" name="date_from" id="date-from-value" value="{{ $periodFilters['date_from']?->format('Y-m-d') ?? '' }}">
+                <input type="hidden" name="date_to" id="date-to-value" value="{{ $periodFilters['date_to']?->format('Y-m-d') ?? '' }}">
             </form>
         </div>
     </div>

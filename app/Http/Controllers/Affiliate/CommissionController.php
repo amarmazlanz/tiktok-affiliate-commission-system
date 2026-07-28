@@ -31,8 +31,11 @@ class CommissionController extends Controller
                 'html' => view('affiliate.partials.commission-summary', $data)->render(),
                 'breakdownHtml' => view('affiliate.partials.commission-breakdown', $data)->render(),
                 'periodLabel' => $periodData['periodLabel'],
+                'periodType' => $periodData['periodFilters']['period_type'],
                 'month' => $periodData['periodFilters']['month'],
                 'year' => $periodData['periodFilters']['year'],
+                'dateFrom' => $periodData['periodFilters']['date_from']?->format('Y-m-d'),
+                'dateTo' => $periodData['periodFilters']['date_to']?->format('Y-m-d'),
                 'sourceAffiliate' => $breakdownData['commissionFilters']['source_affiliate'],
             ]);
         }

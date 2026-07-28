@@ -13,8 +13,13 @@
             </div>
 
             <form method="GET" action="{{ $periodRoute }}" class="grid w-full gap-3 sm:grid-cols-2 lg:w-auto lg:grid-cols-[180px_220px_auto]" data-commission-filter-form>
+                <input type="hidden" name="period_type" value="{{ $periodFilters['period_type'] ?? 'month' }}">
                 <input type="hidden" name="month" value="{{ $periodFilters['month'] }}">
                 <input type="hidden" name="year" value="{{ $periodFilters['year'] }}">
+                @if ($periodFilters['date_from'] && $periodFilters['date_to'])
+                    <input type="hidden" name="date_from" value="{{ $periodFilters['date_from']->format('Y-m-d') }}">
+                    <input type="hidden" name="date_to" value="{{ $periodFilters['date_to']->format('Y-m-d') }}">
+                @endif
 
                 <div>
                     <label for="commission_type" class="block text-xs font-bold uppercase tracking-wide text-slate-500">Commission Type</label>
@@ -39,7 +44,13 @@
                 </div>
 
                 <div class="flex self-end">
-                    <a href="{{ $periodRoute }}?{{ http_build_query(['month' => $periodFilters['month'], 'year' => $periodFilters['year']]) }}" class="btn-secondary">Reset</a>
+                    <a href="{{ $periodRoute }}?{{ http_build_query([
+                        'period_type' => $periodFilters['period_type'] ?? 'month',
+                        'month' => $periodFilters['month'],
+                        'year' => $periodFilters['year'],
+                        'date_from' => $periodFilters['date_from']?->format('Y-m-d'),
+                        'date_to' => $periodFilters['date_to']?->format('Y-m-d'),
+                    ]) }}" class="btn-secondary">Reset</a>
                 </div>
             </form>
         </div>
